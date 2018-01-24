@@ -17,7 +17,7 @@ defmodule GenAMQP.RabbitCase do
       def setup_out_queue(conn, out_queue, out_exchange) do
         {:ok, chan} = AMQP.Channel.open(conn)
         AMQP.Queue.declare(chan, out_queue)
-        AMQP.Queue.bind(chan, out_queue, out_exchange, [routing_key: "#"])
+        AMQP.Queue.bind(chan, out_queue, out_exchange, routing_key: "#")
         AMQP.Channel.close(chan)
       end
 
@@ -25,7 +25,7 @@ defmodule GenAMQP.RabbitCase do
         {:ok, chan} = AMQP.Channel.open(conn)
         AMQP.Queue.declare(chan, in_queue)
         AMQP.Exchange.topic(chan, in_exchange, durable: true)
-        AMQP.Queue.bind(chan, in_queue, in_exchange, [routing_key: "#"])
+        AMQP.Queue.bind(chan, in_queue, in_exchange, routing_key: "#")
         AMQP.Channel.close(chan)
       end
 
@@ -57,8 +57,7 @@ defmodule GenAMQP.RabbitCase do
 
       defp queue_count(context, queue) do
         {:ok, chan} = AMQP.Channel.open(context[:rabbit_conn])
-        {:ok, %{message_count: count}} =
-          AMQP.Queue.declare(chan, context[queue], [passive: true])
+        {:ok, %{message_count: count}} = AMQP.Queue.declare(chan, context[queue], passive: true)
         AMQP.Channel.close(chan)
         count
       end

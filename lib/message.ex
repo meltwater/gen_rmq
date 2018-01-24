@@ -3,12 +3,8 @@ defmodule GenAMQP.Message do
   Information about a RabbitMQ message
   """
 
-  @enforce_keys [:attributes,
-                 :payload,
-                 :state]
-  defstruct [:attributes,
-             :payload,
-             :state]
+  @enforce_keys [:attributes, :payload, :state]
+  defstruct [:attributes, :payload, :state]
 
   def create(attributes, payload, state) do
     %__MODULE__{

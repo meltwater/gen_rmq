@@ -7,22 +7,27 @@ defmodule GenAmqp.Test.Assert do
   alias ExUnit.AssertionError
 
   def start_link(_args, _opts \\ []) do
-    Agent.start_link(fn -> Map.new end, [name: __MODULE__])
+    Agent.start_link(fn -> Map.new() end, name: __MODULE__)
   end
 
   def repeatedly(function, time \\ 5_000, interval \\ 500) do
-    task = Task.async(fn() -> repeatedly_loop(function, interval) end)
+    task = Task.async(fn -> repeatedly_loop(function, interval) end)
+
     case Task.yield(task, time) do
-      {:ok, _} -> true
+      {:ok, _} ->
+        true
+
       _ ->
-        error_message = function
-        |> last_exception
-        |> AssertionError.message
+        error_message =
+          function
+          |> last_exception
+          |> AssertionError.message()
 
         raise AssertionError,
           expr: function,
-          message: "Polling condition did not succeed after #{time/1000.0}s" <>
-            ", reason: #{error_message}"
+          message:
+            "Polling condition did not succeed after #{time / 1000.0}s" <>
+              ", reason: #{error_message}"
     end
   end
 
@@ -31,7 +36,7 @@ defmodule GenAmqp.Test.Assert do
     :ok
   rescue
     e in AssertionError ->
-      Logger.debug "Polling condition failed: #{inspect e}"
+      Logger.debug("Polling condition failed: #{inspect(e)}")
       set_last_exception(func, e)
       :timer.sleep(interval)
       repeatedly_loop(func, interval)

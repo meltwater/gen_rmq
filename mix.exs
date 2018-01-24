@@ -4,10 +4,10 @@ defmodule GenAmqp.Mixfile do
   def project do
     [
       app: :gen_amqp,
-      version: "0.1.0",
+      version: "0.1.1",
       elixir: "~> 1.5",
-      start_permanent: Mix.env == :prod,
-      elixirc_paths: elixirc_paths(Mix.env),
+      start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       test_coverage: [tool: ExCoveralls]
     ]
@@ -21,19 +21,12 @@ defmodule GenAmqp.Mixfile do
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {
-              :amqp_client,
-              git: "https://github.com/dsrosario/amqp_client.git",
-              branch: "erlang_otp_19",
-              override: true
-            }, # Temporary fix
-      {:amqp, "~> 0.1.4"},
-
+      {:amqp, "~> 0.3.0"},
       {:credo, "~> 0.8", only: :dev},
       {:excoveralls, "~> 0.7", only: :test},
       {:poison, "~> 3.1", only: :test}

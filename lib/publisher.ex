@@ -13,7 +13,7 @@ defmodule GenAMQP.Publisher do
   ##############################################################################
 
   @doc "Should provide publisher config"
-  @callback init(Any.t) :: Keyword.t
+  @callback init(Any.t()) :: Keyword.t()
 
   ##############################################################################
   # GenPublisher API
@@ -22,6 +22,11 @@ defmodule GenAMQP.Publisher do
   @doc "Starts amqp publisher"
   def start_link(module, opts \\ []) do
     GenServer.start_link(__MODULE__, %{module: module}, opts)
+  end
+
+  @doc "Publishes message for given publisher"
+  def publish(publisher, message) do
+    GenServer.call(publisher, {:publish, message})
   end
 
   ##############################################################################
@@ -42,7 +47,7 @@ defmodule GenAMQP.Publisher do
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config}) do
-    Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect reason}")
+    Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
     {:ok, state} = setup_publisher(%{module: module, config: config})
     {:noreply, state}
   end
@@ -52,7 +57,7 @@ defmodule GenAMQP.Publisher do
   ##############################################################################
 
   defp setup_publisher(%{module: module, config: config} = state) do
-    Logger.debug("[#{module}]: Setting up publisher connection and configuration")
+    Logger.info("[#{module}]: Setting up publisher connection and configuration")
 
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
@@ -65,8 +70,9 @@ defmodule GenAMQP.Publisher do
       {:ok, conn} ->
         Process.monitor(conn.pid)
         {:ok, conn}
+
       {:error, e} ->
-        Logger.error("[#{module}]: Failed to connect to RabbitMQ, reason: #{inspect e}")
+        Logger.error("[#{module}]: Failed to connect to RabbitMQ, reason: #{inspect(e)}")
         :timer.sleep(5000)
         connect(state)
     end

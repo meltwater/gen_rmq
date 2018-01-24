@@ -7,20 +7,20 @@ defmodule GenAMQP.Consumer do
   use AMQP
 
   require Logger
-  alias Scribe.AMQP.Message
+  alias GenAMQP.Message
 
   ##############################################################################
   # GenConsumer callbacks
   ##############################################################################
 
   @doc "Should provide consumer config"
-  @callback init(Any.t) :: Keyword.t
+  @callback init(Any.t()) :: Keyword.t()
 
   @doc "Should provide consumer tag"
-  @callback consumer_tag(Any.t) :: String.t
+  @callback consumer_tag(Any.t()) :: String.t()
 
   @doc "Should handle received message"
-  @callback handle_message(Message.t) :: :ok
+  @callback handle_message(Message.t()) :: :ok
 
   ##############################################################################
   # GenConsumer API
@@ -29,6 +29,16 @@ defmodule GenAMQP.Consumer do
   @doc "Starts amqp consumer"
   def start_link(module, opts \\ []) do
     GenServer.start_link(__MODULE__, %{module: module}, opts)
+  end
+
+  @doc "Acknowledges given message"
+  def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}) do
+    Basic.ack(channel, tag)
+  end
+
+  @doc "Requeues given message"
+  def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}, requeue \\ true) do
+    Basic.reject(channel, tag, requeue: requeue)
   end
 
   ##############################################################################
@@ -44,11 +54,11 @@ defmodule GenAMQP.Consumer do
   end
 
   def handle_call({:recover, requeue}, _from, %{in: channel} = state) do
-    {:reply, Basic.recover(channel, [requeue: requeue]), state}
+    {:reply, Basic.recover(channel, requeue: requeue), state}
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module} = state) do
-    Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect reason}")
+    Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
     {:ok, new_state} = rabbitmq_connect(state)
     {:noreply, new_state}
   end
@@ -68,25 +78,26 @@ defmodule GenAMQP.Consumer do
     {:noreply, state}
   end
 
-  def handle_info({:basic_deliver,
-                   payload,
-                   %{delivery_tag: tag,
-                     routing_key: routing_key,
-                     redelivered: redelivered
-                   } = attributes
-                  },
-                  %{module: module} = state) do
-    Logger.debug("[#{module}]: Received message. Tag: #{tag}, " <>
-      "routing key: #{routing_key}, redelivered: #{redelivered}")
+  def handle_info(
+        {:basic_deliver, payload,
+         %{delivery_tag: tag, routing_key: routing_key, redelivered: redelivered} = attributes},
+        %{module: module} = state
+      ) do
+    Logger.debug(
+      "[#{module}]: Received message. Tag: #{tag}, " <>
+        "routing key: #{routing_key}, redelivered: #{redelivered}"
+    )
 
     if redelivered do
-      Logger.debug("[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}")
+      Logger.debug(
+        "[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}"
+      )
     end
 
-    spawn fn ->
+    spawn(fn ->
       message = Message.create(attributes, payload, state)
       apply(module, :handle_message, [message])
-    end
+    end)
 
     {:noreply, state}
   end
@@ -108,11 +119,15 @@ defmodule GenAMQP.Consumer do
         queue = setup_rabbit(chan, config)
         consumer_tag = apply(module, :consumer_tag, [1])
 
-        {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, [consumer_tag: consumer_tag])
+        {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, consumer_tag: consumer_tag)
         {:ok, %{in: chan, out: out_chan, conn: conn, config: config, module: module}}
+
       {:error, e} ->
-        Logger.error("[#{module}]: Failed to connect to RabbitMQ with settings: " <>
-          "#{inspect strip_key(config, :uri)}, reason #{inspect e}")
+        Logger.error(
+          "[#{module}]: Failed to connect to RabbitMQ with settings: " <>
+            "#{inspect(strip_key(config, :uri))}, reason #{inspect(e)}"
+        )
+
         :timer.sleep(5000)
         rabbitmq_connect(state)
     end
@@ -128,7 +143,7 @@ defmodule GenAMQP.Consumer do
     queue = config |> Keyword.get(:queue)
     exchange = config |> Keyword.get(:exchange)
     routing_key = config |> Keyword.get(:routing_key)
-    prefetch_count = config |> Keyword.get(:prefetch_count) |> String.to_integer
+    prefetch_count = config |> Keyword.get(:prefetch_count) |> String.to_integer()
     queue_error = "#{queue}_error"
     exchange_error = "#{exchange}.deadletter"
     arguments = [{"x-dead-letter-exchange", :longstr, exchange_error}]
@@ -137,14 +152,14 @@ defmodule GenAMQP.Consumer do
     Basic.qos(chan, prefetch_count: prefetch_count)
     Queue.declare(chan, queue, durable: true, arguments: arguments)
     Exchange.topic(chan, exchange, durable: true)
-    Queue.bind(chan, queue, exchange, [routing_key: routing_key])
+    Queue.bind(chan, queue, exchange, routing_key: routing_key)
     queue
   end
 
   defp setup_deadletter(chan, dl_exchange, dl_queue) do
     Queue.declare(chan, dl_queue, durable: true)
     Exchange.topic(chan, dl_exchange, durable: true)
-    Queue.bind(chan, dl_queue, dl_exchange, [routing_key: "#"])
+    Queue.bind(chan, dl_queue, dl_exchange, routing_key: "#")
   end
 
   ##############################################################################
