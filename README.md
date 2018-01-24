@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/meltwater/gen_amqp.svg?token=JscQvnQYQz7Pr7TwvyZh&branch=master)](https://travis-ci.com/meltwater/gen_amqp)
+
 # GenAmqp
 
 RabbitMQ elixir behaviours + test utilities.
@@ -6,7 +8,11 @@ RabbitMQ elixir behaviours + test utilities.
 ~~~elixir
 def deps do
   [
-    {:gen_amqp, "~> 0.1.0"}
+    {
+      :gen_amqp,
+      git: "git@github.com:meltwater/gen_amqp.git",
+      tag: "v0.1.1"
+    }
   ]
 end
 ~~~
