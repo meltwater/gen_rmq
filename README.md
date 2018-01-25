@@ -65,5 +65,11 @@ end
 
 ~~~elixir
 GenAMQP.Publisher.start_link(Publisher, name: Publisher)
-GenAMQP.Publisher.publish(Publisher, %{msg: "msg"} |> Poison.encode!())
+GenAMQP.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
 ~~~
+
+## Running tests
+
+You need [docker-compose](https://docs.docker.com/compose/) installed.
+
+    make test

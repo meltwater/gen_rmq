@@ -36,7 +36,6 @@ defmodule GenAmqp.Test.Assert do
     :ok
   rescue
     e in AssertionError ->
-      Logger.debug("Polling condition failed: #{inspect(e)}")
       set_last_exception(func, e)
       :timer.sleep(interval)
       repeatedly_loop(func, interval)

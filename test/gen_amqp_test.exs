@@ -79,6 +79,21 @@ defmodule GenAMQPTest do
         assert Agent.get(TestConsumer, fn set -> %{"msg" => "some message"} in set end) == true
       end)
     end
+
+    test "should reconnect after connection failure" do
+      {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: TestConsumer)
+      {:ok, _} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
+      {:ok, consumer_pid} = GenAMQP.Consumer.start_link(TestConsumer, name: :consumer)
+
+      state = :sys.get_state(consumer_pid)
+      Process.exit(state.conn.pid, :kill)
+
+      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(%{msg: "disconnect"}))
+
+      Assert.repeatedly(fn ->
+        assert Agent.get(TestConsumer, fn set -> %{"msg" => "disconnect"} in set end) == true
+      end)
+    end
   end
 
   describe "GenAMQP.Publisher" do
@@ -100,6 +115,23 @@ defmodule GenAMQPTest do
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       assert {:ok, %{"msg" => "msg"}} == get_message_from_queue(context)
+    end
+
+    test "should reconnect after connection failure", context do
+      {:ok, publisher_pid} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
+
+      state = :sys.get_state(publisher_pid)
+      Process.exit(state.channel.conn.pid, :kill)
+
+      Assert.repeatedly(fn ->
+        new_state = :sys.get_state(publisher_pid)
+        assert new_state.channel.conn.pid != state.channel.conn.pid
+      end)
+
+      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(%{msg: "pub_disc"}))
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
+      assert {:ok, %{"msg" => "pub_disc"}} == get_message_from_queue(context)
     end
   end
 end
