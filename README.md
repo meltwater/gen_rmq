@@ -2,24 +2,20 @@
 
 # GenAmqp
 
-RabbitMQ elixir behaviours + test utilities.
+GenAmqp is a set of behaviours meant to be used to create RabbitMQ consumers and publishers.
 
-## Installation
-~~~elixir
-def deps do
-  [
-    {
-      :gen_amqp,
-      git: "git@github.com:meltwater/gen_amqp.git",
-      tag: "v0.1.1"
-    }
-  ]
-end
-~~~
+The project currently provides the following functionality:
 
-## Usage
+- `GenAMQP.Consumer` - a behaviour for implementing RabbitMQ consumers
+- `GenAMQP.Publisher` - a behaviour for implementing RabbitMQ publishers
+- `GenAMQP.RabbitCase` - test utilities for RabbitMQ ([example usage](test/gen_amqp_test.exs))
+
+## Examples
+
+More thorough examples for using GenAMQP.Consumer and GenAMQP.Publisher can be found in the [examples](examples) directory.
 
 ### Consumer
+
 ~~~elixir
 defmodule Consumer do
   @behaviour GenAMQP.Consumer
@@ -48,7 +44,8 @@ end
 GenAMQP.Consumer.start_link(Consumer, name: Consumer)
 ~~~
 
-### Prublisher
+### Publisher
+
 ~~~elixir
 defmodule Publisher do
   @behaviour GenAMQP.Publisher
@@ -66,6 +63,19 @@ end
 ~~~elixir
 GenAMQP.Publisher.start_link(Publisher, name: Publisher)
 GenAMQP.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
+~~~
+
+## Installation
+~~~elixir
+def deps do
+  [
+    {
+      :gen_amqp,
+      git: "git@github.com:meltwater/gen_amqp.git",
+      tag: "v0.1.1"
+    }
+  ]
+end
 ~~~
 
 ## Running tests

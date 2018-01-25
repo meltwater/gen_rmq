@@ -7,7 +7,6 @@ defmodule GenAMQPTest do
   @uri "amqp://guest:guest@localhost:5672"
   @exchange "gen_amqp_exchange"
   @out_queue "gen_amqp_out_queue"
-  @in_queue "gen_amqp_in_queue"
 
   defmodule TestConsumer do
     @behaviour GenAMQP.Consumer
