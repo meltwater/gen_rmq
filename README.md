@@ -1,8 +1,8 @@
 [![Build Status](https://travis-ci.com/meltwater/gen_amqp.svg?token=JscQvnQYQz7Pr7TwvyZh&branch=master)](https://travis-ci.com/meltwater/gen_amqp)
 
-# GenAmqp
+# GenAMQP
 
-GenAmqp is a set of behaviours meant to be used to create RabbitMQ consumers and publishers.
+GenAMQP is a set of [behaviours](https://hexdocs.pm/elixir/behaviours.html) meant to be used to create RabbitMQ consumers and publishers.
 
 The project currently provides the following functionality:
 
@@ -72,7 +72,7 @@ def deps do
     {
       :gen_amqp,
       git: "git@github.com:meltwater/gen_amqp.git",
-      tag: "v0.1.1"
+      tag: "v0.1.2"
     }
   ]
 end

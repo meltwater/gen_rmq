@@ -36,8 +36,8 @@ defmodule GenAMQP.Consumer do
     Basic.ack(channel, tag)
   end
 
-  @doc "Requeues given message"
-  def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}, requeue \\ true) do
+  @doc "Requeues / rejects given message"
+  def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}, requeue \\ false) do
     Basic.reject(channel, tag, requeue: requeue)
   end
 

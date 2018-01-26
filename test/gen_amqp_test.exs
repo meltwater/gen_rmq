@@ -38,8 +38,7 @@ defmodule GenAMQPTest do
     def init(_state) do
       [
         exchange: "gen_amqp_exchange",
-        uri: "amqp://guest:guest@localhost:5672",
-        routing_key: "#"
+        uri: "amqp://guest:guest@localhost:5672"
       ]
     end
   end
@@ -67,30 +66,31 @@ defmodule GenAMQPTest do
       assert TestConsumer == config[:module]
     end
 
-    test "should receive message" do
-      {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: TestConsumer)
-      {:ok, _} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
-      {:ok, _} = GenAMQP.Consumer.start_link(TestConsumer, name: :consumer)
+    test "should receive message", context do
+      message = %{"msg" => "some message"}
 
-      GenAMQP.Publisher.publish(TestPublisher, %{msg: "some message"} |> Poison.encode!())
+      {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: TestConsumer)
+      {:ok, _} = GenAMQP.Consumer.start_link(TestConsumer, name: :consumer)
+      publish_message(context[:rabbit_conn], @exchange, Poison.encode!(message))
 
       Assert.repeatedly(fn ->
-        assert Agent.get(TestConsumer, fn set -> %{"msg" => "some message"} in set end) == true
+        assert Agent.get(TestConsumer, fn set -> message in set end) == true
       end)
     end
 
-    test "should reconnect after connection failure" do
+    test "should reconnect after connection failure", context do
+      message = %{"msg" => "disconnect"}
+
       {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: TestConsumer)
-      {:ok, _} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
       {:ok, consumer_pid} = GenAMQP.Consumer.start_link(TestConsumer, name: :consumer)
 
       state = :sys.get_state(consumer_pid)
       Process.exit(state.conn.pid, :kill)
 
-      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(%{msg: "disconnect"}))
+      publish_message(context[:rabbit_conn], @exchange, Poison.encode!(message))
 
       Assert.repeatedly(fn ->
-        assert Agent.get(TestConsumer, fn set -> %{"msg" => "disconnect"} in set end) == true
+        assert Agent.get(TestConsumer, fn set -> message in set end) == true
       end)
     end
   end
@@ -109,14 +109,34 @@ defmodule GenAMQPTest do
     end
 
     test "should publish message", context do
+      message = %{"msg" => "msg"}
+
       {:ok, _} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
-      GenAMQP.Publisher.publish(TestPublisher, %{msg: "msg"} |> Poison.encode!())
+      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(message))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
-      assert {:ok, %{"msg" => "msg"}} == get_message_from_queue(context)
+      {:ok, received_message, meta} = get_message_from_queue(context)
+
+      assert message == received_message
+      assert "#" == meta[:routing_key]
+    end
+
+    test "should publish message with custom routing key", context do
+      message = %{"msg" => "msg"}
+
+      {:ok, _} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
+      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(message), "some.routing.key")
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
+      {:ok, received_message, meta} = get_message_from_queue(context)
+
+      assert message == received_message
+      assert "some.routing.key" == meta[:routing_key]
     end
 
     test "should reconnect after connection failure", context do
+      message = %{"msg" => "pub_disc"}
+
       {:ok, publisher_pid} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
 
       state = :sys.get_state(publisher_pid)
@@ -127,10 +147,13 @@ defmodule GenAMQPTest do
         assert new_state.channel.conn.pid != state.channel.conn.pid
       end)
 
-      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(%{msg: "pub_disc"}))
+      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(message))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
-      assert {:ok, %{"msg" => "pub_disc"}} == get_message_from_queue(context)
+      {:ok, received_message, meta} = get_message_from_queue(context)
+
+      assert message == received_message
+      assert "#" == meta[:routing_key]
     end
   end
 end

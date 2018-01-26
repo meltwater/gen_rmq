@@ -14,6 +14,13 @@ defmodule GenAMQP.RabbitCase do
         AMQP.Connection.open(uri)
       end
 
+      def publish_message(conn, exchange, message, routing_key \\ "#", meta \\ []) do
+        {:ok, channel} = AMQP.Channel.open(conn)
+        AMQP.Exchange.topic(channel, exchange, durable: true)
+        AMQP.Basic.publish(channel, exchange, routing_key, message, meta)
+        AMQP.Channel.close(channel)
+      end
+
       def setup_out_queue(conn, out_queue, out_exchange) do
         {:ok, chan} = AMQP.Channel.open(conn)
         AMQP.Queue.declare(chan, out_queue)
@@ -31,8 +38,8 @@ defmodule GenAMQP.RabbitCase do
 
       def get_message_from_queue(context) do
         {:ok, chan} = AMQP.Channel.open(context[:rabbit_conn])
-        {:ok, payload, _meta} = AMQP.Basic.get(chan, context[:out_queue])
-        {:ok, Poison.decode!(payload)}
+        {:ok, payload, meta} = AMQP.Basic.get(chan, context[:out_queue])
+        {:ok, Poison.decode!(payload), meta}
       end
 
       def purge_queues(uri, queues) do
