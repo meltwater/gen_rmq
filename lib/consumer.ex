@@ -13,30 +13,104 @@ defmodule GenAMQP.Consumer do
   # GenConsumer callbacks
   ##############################################################################
 
-  @doc "Should provide consumer config"
-  @callback init(Any.t()) :: Keyword.t()
+  @doc """
+  Invoked to provide consumer configuration.
 
-  @doc "Should provide consumer tag"
-  @callback consumer_tag(Any.t()) :: String.t()
+  `initial_state` is the state consumer has been started with
 
-  @doc "Should handle received message"
-  @callback handle_message(Message.t()) :: :ok
+  Example:
+
+    def init(_state) do
+      [
+        queue: "gen_amqp_in_queue",
+        exchange: "gen_amqp_exchange",
+        routing_key: "#",
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672"
+      ]
+    end
+
+  """
+  @callback init() :: [
+              queue: String.t(),
+              exchange: String.t(),
+              routing_key: String.t(),
+              prefetch_count: String.t(),
+              uri: String.t()
+            ]
+
+  @doc """
+  Invoked to provide consumer [tag](https://www.rabbitmq.com/amqp-0-9-1-reference.html#domain.consumer-tag)
+
+  Example:
+
+    def consumer_tag() do
+      "hostname-app-version-consumer"
+    end
+
+  """
+  @callback consumer_tag() :: String.t()
+
+  @doc """
+  Invoked on message delivery
+
+  `message` is the GenAMQP.Message struct. Contains payload,
+  attributes and consumer state
+
+  Example:
+    def handle_message(message) do
+      # Do something with message and acknowledge it
+      GenAMQP.Consumer.ack(message)
+    end
+
+  """
+  @callback handle_message(message :: Message.t()) :: :ok
 
   ##############################################################################
   # GenConsumer API
   ##############################################################################
 
-  @doc "Starts amqp consumer"
-  def start_link(module, opts \\ []) do
-    GenServer.start_link(__MODULE__, %{module: module}, opts)
+  @doc """
+  Starts GenAMQP.Consumer with given callback module linked to the current
+  process
+
+  `module` is the callback module implementing GenAMQP.Consumer behaviour
+
+  ## Options
+   * `:name` - used for name registration
+
+  ## Return values
+  If the consumer is successfully created and initialized, this function returns
+  `{:ok, pid}`, where `pid` is the PID of the consumer. If a process with the
+  specified consumer name already exists, this function returns
+  `{:error, {:already_started, pid}}` with the PID of that process.
+
+  Example:
+    GenAMQP.Consumer.start_link(TestConsumer, name: :consumer)
+
+  """
+  def start_link(module, options \\ []) do
+    GenServer.start_link(__MODULE__, %{module: module}, options)
   end
 
-  @doc "Acknowledges given message"
+  @doc """
+  Acknowledges given message
+
+  `message` is the GenAMQP.Message struct. Contains payload,
+  attributes and consumer state
+  """
   def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}) do
     Basic.ack(channel, tag)
   end
 
-  @doc "Requeues / rejects given message"
+  @doc """
+  Requeues / rejects given message
+
+  `message` is the GenAMQP.Message struct. Contains payload,
+  attributes and consumer state
+
+  `requeue` indicates if message should be requeued
+  """
   def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}, requeue \\ false) do
     Basic.reject(channel, tag, requeue: requeue)
   end
@@ -46,7 +120,7 @@ defmodule GenAMQP.Consumer do
   ##############################################################################
 
   def init(%{module: module} = initial_state) do
-    config = apply(module, :init, [initial_state])
+    config = apply(module, :init, [])
 
     initial_state
     |> Map.merge(%{config: config})
@@ -117,7 +191,7 @@ defmodule GenAMQP.Consumer do
         {:ok, out_chan} = Channel.open(conn)
 
         queue = setup_rabbit(chan, config)
-        consumer_tag = apply(module, :consumer_tag, [1])
+        consumer_tag = apply(module, :consumer_tag, [])
 
         {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, consumer_tag: consumer_tag)
         {:ok, %{in: chan, out: out_chan, conn: conn, config: config, module: module}}

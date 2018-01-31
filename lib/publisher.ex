@@ -13,19 +13,62 @@ defmodule GenAMQP.Publisher do
   # GenPublisher callbacks
   ##############################################################################
 
-  @doc "Should provide publisher config"
-  @callback init(Any.t()) :: Keyword.t()
+  @doc """
+  Invoked to provide publisher configuration.
+
+  Example:
+
+    def init() do
+      [
+        exchange: "gen_amqp_exchange",
+        uri: "amqp://guest:guest@localhost:5672"
+      ]
+    end
+
+  """
+  @callback init() :: [
+              exchange: String.t(),
+              uri: String.t()
+            ]
 
   ##############################################################################
   # GenPublisher API
   ##############################################################################
 
-  @doc "Starts amqp publisher"
-  def start_link(module, opts \\ []) do
-    GenServer.start_link(__MODULE__, %{module: module}, opts)
+  @doc """
+  Starts GenAMQP.Publisher with given callback module linked to the current
+  process
+
+  `module` is the callback module implementing GenAMQP.Publisher behaviour
+
+  ## Options
+   * `:name` - used for name registration
+
+  ## Return values
+  If the publisher is successfully created and initialized, this function returns
+  `{:ok, pid}`, where `pid` is the PID of the publisher. If a process with the
+  specified publisher name already exists, this function returns
+  `{:error, {:already_started, pid}}` with the PID of that process.
+
+  Example:
+    GenAMQP.Publisher.start_link(TestPublisher, name: :publisher)
+  """
+  def start_link(module, options \\ []) do
+    GenServer.start_link(__MODULE__, %{module: module}, options)
   end
 
-  @doc "Publishes message for given publisher"
+  @doc """
+  Publishes message by given publisher
+
+  `publisher` is a name or PID of the publisher
+
+  `message` is a raw payload to deliver
+
+  `routing_key` is an optional routing key to set for given message
+
+  Example:
+    GenAMQP.Publisher.publish(TestPublisher, "{\"msg\": \"hello\"})
+  """
   def publish(publisher, message, routing_key \\ "#") do
     GenServer.call(publisher, {:publish, message, routing_key})
   end
@@ -35,7 +78,7 @@ defmodule GenAMQP.Publisher do
   ##############################################################################
 
   def init(%{module: module} = initial_state) do
-    config = apply(module, :init, [[]])
+    config = apply(module, :init, [])
 
     initial_state
     |> Map.merge(%{config: config})

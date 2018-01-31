@@ -16,7 +16,7 @@ defmodule MyApp.ExamplePublisher do
     GenAMQP.Publisher.publish(__MODULE__, message)
   end
 
-  def init(_state) do
+  def init() do
     Application.get_env(:my_app, __MODULE__)
   end
 end

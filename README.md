@@ -3,11 +3,18 @@
 # GenAMQP
 
 GenAMQP is a set of [behaviours](https://hexdocs.pm/elixir/behaviours.html) meant to be used to create RabbitMQ consumers and publishers.
+Internally it is using [AMQP](https://github.com/pma/amqp) elixir RabbitMQ client. The idea is to reduce boilerplate consumer / publisher
+code, which usually includes:
+
+* creating connection / channel and keeping it in a state
+* creating and binding queue
+* handling reconnections / consumer cancellations
 
 The project currently provides the following functionality:
 
 - `GenAMQP.Consumer` - a behaviour for implementing RabbitMQ consumers
 - `GenAMQP.Publisher` - a behaviour for implementing RabbitMQ publishers
+- `GenAMQP.Processor` - a behaviour for implementing RabbitMQ message processor
 - `GenAMQP.RabbitCase` - test utilities for RabbitMQ ([example usage](test/gen_amqp_test.exs))
 
 ## Examples
@@ -20,7 +27,7 @@ More thorough examples for using GenAMQP.Consumer and GenAMQP.Publisher can be f
 defmodule Consumer do
   @behaviour GenAMQP.Consumer
 
-  def init(_state) do
+  def init() do
     [
       queue: "gen_amqp_in_queue",
       exchange: "gen_amqp_exchange",
@@ -30,8 +37,8 @@ defmodule Consumer do
     ]
   end
 
-  def consumer_tag(n) do
-    "test_tag_#{n}"
+  def consumer_tag() do
+    "test_tag"
   end
 
   def handle_message(message) do
@@ -50,11 +57,10 @@ GenAMQP.Consumer.start_link(Consumer, name: Consumer)
 defmodule Publisher do
   @behaviour GenAMQP.Publisher
 
-  def init(_state) do
+  def init() do
     [
       exchange: "gen_amqp_exchange",
-      uri: "amqp://guest:guest@localhost:5672",
-      routing_key: "#"
+      uri: "amqp://guest:guest@localhost:5672"
     ]
   end
 end
@@ -72,7 +78,7 @@ def deps do
     {
       :gen_amqp,
       git: "git@github.com:meltwater/gen_amqp.git",
-      tag: "v0.1.2"
+      tag: "v0.1.3"
     }
   ]
 end
@@ -81,5 +87,16 @@ end
 ## Running tests
 
 You need [docker-compose](https://docs.docker.com/compose/) installed.
+~~~bash
+$ make test
+~~~
 
-    make test
+## Changelog
+
+### [0.1.3] - 2018-01-31
+#### Added
+- Add processor behaviour @mkorszun.
+#### Removed
+- Unused test helper functions @mkorszun.
+
+[0.1.3]: https://github.com/meltwater/gen_amqp/compare/v0.1.2...v0.1.3

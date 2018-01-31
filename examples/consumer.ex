@@ -43,10 +43,10 @@ defmodule MyApp.ExampleConsumer do
       reject(message, false)
   end
 
-  def consumer_tag(n) do
+  def consumer_tag() do
     {:ok, hostname} = :inet.gethostname()
     app = Project.config() |> Keyword.get(:app)
     version = Project.config() |> Keyword.get(:version)
-    "#{hostname}-#{app}-#{version}-consumer-#{n}"
+    "#{hostname}-#{app}-#{version}-consumer"
   end
 end

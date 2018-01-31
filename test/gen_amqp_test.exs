@@ -11,7 +11,7 @@ defmodule GenAMQPTest do
   defmodule TestConsumer do
     @behaviour GenAMQP.Consumer
 
-    def init(_state) do
+    def init() do
       [
         queue: "gen_amqp_in_queue",
         exchange: "gen_amqp_exchange",
@@ -21,8 +21,8 @@ defmodule GenAMQPTest do
       ]
     end
 
-    def consumer_tag(n) do
-      "test_tag_#{n}"
+    def consumer_tag() do
+      "test_tag"
     end
 
     def handle_message(message) do
@@ -35,7 +35,7 @@ defmodule GenAMQPTest do
   defmodule TestPublisher do
     @behaviour GenAMQP.Publisher
 
-    def init(_state) do
+    def init() do
       [
         exchange: "gen_amqp_exchange",
         uri: "amqp://guest:guest@localhost:5672"
@@ -45,7 +45,7 @@ defmodule GenAMQPTest do
 
   setup_all do
     {:ok, conn} = rmq_open(@uri)
-    :ok = setup_in_queue(conn, @out_queue, @exchange)
+    :ok = setup_out_queue(conn, @out_queue, @exchange)
     {:ok, rabbit_conn: conn, out_queue: @out_queue}
   end
 
@@ -62,8 +62,7 @@ defmodule GenAMQPTest do
     test "should return consumer config" do
       {:ok, config} = GenAMQP.Consumer.init(%{module: TestConsumer})
 
-      assert TestConsumer.init([]) == config[:config]
-      assert TestConsumer == config[:module]
+      assert TestConsumer.init() == config[:config]
     end
 
     test "should receive message", context do
@@ -104,15 +103,14 @@ defmodule GenAMQPTest do
     test "should return publisher config" do
       {:ok, config} = GenAMQP.Publisher.init(%{module: TestPublisher})
 
-      assert TestPublisher.init([]) == config[:config]
-      assert TestPublisher == config[:module]
+      assert TestPublisher.init() == config[:config]
     end
 
     test "should publish message", context do
       message = %{"msg" => "msg"}
 
       {:ok, _} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
-      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(message))
+      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(%{"msg" => "msg"}))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)

@@ -24,15 +24,8 @@ defmodule GenAMQP.RabbitCase do
       def setup_out_queue(conn, out_queue, out_exchange) do
         {:ok, chan} = AMQP.Channel.open(conn)
         AMQP.Queue.declare(chan, out_queue)
+        AMQP.Exchange.topic(chan, out_exchange, durable: true)
         AMQP.Queue.bind(chan, out_queue, out_exchange, routing_key: "#")
-        AMQP.Channel.close(chan)
-      end
-
-      def setup_in_queue(conn, in_queue, in_exchange) do
-        {:ok, chan} = AMQP.Channel.open(conn)
-        AMQP.Queue.declare(chan, in_queue)
-        AMQP.Exchange.topic(chan, in_exchange, durable: true)
-        AMQP.Queue.bind(chan, in_queue, in_exchange, routing_key: "#")
         AMQP.Channel.close(chan)
       end
 
