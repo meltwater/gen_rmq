@@ -31,7 +31,7 @@ defmodule MyApp.ExampleConsumer do
   # GenAMQP.Consumer callbacks
   ##############################################################################
 
-  def init(_state) do
+  def init() do
     Application.get_env(:my_app, __MODULE__)
   end
 

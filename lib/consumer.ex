@@ -218,9 +218,13 @@ defmodule GenAMQP.Consumer do
     exchange = config |> Keyword.get(:exchange)
     routing_key = config |> Keyword.get(:routing_key)
     prefetch_count = config |> Keyword.get(:prefetch_count) |> String.to_integer()
+    ttl = config |> Keyword.get(:queue_ttl)
     queue_error = "#{queue}_error"
     exchange_error = "#{exchange}.deadletter"
-    arguments = [{"x-dead-letter-exchange", :longstr, exchange_error}]
+
+    arguments =
+      [{"x-dead-letter-exchange", :longstr, exchange_error}]
+      |> setup_ttl(ttl)
 
     setup_deadletter(chan, exchange_error, queue_error)
     Basic.qos(chan, prefetch_count: prefetch_count)
@@ -229,6 +233,9 @@ defmodule GenAMQP.Consumer do
     Queue.bind(chan, queue, exchange, routing_key: routing_key)
     queue
   end
+
+  defp setup_ttl(arguments, nil), do: arguments
+  defp setup_ttl(arguments, ttl), do: [{"x-expires", :long, ttl} | arguments]
 
   defp setup_deadletter(chan, dl_exchange, dl_queue) do
     Queue.declare(chan, dl_queue, durable: true)

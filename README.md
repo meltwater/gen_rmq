@@ -78,7 +78,7 @@ def deps do
     {
       :gen_amqp,
       git: "git@github.com:meltwater/gen_amqp.git",
-      tag: "v0.1.3"
+      tag: "v0.1.4"
     }
   ]
 end
@@ -93,10 +93,15 @@ $ make test
 
 ## Changelog
 
+### [0.1.4] - 2018-02-06
+#### Added
+- Possibility to specify queue ttl in consumer config @mkorszun.
+
 ### [0.1.3] - 2018-01-31
 #### Added
-- Add processor behaviour @mkorszun.
+- Processor behaviour @mkorszun.
 #### Removed
 - Unused test helper functions @mkorszun.
 
+[0.1.4]: https://github.com/meltwater/gen_amqp/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/meltwater/gen_amqp/compare/v0.1.2...v0.1.3
