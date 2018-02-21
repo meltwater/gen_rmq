@@ -38,7 +38,8 @@ defmodule GenAMQPTest do
     def init() do
       [
         exchange: "gen_amqp_exchange",
-        uri: "amqp://guest:guest@localhost:5672"
+        uri: "amqp://guest:guest@localhost:5672",
+        app_id: :my_app_id
       ]
     end
   end

@@ -22,13 +22,15 @@ defmodule GenAMQP.Publisher do
       [
         exchange: "gen_amqp_exchange",
         uri: "amqp://guest:guest@localhost:5672"
+        app_id: :my_app_id
       ]
     end
 
   """
   @callback init() :: [
               exchange: String.t(),
-              uri: String.t()
+              uri: String.t(),
+              app_id: atom()
             ]
 
   ##############################################################################
@@ -86,7 +88,7 @@ defmodule GenAMQP.Publisher do
   end
 
   def handle_call({:publish, msg, key}, _from, %{channel: channel, config: config} = state) do
-    result = Basic.publish(channel, config[:exchange], key, msg, base_metadata())
+    result = Basic.publish(channel, config[:exchange], key, msg, base_metadata(config))
     {:reply, result, state}
   end
 
@@ -122,12 +124,16 @@ defmodule GenAMQP.Publisher do
     end
   end
 
-  defp base_metadata do
+  defp base_metadata(config) do
     [
       timestamp: DateTime.to_unix(DateTime.utc_now(), :milliseconds),
-      app_id: Project.config() |> Keyword.get(:app) |> Atom.to_string(),
+      app_id: config |> app_id() |> Atom.to_string(),
       content_type: "application/json"
     ]
+  end
+
+  def app_id(config) do
+    config[:app_id] || Keyword.get(Project.config(), :app)
   end
 
   ##############################################################################
