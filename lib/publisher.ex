@@ -1,6 +1,6 @@
 defmodule GenAMQP.Publisher do
   @moduledoc """
-  Defines generic behaviour for AMQP publisher.
+  A behaviour module for implementing the RabbitMQ publisher
   """
 
   use GenServer
@@ -14,23 +14,35 @@ defmodule GenAMQP.Publisher do
   ##############################################################################
 
   @doc """
-  Invoked to provide publisher configuration.
+  Invoked to provide publisher configuration
 
-  Example:
+  ## Return values
+  ### Mandatory:
 
-    def init() do
-      [
-        exchange: "gen_amqp_exchange",
-        uri: "amqp://guest:guest@localhost:5672"
-        app_id: :my_app_id
-      ]
-    end
+  `uri` - RabbitMQ uri
+
+  `exchange` - the name of the target exchange. If does not exist it will be created
+
+  ### Optional:
+
+  `app_id` - publishing application ID
+
+  ## Examples:
+  ```
+  def init() do
+    [
+      exchange: "gen_amqp_exchange",
+      uri: "amqp://guest:guest@localhost:5672"
+      app_id: :my_app_id
+    ]
+  end
+  ```
 
   """
   @callback init() :: [
               exchange: String.t(),
               uri: String.t(),
-              app_id: atom()
+              app_id: Atom.t()
             ]
 
   ##############################################################################
@@ -38,10 +50,10 @@ defmodule GenAMQP.Publisher do
   ##############################################################################
 
   @doc """
-  Starts GenAMQP.Publisher with given callback module linked to the current
+  Starts `GenAMQP.Publisher` with given callback module linked to the current
   process
 
-  `module` is the callback module implementing GenAMQP.Publisher behaviour
+  `module`- callback module implementing `GenAMQP.Publisher` behaviour
 
   ## Options
    * `:name` - used for name registration
@@ -52,26 +64,34 @@ defmodule GenAMQP.Publisher do
   specified publisher name already exists, this function returns
   `{:error, {:already_started, pid}}` with the PID of that process.
 
-  Example:
-    GenAMQP.Publisher.start_link(TestPublisher, name: :publisher)
+  ## Examples:
+  ```
+  GenAMQP.Publisher.start_link(TestPublisher, name: :publisher)
+  ```
+
   """
+  @spec start_link(module :: Module.t(), options :: Keyword.t()) :: {:ok, Pid.t()} | {:error, Any.t()}
   def start_link(module, options \\ []) do
     GenServer.start_link(__MODULE__, %{module: module}, options)
   end
 
   @doc """
-  Publishes message by given publisher
+  Publishes given message
 
-  `publisher` is a name or PID of the publisher
+  `publisher` - name or PID of the publisher
 
-  `message` is a raw payload to deliver
+  `message` - raw payload to deliver
 
-  `routing_key` is an optional routing key to set for given message
+  `routing_key` - optional routing key to set for given message
 
-  Example:
-    GenAMQP.Publisher.publish(TestPublisher, "{\"msg\": \"hello\"})
+  ## Examples:
+  ```
+  GenAMQP.Publisher.publish(TestPublisher, "{\"msg\": \"hello\"})
+  ```
+
   """
-  def publish(publisher, message, routing_key \\ "#") do
+  @spec publish(publisher :: Atom.t() | Pid.t(), message :: Binary.t(), routing_key :: String.t()) :: :ok
+  def publish(publisher, message, routing_key \\ "") do
     GenServer.call(publisher, {:publish, message, routing_key})
   end
 
@@ -79,6 +99,7 @@ defmodule GenAMQP.Publisher do
   # GenServer callbacks
   ##############################################################################
 
+  @doc false
   def init(%{module: module} = initial_state) do
     config = apply(module, :init, [])
 
@@ -87,11 +108,13 @@ defmodule GenAMQP.Publisher do
     |> setup_publisher
   end
 
+  @doc false
   def handle_call({:publish, msg, key}, _from, %{channel: channel, config: config} = state) do
     result = Basic.publish(channel, config[:exchange], key, msg, base_metadata(config))
     {:reply, result, state}
   end
 
+  @doc false
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config}) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
     {:ok, state} = setup_publisher(%{module: module, config: config})
@@ -132,7 +155,7 @@ defmodule GenAMQP.Publisher do
     ]
   end
 
-  def app_id(config) do
+  defp app_id(config) do
     config[:app_id] || Keyword.get(Project.config(), :app)
   end
 

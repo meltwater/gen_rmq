@@ -1,4 +1,4 @@
-defmodule GenAMQPTest do
+defmodule GenAMQP.PublisherTest do
   use ExUnit.Case, async: false
   use GenAMQP.RabbitCase
 
@@ -7,30 +7,6 @@ defmodule GenAMQPTest do
   @uri "amqp://guest:guest@localhost:5672"
   @exchange "gen_amqp_exchange"
   @out_queue "gen_amqp_out_queue"
-
-  defmodule TestConsumer do
-    @behaviour GenAMQP.Consumer
-
-    def init() do
-      [
-        queue: "gen_amqp_in_queue",
-        exchange: "gen_amqp_exchange",
-        routing_key: "#",
-        prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672"
-      ]
-    end
-
-    def consumer_tag() do
-      "test_tag"
-    end
-
-    def handle_message(message) do
-      payload = Poison.decode!(message.payload)
-      Agent.update(TestConsumer, &MapSet.put(&1, payload))
-      GenAMQP.Consumer.ack(message)
-    end
-  end
 
   defmodule TestPublisher do
     @behaviour GenAMQP.Publisher
@@ -52,47 +28,6 @@ defmodule GenAMQPTest do
 
   setup do
     purge_queues(@uri, [@out_queue])
-  end
-
-  describe "GenAMQP.Consumer" do
-    test "should start new consumer" do
-      {:ok, pid} = GenAMQP.Consumer.start_link(TestConsumer, name: TestConsumer)
-      assert pid == Process.whereis(TestConsumer)
-    end
-
-    test "should return consumer config" do
-      {:ok, config} = GenAMQP.Consumer.init(%{module: TestConsumer})
-
-      assert TestConsumer.init() == config[:config]
-    end
-
-    test "should receive message", context do
-      message = %{"msg" => "some message"}
-
-      {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: TestConsumer)
-      {:ok, _} = GenAMQP.Consumer.start_link(TestConsumer, name: :consumer)
-      publish_message(context[:rabbit_conn], @exchange, Poison.encode!(message))
-
-      Assert.repeatedly(fn ->
-        assert Agent.get(TestConsumer, fn set -> message in set end) == true
-      end)
-    end
-
-    test "should reconnect after connection failure", context do
-      message = %{"msg" => "disconnect"}
-
-      {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: TestConsumer)
-      {:ok, consumer_pid} = GenAMQP.Consumer.start_link(TestConsumer, name: :consumer)
-
-      state = :sys.get_state(consumer_pid)
-      Process.exit(state.conn.pid, :kill)
-
-      publish_message(context[:rabbit_conn], @exchange, Poison.encode!(message))
-
-      Assert.repeatedly(fn ->
-        assert Agent.get(TestConsumer, fn set -> message in set end) == true
-      end)
-    end
   end
 
   describe "GenAMQP.Publisher" do
@@ -117,7 +52,7 @@ defmodule GenAMQPTest do
       {:ok, received_message, meta} = get_message_from_queue(context)
 
       assert message == received_message
-      assert "#" == meta[:routing_key]
+      assert "" == meta[:routing_key]
     end
 
     test "should publish message with custom routing key", context do
@@ -152,7 +87,7 @@ defmodule GenAMQPTest do
       {:ok, received_message, meta} = get_message_from_queue(context)
 
       assert message == received_message
-      assert "#" == meta[:routing_key]
+      assert "" == meta[:routing_key]
     end
   end
 end

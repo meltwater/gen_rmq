@@ -14,7 +14,7 @@ The project currently provides the following functionality:
 
 - `GenAMQP.Consumer` - a behaviour for implementing RabbitMQ consumers
 - `GenAMQP.Publisher` - a behaviour for implementing RabbitMQ publishers
-- `GenAMQP.Processor` - a behaviour for implementing RabbitMQ message processor
+- `GenAMQP.Processor` - a behaviour for implementing RabbitMQ message processors
 - `GenAMQP.RabbitCase` - test utilities for RabbitMQ ([example usage](test/gen_amqp_test.exs))
 
 ## Examples
@@ -78,7 +78,7 @@ def deps do
     {
       :gen_amqp,
       git: "git@github.com:meltwater/gen_amqp.git",
-      tag: "v0.1.4"
+      tag: "v0.1.5"
     }
   ]
 end
@@ -93,6 +93,16 @@ $ make test
 
 ## Changelog
 
+### [0.1.5] - 2018-02-28
+#### Added
+- Possibility to control concurrency in consumer @mkorszun.
+- Possibility to make `app_id` configurable for publisher @mkorszun.
+- Better `ExDoc` documentation
+
+#### Fixed
+- If `queue_ttl` specified it also applies to dead letter queue @mkorszun.
+- Default `routing_key` on publish
+
 ### [0.1.4] - 2018-02-06
 #### Added
 - Possibility to specify queue ttl in consumer config @mkorszun.
@@ -103,5 +113,6 @@ $ make test
 #### Removed
 - Unused test helper functions @mkorszun.
 
+[0.1.4]: https://github.com/meltwater/gen_amqp/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/meltwater/gen_amqp/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/meltwater/gen_amqp/compare/v0.1.2...v0.1.3

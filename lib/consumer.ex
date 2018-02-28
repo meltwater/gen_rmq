@@ -1,6 +1,13 @@
 defmodule GenAMQP.Consumer do
   @moduledoc """
-  Defines generic behaviour for AMQP consumer.
+  A behaviour module for implementing the RabbitMQ consumer.
+
+  It will:
+  * setup RabbitMQ connection / channel and keep them in a state
+  * create (if does not exist) a queue and bind it to an exchange
+  * create deadletter queue and exchange
+  * handle reconnections
+  * call `handle_message` callback on every message delivery
   """
 
   use GenServer
@@ -14,21 +21,48 @@ defmodule GenAMQP.Consumer do
   ##############################################################################
 
   @doc """
-  Invoked to provide consumer configuration.
+  Invoked to provide consumer configuration
 
-  `initial_state` is the state consumer has been started with
+  ## Return values
+  ### Mandatory:
 
-  Example:
+  `uri` - RabbitMQ uri
 
-    def init(_state) do
-      [
-        queue: "gen_amqp_in_queue",
-        exchange: "gen_amqp_exchange",
-        routing_key: "#",
-        prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672"
-      ]
-    end
+  `queue` - the name of the queue to consume.
+  If does not exist it will be created
+
+  `exchange` - the name of the exchange to which `queue` should be bind.
+  If does not exist it will be created
+
+  `routing_key` - queue binding key
+
+  `prefetch_count` - limit the number of unacknowledged messages
+
+  ### Optional:
+
+  `queue_ttl` - controls for how long a queue can be unused before it is
+  automatically deleted. Unused means the queue has no consumers,
+  the queue has not been redeclared, and basic.get has not been invoked
+  for a duration of at least the expiration period
+
+  `concurrency` - defines if `handle_message` callback is called
+  in seperate process using [spawn](https://hexdocs.pm/elixir/Process.html#spawn/2)
+  function. By default concurrency is enabled. To disable, set it to `false`
+
+  ## Examples:
+  ```
+  def init() do
+    [
+      queue: "gen_amqp_in_queue",
+      exchange: "gen_amqp_exchange",
+      routing_key: "#",
+      prefetch_count: "10",
+      uri: "amqp://guest:guest@localhost:5672",
+      concurrency: true,
+      queue_ttl: 5000
+    ]
+  end
+  ```
 
   """
   @callback init() :: [
@@ -36,17 +70,19 @@ defmodule GenAMQP.Consumer do
               exchange: String.t(),
               routing_key: String.t(),
               prefetch_count: String.t(),
-              uri: String.t()
+              uri: String.t(),
+              concurrency: Boolean.t()
             ]
 
   @doc """
   Invoked to provide consumer [tag](https://www.rabbitmq.com/amqp-0-9-1-reference.html#domain.consumer-tag)
 
-  Example:
-
-    def consumer_tag() do
-      "hostname-app-version-consumer"
-    end
+  ## Examples:
+  ```
+  def consumer_tag() do
+    "hostname-app-version-consumer"
+  end
+  ```
 
   """
   @callback consumer_tag() :: String.t()
@@ -54,27 +90,28 @@ defmodule GenAMQP.Consumer do
   @doc """
   Invoked on message delivery
 
-  `message` is the GenAMQP.Message struct. Contains payload,
-  attributes and consumer state
+  `message` - `GenAMQP.Message` struct
 
-  Example:
-    def handle_message(message) do
-      # Do something with message and acknowledge it
-      GenAMQP.Consumer.ack(message)
-    end
+  ## Examples:
+  ```
+  def handle_message(message) do
+    # Do something with message and acknowledge it
+    GenAMQP.Consumer.ack(message)
+  end
+  ```
 
   """
-  @callback handle_message(message :: Message.t()) :: :ok
+  @callback handle_message(message :: GenAMQP.Message.t()) :: :ok
 
   ##############################################################################
   # GenConsumer API
   ##############################################################################
 
   @doc """
-  Starts GenAMQP.Consumer with given callback module linked to the current
+  Starts `GenAMQP.Consumer` process with given callback module linked to the current
   process
 
-  `module` is the callback module implementing GenAMQP.Consumer behaviour
+  `module` - callback module implementing `GenAMQP.Consumer` behaviour
 
   ## Options
    * `:name` - used for name registration
@@ -85,20 +122,40 @@ defmodule GenAMQP.Consumer do
   specified consumer name already exists, this function returns
   `{:error, {:already_started, pid}}` with the PID of that process.
 
-  Example:
-    GenAMQP.Consumer.start_link(TestConsumer, name: :consumer)
+  ## Examples:
+  ```
+  GenAMQP.Consumer.start_link(Consumer, name: :consumer)
+  ```
 
   """
+  @spec start_link(module :: Module.t(), options :: Keyword.t()) :: {:ok, Pid.t()} | {:error, Any.t()}
   def start_link(module, options \\ []) do
     GenServer.start_link(__MODULE__, %{module: module}, options)
   end
 
   @doc """
+  Synchronously stops the consumer with a given reason
+
+  `name` - pid or name of the consumer to stop
+  `reason` - reason of the termination
+
+  ## Examples:
+  ```
+  GenAMQP.Consumer.stop(:consumer, :normal)
+  ```
+
+  """
+  @spec stop(name :: Atom.t() | Pit.t(), reason :: Any.t()) :: :ok
+  def stop(name, reason) do
+    GenServer.stop(name, reason)
+  end
+
+  @doc """
   Acknowledges given message
 
-  `message` is the GenAMQP.Message struct. Contains payload,
-  attributes and consumer state
+  `message` - `GenAMQP.Message` struct
   """
+  @spec ack(message :: GenAMQP.Message.t()) :: :ok
   def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}) do
     Basic.ack(channel, tag)
   end
@@ -106,11 +163,11 @@ defmodule GenAMQP.Consumer do
   @doc """
   Requeues / rejects given message
 
-  `message` is the GenAMQP.Message struct. Contains payload,
-  attributes and consumer state
+  `message` - `GenAMQP.Message` struct
 
-  `requeue` indicates if message should be requeued
+  `requeue` - indicates if message should be requeued
   """
+  @spec reject(message :: GenAMQP.Message.t(), requeue :: Boolean.t()) :: :ok
   def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}, requeue \\ false) do
     Basic.reject(channel, tag, requeue: requeue)
   end
@@ -119,6 +176,7 @@ defmodule GenAMQP.Consumer do
   # GenServer callbacks
   ##############################################################################
 
+  @doc false
   def init(%{module: module} = initial_state) do
     config = apply(module, :init, [])
 
@@ -127,51 +185,46 @@ defmodule GenAMQP.Consumer do
     |> rabbitmq_connect
   end
 
+  @doc false
   def handle_call({:recover, requeue}, _from, %{in: channel} = state) do
     {:reply, Basic.recover(channel, requeue: requeue), state}
   end
 
+  @doc false
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module} = state) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
     {:ok, new_state} = rabbitmq_connect(state)
     {:noreply, new_state}
   end
 
+  @doc false
   def handle_info({:basic_consume_ok, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.info("[#{module}]: Broker confirmed consumer with tag #{consumer_tag}")
     {:noreply, state}
   end
 
+  @doc false
   def handle_info({:basic_cancel, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.warn("[#{module}]: The consumer was unexpectedly cancelled, tag: #{consumer_tag}")
     {:stop, :normal, state}
   end
 
+  @doc false
   def handle_info({:basic_cancel_ok, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.info("[#{module}]: Consumer was cancelled, tag: #{consumer_tag}")
     {:noreply, state}
   end
 
-  def handle_info(
-        {:basic_deliver, payload,
-         %{delivery_tag: tag, routing_key: routing_key, redelivered: redelivered} = attributes},
-        %{module: module} = state
-      ) do
-    Logger.debug(
-      "[#{module}]: Received message. Tag: #{tag}, " <>
-        "routing key: #{routing_key}, redelivered: #{redelivered}"
-    )
+  @doc false
+  def handle_info({:basic_deliver, payload, attributes}, %{module: module, config: config} = state) do
+    %{delivery_tag: tag, routing_key: routing_key, redelivered: redelivered} = attributes
+    Logger.debug("[#{module}]: Received message. Tag: #{tag}, routing key: #{routing_key}, redelivered: #{redelivered}")
 
     if redelivered do
-      Logger.debug(
-        "[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}"
-      )
+      Logger.debug("[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}")
     end
 
-    spawn(fn ->
-      message = Message.create(attributes, payload, state)
-      apply(module, :handle_message, [message])
-    end)
+    do_handle(payload, attributes, state, Keyword.get(config, :concurrency, true))
 
     {:noreply, state}
   end
@@ -179,6 +232,18 @@ defmodule GenAMQP.Consumer do
   ##############################################################################
   # Helpers
   ##############################################################################
+
+  defp do_handle(payload, attributes, %{module: module} = state, false) do
+    message = Message.create(attributes, payload, state)
+    apply(module, :handle_message, [message])
+  end
+
+  defp do_handle(payload, attributes, %{module: module} = state, true) do
+    spawn(fn ->
+      message = Message.create(attributes, payload, state)
+      apply(module, :handle_message, [message])
+    end)
+  end
 
   defp rabbitmq_connect(%{config: config, module: module} = state) do
     rabbit_uri = config |> Keyword.get(:uri)
@@ -219,6 +284,7 @@ defmodule GenAMQP.Consumer do
     routing_key = config |> Keyword.get(:routing_key)
     prefetch_count = config |> Keyword.get(:prefetch_count) |> String.to_integer()
     ttl = config |> Keyword.get(:queue_ttl)
+
     queue_error = "#{queue}_error"
     exchange_error = "#{exchange}.deadletter"
 
@@ -226,7 +292,7 @@ defmodule GenAMQP.Consumer do
       [{"x-dead-letter-exchange", :longstr, exchange_error}]
       |> setup_ttl(ttl)
 
-    setup_deadletter(chan, exchange_error, queue_error)
+    setup_deadletter(chan, exchange_error, queue_error, setup_ttl([], ttl))
     Basic.qos(chan, prefetch_count: prefetch_count)
     Queue.declare(chan, queue, durable: true, arguments: arguments)
     Exchange.topic(chan, exchange, durable: true)
@@ -234,14 +300,14 @@ defmodule GenAMQP.Consumer do
     queue
   end
 
-  defp setup_ttl(arguments, nil), do: arguments
-  defp setup_ttl(arguments, ttl), do: [{"x-expires", :long, ttl} | arguments]
-
-  defp setup_deadletter(chan, dl_exchange, dl_queue) do
-    Queue.declare(chan, dl_queue, durable: true)
+  defp setup_deadletter(chan, dl_exchange, dl_queue, arguments) do
+    Queue.declare(chan, dl_queue, durable: true, arguments: arguments)
     Exchange.topic(chan, dl_exchange, durable: true)
     Queue.bind(chan, dl_queue, dl_exchange, routing_key: "#")
   end
+
+  defp setup_ttl(arguments, nil), do: arguments
+  defp setup_ttl(arguments, ttl), do: [{"x-expires", :long, ttl} | arguments]
 
   ##############################################################################
   ##############################################################################

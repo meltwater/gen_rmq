@@ -1,4 +1,4 @@
-.PHONY: clean code-analysis code-anaylysis-strict test docker-compose-up-up-test
+.PHONY: clean code-analysis code-anaylysis-strict test docker-compose-up-up-test doc
 
 all: build ;
 
@@ -14,6 +14,9 @@ code-analysis-strict: deps
 deps: mix.exs
 	mix deps.get
 	touch deps
+
+doc: deps
+	mix docs
 
 docker-compose-up-test:
 	docker-compose -f docker-compose.yml up -d
