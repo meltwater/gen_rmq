@@ -113,6 +113,6 @@ $ make test
 #### Removed
 - Unused test helper functions @mkorszun.
 
-[0.1.4]: https://github.com/meltwater/gen_amqp/compare/v0.1.4...v0.1.5
+[0.1.5]: https://github.com/meltwater/gen_amqp/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/meltwater/gen_amqp/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/meltwater/gen_amqp/compare/v0.1.2...v0.1.3
