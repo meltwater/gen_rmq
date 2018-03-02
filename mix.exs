@@ -1,15 +1,26 @@
 defmodule GenAmqp.Mixfile do
   use Mix.Project
 
+  @version "0.1.5"
+
   def project do
     [
       app: :gen_amqp,
-      version: "0.1.5",
+      version: @version,
       elixir: "~> 1.5",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
-      test_coverage: [tool: ExCoveralls]
+      test_coverage: [tool: ExCoveralls],
+      description: description(),
+      package: package(),
+      source_url: "https://github.com/meltwater/gen_amqp",
+      docs: [
+        extras: ["README.md"],
+        main: "readme",
+        source_ref: "v#{@version}",
+        source_url: "https://github.com/meltwater/gen_amqp"
+      ]
     ]
   end
 
@@ -32,6 +43,20 @@ defmodule GenAmqp.Mixfile do
       {:poison, "~> 3.1", only: :test},
       {:earmark, "~> 0.1", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev}
+    ]
+  end
+
+  defp description() do
+    "Set of behaviours meant to be used to create RabbitMQ consumers and publishers."
+  end
+
+  defp package() do
+    [
+      files: ["lib", "mix.exs", "README", "LICENSE"],
+      maintainers: ["Mateusz Korszun"],
+      organization: "Meltwater Inc.",
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/meltwater/gen_amqp"}
     ]
   end
 end
