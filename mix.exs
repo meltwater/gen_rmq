@@ -1,7 +1,7 @@
 defmodule GenAmqp.Mixfile do
   use Mix.Project
 
-  @version "0.1.5"
+  @version "0.1.6"
 
   def project do
     [
@@ -52,7 +52,7 @@ defmodule GenAmqp.Mixfile do
 
   defp package() do
     [
-      files: ["lib", "mix.exs", "README", "LICENSE"],
+      files: ["lib", "mix.exs", "README.md", "LICENSE"],
       maintainers: ["Mateusz Korszun"],
       organization: "Meltwater Inc.",
       licenses: ["MIT"],

@@ -78,7 +78,7 @@ def deps do
     {
       :gen_amqp,
       git: "git@github.com:meltwater/gen_amqp.git",
-      tag: "v0.1.5"
+      tag: "v0.1.6"
     }
   ]
 end
@@ -92,6 +92,10 @@ $ make test
 ~~~
 
 ## Changelog
+
+### [0.1.6] - 2018-03-02
+#### Added
+- Required project configuration to publish on [hex.pm](hex.pm) @mkorszun.
 
 ### [0.1.5] - 2018-02-28
 #### Added
@@ -113,6 +117,7 @@ $ make test
 #### Removed
 - Unused test helper functions @mkorszun.
 
+[0.1.6]: https://github.com/meltwater/gen_amqp/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/meltwater/gen_amqp/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/meltwater/gen_amqp/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/meltwater/gen_amqp/compare/v0.1.2...v0.1.3
