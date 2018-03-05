@@ -15,11 +15,11 @@ The project currently provides the following functionality:
 - `GenAMQP.Consumer` - a behaviour for implementing RabbitMQ consumers
 - `GenAMQP.Publisher` - a behaviour for implementing RabbitMQ publishers
 - `GenAMQP.Processor` - a behaviour for implementing RabbitMQ message processors
-- `GenAMQP.RabbitCase` - test utilities for RabbitMQ ([example usage](test/gen_amqp_test.exs))
+- `GenAMQP.RabbitCase` - test utilities for RabbitMQ ([example usage](test/gen_amqp_publisher_test.exs))
 
 ## Examples
 
-More thorough examples for using GenAMQP.Consumer and GenAMQP.Publisher can be found in the [examples](examples) directory.
+More thorough examples for using `GenAMQP.Consumer` and `GenAMQP.Publisher` can be found in the [examples](examples) directory.
 
 ### Consumer
 
@@ -50,6 +50,16 @@ end
 ~~~elixir
 GenAMQP.Consumer.start_link(Consumer, name: Consumer)
 ~~~
+
+This will result in:
+* durable `gen_amqp_exchange.deadletter` exchange created or redeclared
+* durable `gen_amqp_in_queue_error` queue created or redeclared. It will be bound to `gen_amqp_exchange.deadletter`
+* durable `gen_amqp_exchange` exchange created or redeclared
+* durable `gen_amqp_in_queue` queue created or redeclared. It will be bound to `gen_amqp_exchange`
+exchange and has a deadletter exchange set to `gen_amqp_exchange.deadletter`
+* every `handle_message` callback will executed in separate process. This can be disabled by setting `concurrency: false` in `init` callback
+
+For all available options please check [consumer documentation](lib/consumer.ex).
 
 ### Publisher
 
@@ -85,39 +95,22 @@ end
 ~~~
 
 ## Running tests
-
 You need [docker-compose](https://docs.docker.com/compose/) installed.
 ~~~bash
 $ make test
 ~~~
 
-## Changelog
+## How to contribute
+We happily accept contributions in the form of [Github PRs](https://help.github.com/articles/about-pull-requests/)
+or in the form of bug reports, comments/suggestions or usage questions by creating a [github issue](https://github.com/meltwater/gen_amqp/issues).
 
-### [0.1.6] - 2018-03-02
-#### Added
-- Required project configuration to publish on [hex.pm](hex.pm) @mkorszun.
+## Notes on project maturity
+This library was developed as a Meltwater internal project starting in January 2018.
+Over the next two months it has been used in at least three Meltwater production services.
 
-### [0.1.5] - 2018-02-28
-#### Added
-- Possibility to control concurrency in consumer @mkorszun.
-- Possibility to make `app_id` configurable for publisher @mkorszun.
-- Better `ExDoc` documentation
+## License
+The MIT License (MIT)
 
-#### Fixed
-- If `queue_ttl` specified it also applies to dead letter queue @mkorszun.
-- Default `routing_key` on publish
+Copyright (c) 2016 Meltwater Inc. http://underthehood.meltwater.com/
 
-### [0.1.4] - 2018-02-06
-#### Added
-- Possibility to specify queue ttl in consumer config @mkorszun.
-
-### [0.1.3] - 2018-01-31
-#### Added
-- Processor behaviour @mkorszun.
-#### Removed
-- Unused test helper functions @mkorszun.
-
-[0.1.6]: https://github.com/meltwater/gen_amqp/compare/v0.1.5...v0.1.6
-[0.1.5]: https://github.com/meltwater/gen_amqp/compare/v0.1.4...v0.1.5
-[0.1.4]: https://github.com/meltwater/gen_amqp/compare/v0.1.3...v0.1.4
-[0.1.3]: https://github.com/meltwater/gen_amqp/compare/v0.1.2...v0.1.3
+## [Changelog](CHANGELOG.md)
