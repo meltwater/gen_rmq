@@ -54,7 +54,6 @@ defmodule GenAmqp.Mixfile do
     [
       files: ["lib", "mix.exs", "README.md", "LICENSE"],
       maintainers: ["Mateusz Korszun"],
-      organization: "Meltwater Inc.",
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/meltwater/gen_amqp"}
     ]
