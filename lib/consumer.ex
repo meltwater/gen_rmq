@@ -49,6 +49,12 @@ defmodule GenAMQP.Consumer do
   in seperate process using [spawn](https://hexdocs.pm/elixir/Process.html#spawn/2)
   function. By default concurrency is enabled. To disable, set it to `false`
 
+  `retry_delay_function` - custom retry delay function. Called when the connection to
+  the broker cannot be established. Receives the connection attempt as an argument (>= 1)
+  and is expected to wait for some time.
+  With this callback you can for example do exponential backoff.
+  The default implementation is a linear delay starting with 1 second step.
+
   ## Examples:
   ```
   def init() do
@@ -59,7 +65,8 @@ defmodule GenAMQP.Consumer do
       prefetch_count: "10",
       uri: "amqp://guest:guest@localhost:5672",
       concurrency: true,
-      queue_ttl: 5000
+      queue_ttl: 5000,
+      retry_delay_function: fn attempt -> :timer.sleep(1000 * attempt) end
     ]
   end
   ```
@@ -71,7 +78,9 @@ defmodule GenAMQP.Consumer do
               routing_key: String.t(),
               prefetch_count: String.t(),
               uri: String.t(),
-              concurrency: Boolean.t()
+              concurrency: Boolean.t(),
+              queue_ttl: Integer.t(),
+              retry_delay_function: Function.t()
             ]
 
   @doc """
@@ -181,7 +190,7 @@ defmodule GenAMQP.Consumer do
     config = apply(module, :init, [])
 
     initial_state
-    |> Map.merge(%{config: config})
+    |> Map.merge(%{config: config, reconnect_attempt: 0})
     |> rabbitmq_connect
   end
 
@@ -193,7 +202,12 @@ defmodule GenAMQP.Consumer do
   @doc false
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module} = state) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
-    {:ok, new_state} = rabbitmq_connect(state)
+
+    {:ok, new_state} =
+      state
+      |> Map.put(:reconnect_attempt, 0)
+      |> rabbitmq_connect()
+
     {:noreply, new_state}
   end
 
@@ -245,8 +259,9 @@ defmodule GenAMQP.Consumer do
     end)
   end
 
-  defp rabbitmq_connect(%{config: config, module: module} = state) do
-    rabbit_uri = config |> Keyword.get(:uri)
+  defp rabbitmq_connect(%{config: config, module: module, reconnect_attempt: attempt} = state) do
+    rabbit_uri = config[:uri]
+    retry_delay_fn = config[:retry_delay_function] || &linear_delay/1
 
     case Connection.open(rabbit_uri) do
       {:ok, conn} ->
@@ -267,9 +282,14 @@ defmodule GenAMQP.Consumer do
             "#{inspect(strip_key(config, :uri))}, reason #{inspect(e)}"
         )
 
-        :timer.sleep(5000)
-        rabbitmq_connect(state)
+        next_attempt = attempt + 1
+        retry_delay_fn.(next_attempt)
+        rabbitmq_connect(%{state | reconnect_attempt: next_attempt})
     end
+  end
+
+  defp linear_delay(attempt) do
+    :timer.sleep(attempt * 1_000)
   end
 
   defp strip_key(keyword_list, key) do
@@ -279,11 +299,11 @@ defmodule GenAMQP.Consumer do
   end
 
   defp setup_rabbit(chan, config) do
-    queue = config |> Keyword.get(:queue)
-    exchange = config |> Keyword.get(:exchange)
-    routing_key = config |> Keyword.get(:routing_key)
-    prefetch_count = config |> Keyword.get(:prefetch_count) |> String.to_integer()
-    ttl = config |> Keyword.get(:queue_ttl)
+    queue = config[:queue]
+    exchange = config[:exchange]
+    routing_key = config[:routing_key]
+    prefetch_count = String.to_integer(config[:prefetch_count])
+    ttl = config[:queue_ttl]
 
     queue_error = "#{queue}_error"
     exchange_error = "#{exchange}.deadletter"

@@ -33,7 +33,8 @@ defmodule Consumer do
       exchange: "gen_amqp_exchange",
       routing_key: "#",
       prefetch_count: "10",
-      uri: "amqp://guest:guest@localhost:5672"
+      uri: "amqp://guest:guest@localhost:5672",
+      retry_delay_function: fn attempt -> :timer.sleep(2000 * attempt) end
     ]
   end
 
@@ -57,6 +58,7 @@ This will result in:
 * durable `gen_amqp_exchange` exchange created or redeclared
 * durable `gen_amqp_in_queue` queue created or redeclared. It will be bound to `gen_amqp_exchange`
 exchange and has a deadletter exchange set to `gen_amqp_exchange.deadletter`
+* on failed rabbitmq connection it will wait for a bit and then reconnect
 * every `handle_message` callback will executed in separate process. This can be disabled by setting `concurrency: false` in `init` callback
 
 For all available options please check [consumer documentation](lib/consumer.ex).
