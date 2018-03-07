@@ -1,4 +1,4 @@
-defmodule GenAmqp.Test.Assert do
+defmodule GenRMQ.Test.Assert do
   @moduledoc """
   Assert using polling. Stored latest failure exception in an `Agent`.
   """
@@ -25,9 +25,7 @@ defmodule GenAmqp.Test.Assert do
 
         raise AssertionError,
           expr: function,
-          message:
-            "Polling condition did not succeed after #{time / 1000.0}s" <>
-              ", reason: #{error_message}"
+          message: "Polling condition did not succeed after #{time / 1000.0}s" <> ", reason: #{error_message}"
     end
   end
 

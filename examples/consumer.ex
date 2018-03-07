@@ -1,34 +1,34 @@
 defmodule MyApp.ExampleConsumer do
   @moduledoc """
-  Example GenAMQP.Consumer implementation
+  Example GenRMQ.Consumer implementation
   """
-  @behaviour GenAMQP.Consumer
+  @behaviour GenRMQ.Consumer
 
   require Logger
 
   alias Mix.Project
-  alias GenAMQP.Message
+  alias GenRMQ.Message
 
   ##############################################################################
   # Consumer API
   ##############################################################################
 
   def start_link() do
-    GenAMQP.Consumer.start_link(__MODULE__, name: __MODULE__)
+    GenRMQ.Consumer.start_link(__MODULE__, name: __MODULE__)
   end
 
   def ack(%Message{attributes: %{delivery_tag: tag}} = message) do
     Logger.debug("Message successfully processed. Tag: #{tag}")
-    GenAMQP.Consumer.ack(message)
+    GenRMQ.Consumer.ack(message)
   end
 
   def reject(%Message{attributes: %{delivery_tag: tag}} = message, requeue \\ true) do
     Logger.info("Rejecting message, tag: #{tag}, requeue: #{requeue}")
-    GenAMQP.Consumer.reject(message, requeue)
+    GenRMQ.Consumer.reject(message, requeue)
   end
 
   ##############################################################################
-  # GenAMQP.Consumer callbacks
+  # GenRMQ.Consumer callbacks
   ##############################################################################
 
   def init() do

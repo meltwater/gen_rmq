@@ -1,4 +1,4 @@
-defmodule GenAMQP.Message do
+defmodule GenRMQ.Message do
   @moduledoc """
   Struct wrapping details of the consumed message
 

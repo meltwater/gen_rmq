@@ -1,4 +1,4 @@
-defmodule GenAMQP.Consumer do
+defmodule GenRMQ.Consumer do
   @moduledoc """
   A behaviour module for implementing the RabbitMQ consumer.
 
@@ -14,10 +14,10 @@ defmodule GenAMQP.Consumer do
   use AMQP
 
   require Logger
-  alias GenAMQP.Message
+  alias GenRMQ.Message
 
   ##############################################################################
-  # GenConsumer callbacks
+  # GenRMQ.Consumer callbacks
   ##############################################################################
 
   @doc """
@@ -59,8 +59,8 @@ defmodule GenAMQP.Consumer do
   ```
   def init() do
     [
-      queue: "gen_amqp_in_queue",
-      exchange: "gen_amqp_exchange",
+      queue: "gen_rmq_in_queue",
+      exchange: "gen_rmq_exchange",
       routing_key: "#",
       prefetch_count: "10",
       uri: "amqp://guest:guest@localhost:5672",
@@ -99,28 +99,28 @@ defmodule GenAMQP.Consumer do
   @doc """
   Invoked on message delivery
 
-  `message` - `GenAMQP.Message` struct
+  `message` - `GenRMQ.Message` struct
 
   ## Examples:
   ```
   def handle_message(message) do
     # Do something with message and acknowledge it
-    GenAMQP.Consumer.ack(message)
+    GenRMQ.Consumer.ack(message)
   end
   ```
 
   """
-  @callback handle_message(message :: GenAMQP.Message.t()) :: :ok
+  @callback handle_message(message :: GenRMQ.Message.t()) :: :ok
 
   ##############################################################################
-  # GenConsumer API
+  # GenRMQ.Consumer API
   ##############################################################################
 
   @doc """
-  Starts `GenAMQP.Consumer` process with given callback module linked to the current
+  Starts `GenRMQ.Consumer` process with given callback module linked to the current
   process
 
-  `module` - callback module implementing `GenAMQP.Consumer` behaviour
+  `module` - callback module implementing `GenRMQ.Consumer` behaviour
 
   ## Options
    * `:name` - used for name registration
@@ -133,7 +133,7 @@ defmodule GenAMQP.Consumer do
 
   ## Examples:
   ```
-  GenAMQP.Consumer.start_link(Consumer, name: :consumer)
+  GenRMQ.Consumer.start_link(Consumer, name: :consumer)
   ```
 
   """
@@ -150,7 +150,7 @@ defmodule GenAMQP.Consumer do
 
   ## Examples:
   ```
-  GenAMQP.Consumer.stop(:consumer, :normal)
+  GenRMQ.Consumer.stop(:consumer, :normal)
   ```
 
   """
@@ -162,9 +162,9 @@ defmodule GenAMQP.Consumer do
   @doc """
   Acknowledges given message
 
-  `message` - `GenAMQP.Message` struct
+  `message` - `GenRMQ.Message` struct
   """
-  @spec ack(message :: GenAMQP.Message.t()) :: :ok
+  @spec ack(message :: GenRMQ.Message.t()) :: :ok
   def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}) do
     Basic.ack(channel, tag)
   end
@@ -172,11 +172,11 @@ defmodule GenAMQP.Consumer do
   @doc """
   Requeues / rejects given message
 
-  `message` - `GenAMQP.Message` struct
+  `message` - `GenRMQ.Message` struct
 
   `requeue` - indicates if message should be requeued
   """
-  @spec reject(message :: GenAMQP.Message.t(), requeue :: Boolean.t()) :: :ok
+  @spec reject(message :: GenRMQ.Message.t(), requeue :: Boolean.t()) :: :ok
   def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}, requeue \\ false) do
     Basic.reject(channel, tag, requeue: requeue)
   end

@@ -1,15 +1,15 @@
-defmodule GenAMQP.ConsumerTest do
+defmodule GenRMQ.ConsumerTest do
   use ExUnit.Case, async: false
-  use GenAMQP.RabbitCase
+  use GenRMQ.RabbitCase
 
-  alias GenAmqp.Test.Assert
+  alias GenRMQ.Test.Assert
 
   alias TestConsumer.Default
   alias TestConsumer.WithoutConcurrency
 
   @uri "amqp://guest:guest@localhost:5672"
-  @exchange "gen_amqp_exchange"
-  @out_queue "gen_amqp_out_queue"
+  @exchange "gen_rmq_exchange"
+  @out_queue "gen_rmq_out_queue"
 
   setup_all do
     {:ok, conn} = rmq_open(@uri)
@@ -21,14 +21,14 @@ defmodule GenAMQP.ConsumerTest do
     purge_queues(@uri, [@out_queue])
   end
 
-  describe "GenAMQP.Consumer" do
+  describe "GenRMQ.Consumer" do
     test "should start new consumer" do
-      {:ok, pid} = GenAMQP.Consumer.start_link(Default, name: Default)
+      {:ok, pid} = GenRMQ.Consumer.start_link(Default, name: Default)
       assert pid == Process.whereis(Default)
     end
 
     test "should return consumer config" do
-      {:ok, config} = GenAMQP.Consumer.init(%{module: Default})
+      {:ok, config} = GenRMQ.Consumer.init(%{module: Default})
 
       assert Default.init() == config[:config]
     end
@@ -37,7 +37,7 @@ defmodule GenAMQP.ConsumerTest do
       message = %{"msg" => "some message"}
 
       {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: Default)
-      {:ok, _} = GenAMQP.Consumer.start_link(Default, name: :consumer)
+      {:ok, _} = GenRMQ.Consumer.start_link(Default, name: :consumer)
       publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
 
       Assert.repeatedly(fn ->
@@ -49,7 +49,7 @@ defmodule GenAMQP.ConsumerTest do
       message = %{"msg" => "handled in the same process"}
 
       {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: WithoutConcurrency)
-      {:ok, pid} = GenAMQP.Consumer.start_link(WithoutConcurrency, name: :consumer_no_concurrency)
+      {:ok, pid} = GenRMQ.Consumer.start_link(WithoutConcurrency, name: :consumer_no_concurrency)
       publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
 
       Assert.repeatedly(fn ->
@@ -61,7 +61,7 @@ defmodule GenAMQP.ConsumerTest do
       message = %{"msg" => "disconnect"}
 
       {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: Default)
-      {:ok, consumer_pid} = GenAMQP.Consumer.start_link(Default, name: :consumer)
+      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default, name: :consumer)
 
       state = :sys.get_state(consumer_pid)
       Process.exit(state.conn.pid, :kill)

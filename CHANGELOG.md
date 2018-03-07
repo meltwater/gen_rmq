@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.7] - 2018-03-12
+### Added
+- Renamed project to `gen_rmq` @mkorszun.
+- Renamed namespace from `GenAMQP` to `GenRMQ` @mkorszun.
+
 ## [0.1.6] - 2018-03-02
 ### Added
 - Required project configuration to publish on [hex.pm](hex.pm) @mkorszun.
@@ -24,7 +29,8 @@
 ### Removed
 - Unused test helper functions @mkorszun.
 
-[0.1.6]: https://github.com/meltwater/gen_amqp/compare/v0.1.5...v0.1.6
-[0.1.5]: https://github.com/meltwater/gen_amqp/compare/v0.1.4...v0.1.5
-[0.1.4]: https://github.com/meltwater/gen_amqp/compare/v0.1.3...v0.1.4
-[0.1.3]: https://github.com/meltwater/gen_amqp/compare/v0.1.2...v0.1.3
+[0.1.7]: https://github.com/meltwater/gen_rmq/compare/v0.1.6...v0.1.7
+[0.1.6]: https://github.com/meltwater/gen_rmq/compare/v0.1.5...v0.1.6
+[0.1.5]: https://github.com/meltwater/gen_rmq/compare/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/meltwater/gen_rmq/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/meltwater/gen_rmq/compare/v0.1.2...v0.1.3

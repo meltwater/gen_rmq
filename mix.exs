@@ -1,11 +1,11 @@
-defmodule GenAmqp.Mixfile do
+defmodule GenRMQ.Mixfile do
   use Mix.Project
 
-  @version "0.1.6"
+  @version "0.1.7"
 
   def project do
     [
-      app: :gen_amqp,
+      app: :gen_rmq,
       version: @version,
       elixir: "~> 1.5",
       start_permanent: Mix.env() == :prod,
