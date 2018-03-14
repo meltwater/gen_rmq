@@ -1,19 +1,19 @@
-defmodule GenAMQP.PublisherTest do
+defmodule GenRMQ.PublisherTest do
   use ExUnit.Case, async: false
-  use GenAMQP.RabbitCase
+  use GenRMQ.RabbitCase
 
-  alias GenAmqp.Test.Assert
+  alias GenRMQ.Test.Assert
 
   @uri "amqp://guest:guest@localhost:5672"
-  @exchange "gen_amqp_exchange"
-  @out_queue "gen_amqp_out_queue"
+  @exchange "gen_rmq_exchange"
+  @out_queue "gen_rmq_out_queue"
 
   defmodule TestPublisher do
-    @behaviour GenAMQP.Publisher
+    @behaviour GenRMQ.Publisher
 
     def init() do
       [
-        exchange: "gen_amqp_exchange",
+        exchange: "gen_rmq_exchange",
         uri: "amqp://guest:guest@localhost:5672",
         app_id: :my_app_id
       ]
@@ -30,14 +30,14 @@ defmodule GenAMQP.PublisherTest do
     purge_queues(@uri, [@out_queue])
   end
 
-  describe "GenAMQP.Publisher" do
+  describe "GenRMQ.Publisher" do
     test "should start new publisher for given module" do
-      {:ok, pid} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
+      {:ok, pid} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
       assert pid == Process.whereis(TestPublisher)
     end
 
     test "should return publisher config" do
-      {:ok, config} = GenAMQP.Publisher.init(%{module: TestPublisher})
+      {:ok, config} = GenRMQ.Publisher.init(%{module: TestPublisher})
 
       assert TestPublisher.init() == config[:config]
     end
@@ -45,8 +45,8 @@ defmodule GenAMQP.PublisherTest do
     test "should publish message", context do
       message = %{"msg" => "msg"}
 
-      {:ok, _} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
-      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(%{"msg" => "msg"}))
+      {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
+      GenRMQ.Publisher.publish(TestPublisher, Poison.encode!(%{"msg" => "msg"}))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -58,8 +58,8 @@ defmodule GenAMQP.PublisherTest do
     test "should publish message with custom routing key", context do
       message = %{"msg" => "msg"}
 
-      {:ok, _} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
-      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(message), "some.routing.key")
+      {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
+      GenRMQ.Publisher.publish(TestPublisher, Poison.encode!(message), "some.routing.key")
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -71,7 +71,7 @@ defmodule GenAMQP.PublisherTest do
     test "should reconnect after connection failure", context do
       message = %{"msg" => "pub_disc"}
 
-      {:ok, publisher_pid} = GenAMQP.Publisher.start_link(TestPublisher, name: TestPublisher)
+      {:ok, publisher_pid} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
 
       state = :sys.get_state(publisher_pid)
       Process.exit(state.channel.conn.pid, :kill)
@@ -81,7 +81,7 @@ defmodule GenAMQP.PublisherTest do
         assert new_state.channel.conn.pid != state.channel.conn.pid
       end)
 
-      GenAMQP.Publisher.publish(TestPublisher, Poison.encode!(message))
+      GenRMQ.Publisher.publish(TestPublisher, Poison.encode!(message))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)

@@ -1,12 +1,12 @@
 defmodule TestConsumer do
   defmodule Default do
     @moduledoc false
-    @behaviour GenAMQP.Consumer
+    @behaviour GenRMQ.Consumer
 
     def init() do
       [
-        queue: "gen_amqp_in_queue",
-        exchange: "gen_amqp_exchange",
+        queue: "gen_rmq_in_queue",
+        exchange: "gen_rmq_exchange",
         routing_key: "#",
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672"
@@ -20,18 +20,18 @@ defmodule TestConsumer do
     def handle_message(message) do
       payload = Poison.decode!(message.payload)
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
-      GenAMQP.Consumer.ack(message)
+      GenRMQ.Consumer.ack(message)
     end
   end
 
   defmodule WithoutConcurrency do
     @moduledoc false
-    @behaviour GenAMQP.Consumer
+    @behaviour GenRMQ.Consumer
 
     def init() do
       [
-        queue: "gen_amqp_in_queue",
-        exchange: "gen_amqp_exchange",
+        queue: "gen_rmq_in_queue",
+        exchange: "gen_rmq_exchange",
         routing_key: "#",
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672",
@@ -48,7 +48,7 @@ defmodule TestConsumer do
       payload = Poison.decode!(message.payload)
 
       Agent.update(__MODULE__, &MapSet.put(&1, {payload, consuming_process}))
-      GenAMQP.Consumer.ack(message)
+      GenRMQ.Consumer.ack(message)
     end
   end
 end

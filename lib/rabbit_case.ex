@@ -1,4 +1,4 @@
-defmodule GenAMQP.RabbitCase do
+defmodule GenRMQ.RabbitCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the rabbit mq.

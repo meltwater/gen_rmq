@@ -1,3 +1,3 @@
 ExUnit.start()
 
-GenAmqp.Test.Assert.start_link([], [])
+GenRMQ.Test.Assert.start_link([], [])

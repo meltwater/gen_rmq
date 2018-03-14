@@ -1,8 +1,8 @@
-[![Build Status](https://travis-ci.com/meltwater/gen_amqp.svg?token=JscQvnQYQz7Pr7TwvyZh&branch=master)](https://travis-ci.com/meltwater/gen_amqp)
+[![Build Status](https://travis-ci.org/meltwater/gen_rmq.svg?branch=master)](https://travis-ci.org/meltwater/gen_rmq)
 
-# GenAMQP
+# GenRMQ
 
-GenAMQP is a set of [behaviours](https://hexdocs.pm/elixir/behaviours.html) meant to be used to create RabbitMQ consumers and publishers.
+GenRMQ is a set of [behaviours](https://hexdocs.pm/elixir/behaviours.html) meant to be used to create RabbitMQ consumers and publishers.
 Internally it is using [AMQP](https://github.com/pma/amqp) elixir RabbitMQ client. The idea is to reduce boilerplate consumer / publisher
 code, which usually includes:
 
@@ -12,25 +12,25 @@ code, which usually includes:
 
 The project currently provides the following functionality:
 
-- `GenAMQP.Consumer` - a behaviour for implementing RabbitMQ consumers
-- `GenAMQP.Publisher` - a behaviour for implementing RabbitMQ publishers
-- `GenAMQP.Processor` - a behaviour for implementing RabbitMQ message processors
-- `GenAMQP.RabbitCase` - test utilities for RabbitMQ ([example usage](test/gen_amqp_publisher_test.exs))
+- `GenRMQ.Consumer` - a behaviour for implementing RabbitMQ consumers
+- `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
+- `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors
+- `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage](test/gen_rmq_publisher_test.exs))
 
 ## Examples
 
-More thorough examples for using `GenAMQP.Consumer` and `GenAMQP.Publisher` can be found in the [examples](examples) directory.
+More thorough examples for using `GenRMQ.Consumer` and `GenRMQ.Publisher` can be found in the [examples](examples) directory.
 
 ### Consumer
 
 ~~~elixir
 defmodule Consumer do
-  @behaviour GenAMQP.Consumer
+  @behaviour GenRMQ.Consumer
 
   def init() do
     [
-      queue: "gen_amqp_in_queue",
-      exchange: "gen_amqp_exchange",
+      queue: "gen_rmq_in_queue",
+      exchange: "gen_rmq_exchange",
       routing_key: "#",
       prefetch_count: "10",
       uri: "amqp://guest:guest@localhost:5672",
@@ -49,17 +49,17 @@ end
 ~~~
 
 ~~~elixir
-GenAMQP.Consumer.start_link(Consumer, name: Consumer)
+GenRMQ.Consumer.start_link(Consumer, name: Consumer)
 ~~~
 
 This will result in:
-* durable `gen_amqp_exchange.deadletter` exchange created or redeclared
-* durable `gen_amqp_in_queue_error` queue created or redeclared. It will be bound to `gen_amqp_exchange.deadletter`
-* durable `gen_amqp_exchange` exchange created or redeclared
-* durable `gen_amqp_in_queue` queue created or redeclared. It will be bound to `gen_amqp_exchange`
-exchange and has a deadletter exchange set to `gen_amqp_exchange.deadletter`
-* on failed rabbitmq connection it will wait for a bit and then reconnect
+* durable `gen_rmq_exchange.deadletter` exchange created or redeclared
+* durable `gen_rmq_in_queue_error` queue created or redeclared. It will be bound to `gen_rmq_exchange.deadletter`
+* durable `gen_rmq_exchange` exchange created or redeclared
+* durable `gen_rmq_in_queue` queue created or redeclared. It will be bound to `gen_rmq_exchange`
+exchange and has a deadletter exchange set to `gen_rmq_exchange.deadletter`
 * every `handle_message` callback will executed in separate process. This can be disabled by setting `concurrency: false` in `init` callback
+* on failed rabbitmq connection it will wait for a bit and then reconnect
 
 For all available options please check [consumer documentation](lib/consumer.ex).
 
@@ -67,11 +67,11 @@ For all available options please check [consumer documentation](lib/consumer.ex)
 
 ~~~elixir
 defmodule Publisher do
-  @behaviour GenAMQP.Publisher
+  @behaviour GenRMQ.Publisher
 
   def init() do
     [
-      exchange: "gen_amqp_exchange",
+      exchange: "gen_rmq_exchange",
       uri: "amqp://guest:guest@localhost:5672"
     ]
   end
@@ -79,8 +79,8 @@ end
 ~~~
 
 ~~~elixir
-GenAMQP.Publisher.start_link(Publisher, name: Publisher)
-GenAMQP.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
+GenRMQ.Publisher.start_link(Publisher, name: Publisher)
+GenRMQ.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
 ~~~
 
 ## Installation
@@ -88,9 +88,9 @@ GenAMQP.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
 def deps do
   [
     {
-      :gen_amqp,
-      git: "git@github.com:meltwater/gen_amqp.git",
-      tag: "v0.1.6"
+      :gen_rmq,
+      git: "git@github.com:meltwater/gen_rmq.git",
+      tag: "v0.1.7"
     }
   ]
 end
@@ -104,7 +104,7 @@ $ make test
 
 ## How to contribute
 We happily accept contributions in the form of [Github PRs](https://help.github.com/articles/about-pull-requests/)
-or in the form of bug reports, comments/suggestions or usage questions by creating a [github issue](https://github.com/meltwater/gen_amqp/issues).
+or in the form of bug reports, comments/suggestions or usage questions by creating a [github issue](https://github.com/meltwater/gen_rmq/issues).
 
 ## Notes on project maturity
 This library was developed as a Meltwater internal project starting in January 2018.

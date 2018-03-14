@@ -1,11 +1,11 @@
-defmodule GenAmqp.Mixfile do
+defmodule GenRMQ.Mixfile do
   use Mix.Project
 
-  @version "0.1.6"
+  @version "0.1.7"
 
   def project do
     [
-      app: :gen_amqp,
+      app: :gen_rmq,
       version: @version,
       elixir: "~> 1.5",
       start_permanent: Mix.env() == :prod,
@@ -14,12 +14,12 @@ defmodule GenAmqp.Mixfile do
       test_coverage: [tool: ExCoveralls],
       description: description(),
       package: package(),
-      source_url: "https://github.com/meltwater/gen_amqp",
+      source_url: "https://github.com/meltwater/gen_rmq",
       docs: [
         extras: ["README.md"],
         main: "readme",
         source_ref: "v#{@version}",
-        source_url: "https://github.com/meltwater/gen_amqp"
+        source_url: "https://github.com/meltwater/gen_rmq"
       ]
     ]
   end
@@ -54,9 +54,8 @@ defmodule GenAmqp.Mixfile do
     [
       files: ["lib", "mix.exs", "README.md", "LICENSE"],
       maintainers: ["Mateusz Korszun"],
-      organization: "Meltwater Inc.",
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/meltwater/gen_amqp"}
+      links: %{"GitHub" => "https://github.com/meltwater/gen_rmq"}
     ]
   end
 end

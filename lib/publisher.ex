@@ -1,4 +1,4 @@
-defmodule GenAMQP.Publisher do
+defmodule GenRMQ.Publisher do
   @moduledoc """
   A behaviour module for implementing the RabbitMQ publisher
   """
@@ -10,7 +10,7 @@ defmodule GenAMQP.Publisher do
   require Logger
 
   ##############################################################################
-  # GenPublisher callbacks
+  # GenRMQ.Publisher callbacks
   ##############################################################################
 
   @doc """
@@ -31,7 +31,7 @@ defmodule GenAMQP.Publisher do
   ```
   def init() do
     [
-      exchange: "gen_amqp_exchange",
+      exchange: "gen_rmq_exchange",
       uri: "amqp://guest:guest@localhost:5672"
       app_id: :my_app_id
     ]
@@ -46,14 +46,14 @@ defmodule GenAMQP.Publisher do
             ]
 
   ##############################################################################
-  # GenPublisher API
+  # GenRMQ.Publisher API
   ##############################################################################
 
   @doc """
-  Starts `GenAMQP.Publisher` with given callback module linked to the current
+  Starts `GenRMQ.Publisher` with given callback module linked to the current
   process
 
-  `module`- callback module implementing `GenAMQP.Publisher` behaviour
+  `module`- callback module implementing `GenRMQ.Publisher` behaviour
 
   ## Options
    * `:name` - used for name registration
@@ -66,7 +66,7 @@ defmodule GenAMQP.Publisher do
 
   ## Examples:
   ```
-  GenAMQP.Publisher.start_link(TestPublisher, name: :publisher)
+  GenRMQ.Publisher.start_link(TestPublisher, name: :publisher)
   ```
 
   """
@@ -86,7 +86,7 @@ defmodule GenAMQP.Publisher do
 
   ## Examples:
   ```
-  GenAMQP.Publisher.publish(TestPublisher, "{\"msg\": \"hello\"})
+  GenRMQ.Publisher.publish(TestPublisher, "{\"msg\": \"hello\"})
   ```
 
   """
