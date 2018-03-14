@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/meltwater/gen_rmq.svg?token=JscQvnQYQz7Pr7TwvyZh&branch=master)](https://travis-ci.com/meltwater/gen_rmq)
+[![Build Status](https://travis-ci.org/meltwater/gen_rmq.svg?branch=master)](https://travis-ci.org/meltwater/gen_rmq)
 
 # GenRMQ
 
