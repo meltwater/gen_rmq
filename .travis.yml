@@ -11,4 +11,4 @@ before_script:
   - make code-analysis
 
 script:
-  - make test
+  - make test_ci
