@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/meltwater/gen_amqp.svg?token=JscQvnQYQz7Pr7TwvyZh&branch=master)](https://travis-ci.com/meltwater/gen_amqp)
+[![Build Status](https://travis-ci.com/meltwater/gen_rmq.svg?token=JscQvnQYQz7Pr7TwvyZh&branch=master)](https://travis-ci.com/meltwater/gen_rmq)
 
 # GenRMQ
 
@@ -89,7 +89,7 @@ def deps do
   [
     {
       :gen_rmq,
-      git: "git@github.com:meltwater/gen_amqp.git",
+      git: "git@github.com:meltwater/gen_rmq.git",
       tag: "v0.1.7"
     }
   ]

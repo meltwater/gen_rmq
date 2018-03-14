@@ -14,12 +14,12 @@ defmodule GenRMQ.Mixfile do
       test_coverage: [tool: ExCoveralls],
       description: description(),
       package: package(),
-      source_url: "https://github.com/meltwater/gen_amqp",
+      source_url: "https://github.com/meltwater/gen_rmq",
       docs: [
         extras: ["README.md"],
         main: "readme",
         source_ref: "v#{@version}",
-        source_url: "https://github.com/meltwater/gen_amqp"
+        source_url: "https://github.com/meltwater/gen_rmq"
       ]
     ]
   end
@@ -55,7 +55,7 @@ defmodule GenRMQ.Mixfile do
       files: ["lib", "mix.exs", "README.md", "LICENSE"],
       maintainers: ["Mateusz Korszun"],
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/meltwater/gen_amqp"}
+      links: %{"GitHub" => "https://github.com/meltwater/gen_rmq"}
     ]
   end
 end
