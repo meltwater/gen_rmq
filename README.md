@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/meltwater/gen_rmq.svg?branch=master)](https://travis-ci.org/meltwater/gen_rmq)
+[![Coverage Status](https://coveralls.io/repos/github/meltwater/gen_rmq/badge.svg?branch=master)](https://coveralls.io/github/meltwater/gen_rmq?branch=master)
 
 # GenRMQ
 
@@ -16,6 +17,13 @@ The project currently provides the following functionality:
 - `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
 - `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors
 - `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage](test/gen_rmq_publisher_test.exs))
+
+## Installation
+~~~elixir
+def deps do
+  [{:gen_rmq, "~> 0.1.7"}]
+end
+~~~
 
 ## Examples
 
@@ -83,19 +91,6 @@ GenRMQ.Publisher.start_link(Publisher, name: Publisher)
 GenRMQ.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
 ~~~
 
-## Installation
-~~~elixir
-def deps do
-  [
-    {
-      :gen_rmq,
-      git: "git@github.com:meltwater/gen_rmq.git",
-      tag: "v0.1.7"
-    }
-  ]
-end
-~~~
-
 ## Running tests
 You need [docker-compose](https://docs.docker.com/compose/) installed.
 ~~~bash
@@ -114,5 +109,3 @@ Over the next two months it has been used in at least three Meltwater production
 The MIT License (MIT)
 
 Copyright (c) 2016 Meltwater Inc. http://underthehood.meltwater.com/
-
-## [Changelog](CHANGELOG.md)
