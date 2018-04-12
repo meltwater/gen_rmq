@@ -53,4 +53,27 @@ defmodule TestConsumer do
       GenRMQ.Consumer.ack(message)
     end
   end
+
+  defmodule WithoutReconnection do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "does_not_matter_queue",
+        exchange: "does_not_matter_exchange",
+        routing_key: "#",
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        reconnect: false
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithoutReconnection"
+    end
+
+    def handle_message(_message) do
+    end
+  end
 end
