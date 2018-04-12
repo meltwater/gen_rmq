@@ -261,7 +261,7 @@ defmodule GenRMQ.Consumer do
 
   defp rabbitmq_connect(%{config: config, module: module, reconnect_attempt: attempt} = state) do
     rabbit_uri = config[:uri]
-    retry_delay_fn = config[:retry_delay_function] || &linear_delay/1
+    retry_delay_fn = config[:retry_delay_function] || (&linear_delay/1)
 
     case Connection.open(rabbit_uri) do
       {:ok, conn} ->
