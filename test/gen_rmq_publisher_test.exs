@@ -68,6 +68,19 @@ defmodule GenRMQ.PublisherTest do
       assert "some.routing.key" == meta[:routing_key]
     end
 
+    test "should publish message with headers", context do
+      message = %{"msg" => "msg"}
+
+      {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
+      GenRMQ.Publisher.publish(TestPublisher, Poison.encode!(message), "some.routing.key", header1: "value")
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
+      {:ok, received_message, meta} = get_message_from_queue(context)
+
+      assert message == received_message
+      assert [{"header1", :longstr, "value"}] == meta[:headers]
+    end
+
     test "should reconnect after connection failure", context do
       message = %{"msg" => "pub_disc"}
 
