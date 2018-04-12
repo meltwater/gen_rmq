@@ -6,10 +6,11 @@ defmodule TestConsumer do
     def init() do
       [
         queue: "gen_rmq_in_queue",
-        exchange: "gen_rmq_exchange",
+        exchange: "gen_rmq_in_exchange",
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672"
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 100
       ]
     end
 
@@ -31,11 +32,12 @@ defmodule TestConsumer do
     def init() do
       [
         queue: "gen_rmq_in_queue",
-        exchange: "gen_rmq_exchange",
+        exchange: "gen_rmq_in_exchange",
         routing_key: "#",
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672",
-        concurrency: false
+        concurrency: false,
+        queue_ttl: 100
       ]
     end
 

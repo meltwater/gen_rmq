@@ -8,17 +8,11 @@ defmodule GenRMQ.ConsumerTest do
   alias TestConsumer.WithoutConcurrency
 
   @uri "amqp://guest:guest@localhost:5672"
-  @exchange "gen_rmq_exchange"
-  @out_queue "gen_rmq_out_queue"
+  @exchange "gen_rmq_in_exchange"
 
   setup_all do
     {:ok, conn} = rmq_open(@uri)
-    :ok = setup_out_queue(conn, @out_queue, @exchange)
-    {:ok, rabbit_conn: conn, out_queue: @out_queue, exchange: @exchange}
-  end
-
-  setup do
-    purge_queues(@uri, [@out_queue])
+    {:ok, rabbit_conn: conn, exchange: @exchange}
   end
 
   describe "GenRMQ.Consumer" do
