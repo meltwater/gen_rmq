@@ -53,6 +53,7 @@ defmodule GenRMQ.PublisherTest do
 
       assert message == received_message
       assert "" == meta[:routing_key]
+      assert [] == meta[:headers]
     end
 
     test "should publish message with custom routing key", context do
@@ -66,6 +67,7 @@ defmodule GenRMQ.PublisherTest do
 
       assert message == received_message
       assert "some.routing.key" == meta[:routing_key]
+      assert [] == meta[:headers]
     end
 
     test "should publish message with headers", context do
@@ -101,6 +103,7 @@ defmodule GenRMQ.PublisherTest do
 
       assert message == received_message
       assert "" == meta[:routing_key]
+      assert [] == meta[:headers]
     end
   end
 end
