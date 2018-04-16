@@ -84,15 +84,22 @@ defmodule GenRMQ.Publisher do
 
   `routing_key` - optional routing key to set for given message
 
+  `headers` - optional headers to set for given message
+
   ## Examples:
   ```
   GenRMQ.Publisher.publish(TestPublisher, "{\"msg\": \"hello\"})
   ```
 
   """
-  @spec publish(publisher :: Atom.t() | Pid.t(), message :: Binary.t(), routing_key :: String.t()) :: :ok
-  def publish(publisher, message, routing_key \\ "") do
-    GenServer.call(publisher, {:publish, message, routing_key})
+  @spec publish(
+          publisher :: Atom.t() | Pid.t(),
+          message :: Binary.t(),
+          routing_key :: String.t(),
+          headers :: Keyword.t()
+        ) :: :ok
+  def publish(publisher, message, routing_key \\ "", headers \\ []) do
+    GenServer.call(publisher, {:publish, message, routing_key, headers})
   end
 
   ##############################################################################
@@ -109,8 +116,9 @@ defmodule GenRMQ.Publisher do
   end
 
   @doc false
-  def handle_call({:publish, msg, key}, _from, %{channel: channel, config: config} = state) do
-    result = Basic.publish(channel, config[:exchange], key, msg, base_metadata(config))
+  def handle_call({:publish, msg, key, headers}, _from, %{channel: channel, config: config} = state) do
+    metadata = config |> base_metadata |> Keyword.merge(headers: headers)
+    result = Basic.publish(channel, config[:exchange], key, msg, metadata)
     {:reply, result, state}
   end
 
