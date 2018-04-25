@@ -55,6 +55,9 @@ defmodule GenRMQ.Consumer do
   With this callback you can for example do exponential backoff.
   The default implementation is a linear delay starting with 1 second step.
 
+  `reconnect` - defines if consumer should reconnect on connection termination.
+  By default reconnection is enabled.
+
   ## Examples:
   ```
   def init() do
@@ -66,7 +69,8 @@ defmodule GenRMQ.Consumer do
       uri: "amqp://guest:guest@localhost:5672",
       concurrency: true,
       queue_ttl: 5000,
-      retry_delay_function: fn attempt -> :timer.sleep(1000 * attempt) end
+      retry_delay_function: fn attempt -> :timer.sleep(1000 * attempt) end,
+      reconnect: true
     ]
   end
   ```
@@ -80,7 +84,8 @@ defmodule GenRMQ.Consumer do
               uri: String.t(),
               concurrency: Boolean.t(),
               queue_ttl: Integer.t(),
-              retry_delay_function: Function.t()
+              retry_delay_function: Function.t(),
+              reconnect: Booleam.t()
             ]
 
   @doc """
@@ -200,15 +205,12 @@ defmodule GenRMQ.Consumer do
   end
 
   @doc false
-  def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module} = state) do
+  def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config} = state) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
 
-    {:ok, new_state} =
-      state
-      |> Map.put(:reconnect_attempt, 0)
-      |> rabbitmq_connect()
-
-    {:noreply, new_state}
+    config
+    |> Keyword.get(:reconnect, true)
+    |> handle_reconnect(state)
   end
 
   @doc false
@@ -238,25 +240,44 @@ defmodule GenRMQ.Consumer do
       Logger.debug("[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}")
     end
 
-    do_handle(payload, attributes, state, Keyword.get(config, :concurrency, true))
+    handle_message(payload, attributes, state, Keyword.get(config, :concurrency, true))
 
     {:noreply, state}
+  end
+
+  @doc false
+  def terminate(reason, %{module: module}) do
+    Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
   end
 
   ##############################################################################
   # Helpers
   ##############################################################################
 
-  defp do_handle(payload, attributes, %{module: module} = state, false) do
+  defp handle_message(payload, attributes, %{module: module} = state, false) do
     message = Message.create(attributes, payload, state)
     apply(module, :handle_message, [message])
   end
 
-  defp do_handle(payload, attributes, %{module: module} = state, true) do
+  defp handle_message(payload, attributes, %{module: module} = state, true) do
     spawn(fn ->
       message = Message.create(attributes, payload, state)
       apply(module, :handle_message, [message])
     end)
+  end
+
+  defp handle_reconnect(false, %{module: module} = state) do
+    Logger.info("[#{module}]: Reconnection is disabled. Terminating consumer.")
+    {:stop, :normal, state}
+  end
+
+  defp handle_reconnect(_, state) do
+    {:ok, new_state} =
+      state
+      |> Map.put(:reconnect_attempt, 0)
+      |> rabbitmq_connect()
+
+    {:noreply, new_state}
   end
 
   defp rabbitmq_connect(%{config: config, module: module, reconnect_attempt: attempt} = state) do
