@@ -287,15 +287,7 @@ defmodule GenRMQ.Consumer do
     case Connection.open(rabbit_uri) do
       {:ok, conn} ->
         Process.monitor(conn.pid)
-
-        {:ok, chan} = Channel.open(conn)
-        {:ok, out_chan} = Channel.open(conn)
-
-        queue = setup_rabbit(chan, config)
-        consumer_tag = apply(module, :consumer_tag, [])
-
-        {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, consumer_tag: consumer_tag)
-        {:ok, %{in: chan, out: out_chan, conn: conn, config: config, module: module}}
+        setup_rabbit(conn, state)
 
       {:error, e} ->
         Logger.error(
@@ -319,7 +311,7 @@ defmodule GenRMQ.Consumer do
     |> Keyword.put(key, "[FILTERED]")
   end
 
-  defp setup_rabbit(chan, config) do
+  defp setup_rabbit(conn, %{config: config, module: module}) do
     queue = config[:queue]
     exchange = config[:exchange]
     routing_key = config[:routing_key]
@@ -333,12 +325,19 @@ defmodule GenRMQ.Consumer do
       [{"x-dead-letter-exchange", :longstr, exchange_error}]
       |> setup_ttl(ttl)
 
+    {:ok, chan} = Channel.open(conn)
+    {:ok, out_chan} = Channel.open(conn)
+
     setup_deadletter(chan, exchange_error, queue_error, setup_ttl([], ttl))
     Basic.qos(chan, prefetch_count: prefetch_count)
     Queue.declare(chan, queue, durable: true, arguments: arguments)
     Exchange.topic(chan, exchange, durable: true)
     Queue.bind(chan, queue, exchange, routing_key: routing_key)
-    queue
+
+    consumer_tag = apply(module, :consumer_tag, [])
+
+    {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, consumer_tag: consumer_tag)
+    {:ok, %{in: chan, out: out_chan, conn: conn, config: config, module: module}}
   end
 
   defp setup_deadletter(chan, dl_exchange, dl_queue, arguments) do
