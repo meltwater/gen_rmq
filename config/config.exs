@@ -18,7 +18,7 @@ use Mix.Config
 #
 # You can also configure a 3rd-party app:
 #
-config :logger, level: :warn
+config :logger, level: :error
 
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment
