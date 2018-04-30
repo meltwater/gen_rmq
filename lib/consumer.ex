@@ -147,7 +147,7 @@ defmodule GenRMQ.Consumer do
     GenServer.start_link(__MODULE__, %{module: module}, options)
   end
 
-  # TODO: documentation
+  # Documentation missing
   @spec start_link(module :: Module.t(), initial_state :: Map.t(), options :: Keyword.t()) ::
           {:ok, Pid.t()} | {:error, Any.t()}
   def start_link(module, initial_state, options) do
@@ -199,10 +199,10 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   def init(%{module: module, conn: conn} = initial_state) do
-    config = apply(module, :init, []) |> Keyword.put(:reconnect, false)
+    config = apply(module, :init, [])
 
     initial_state
-    |> Map.merge(%{config: config})
+    |> Map.merge(%{config: config |> Keyword.put(:reconnect, false)})
     |> setup_rabbit(conn)
   end
 
