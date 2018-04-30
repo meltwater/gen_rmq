@@ -147,6 +147,13 @@ defmodule GenRMQ.Consumer do
     GenServer.start_link(__MODULE__, %{module: module}, options)
   end
 
+  # TODO: documentation
+  @spec start_link(module :: Module.t(), initial_state :: Map.t(), options :: Keyword.t()) ::
+          {:ok, Pid.t()} | {:error, Any.t()}
+  def start_link(module, initial_state, options) do
+    GenServer.start_link(__MODULE__, Map.merge(initial_state, %{module: module}), options)
+  end
+
   @doc """
   Synchronously stops the consumer with a given reason
 
@@ -189,6 +196,15 @@ defmodule GenRMQ.Consumer do
   ##############################################################################
   # GenServer callbacks
   ##############################################################################
+
+  @doc false
+  def init(%{module: module, conn: conn} = initial_state) do
+    config = apply(module, :init, []) |> Keyword.put(:reconnect, false)
+
+    initial_state
+    |> Map.merge(%{config: config})
+    |> setup_rabbit(conn)
+  end
 
   @doc false
   def init(%{module: module} = initial_state) do
@@ -286,8 +302,7 @@ defmodule GenRMQ.Consumer do
 
     case Connection.open(rabbit_uri) do
       {:ok, conn} ->
-        Process.monitor(conn.pid)
-        setup_rabbit(conn, state)
+        setup_rabbit(state, conn)
 
       {:error, e} ->
         Logger.error(
@@ -311,7 +326,7 @@ defmodule GenRMQ.Consumer do
     |> Keyword.put(key, "[FILTERED]")
   end
 
-  defp setup_rabbit(conn, %{config: config, module: module}) do
+  defp setup_rabbit(%{config: config, module: module}, conn) do
     queue = config[:queue]
     exchange = config[:exchange]
     routing_key = config[:routing_key]
@@ -325,6 +340,7 @@ defmodule GenRMQ.Consumer do
       [{"x-dead-letter-exchange", :longstr, exchange_error}]
       |> setup_ttl(ttl)
 
+    Process.monitor(conn.pid)
     {:ok, chan} = Channel.open(conn)
     {:ok, out_chan} = Channel.open(conn)
 

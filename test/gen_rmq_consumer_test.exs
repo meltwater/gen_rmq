@@ -7,6 +7,7 @@ defmodule GenRMQ.ConsumerTest do
   alias TestConsumer.Default
   alias TestConsumer.WithoutConcurrency
   alias TestConsumer.WithoutReconnection
+  alias TestConsumer.WithConnectionProvided
 
   @uri "amqp://guest:guest@localhost:5672"
   @exchange "gen_rmq_in_exchange"
@@ -89,6 +90,47 @@ defmodule GenRMQ.ConsumerTest do
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == false
         assert Process.whereis(Default) == nil
+      end)
+    end
+  end
+
+  describe "GenRMQ.Consumer with provided connection" do
+    test "should start new consumer" do
+      {:ok, pid} = GenRMQ.Consumer.start_link(WithConnectionProvided, name: WithConnectionProvided)
+      assert pid == Process.whereis(WithConnectionProvided)
+    end
+
+    test "should return consumer config" do
+      {:ok, config} = GenRMQ.Consumer.init(%{module: WithConnectionProvided})
+
+      assert WithConnectionProvided.init() == config[:config]
+    end
+
+    test "should receive a message", context do
+      message = %{"msg" => "some message for consumer with provided connection"}
+      initial_state = %{conn: context[:rabbit_conn]}
+
+      {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: WithConnectionProvided)
+      {:ok, _} = GenRMQ.Consumer.start_link(WithConnectionProvided, initial_state, name: :consumer_with_connection)
+      publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Agent.get(WithConnectionProvided, fn set -> message in set end) == true
+      end)
+    end
+
+    test "should termiate after connection is stopped" do
+      {:ok, conn} = rmq_open(@uri)
+      initial_state = %{conn: conn}
+
+      {:ok, consumer_pid} =
+        GenRMQ.Consumer.start_link(WithConnectionProvided, initial_state, name: :consumer_with_connection)
+
+      AMQP.Connection.close(conn)
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == false
+        assert Process.whereis(WithConnectionProvided) == nil
       end)
     end
   end
