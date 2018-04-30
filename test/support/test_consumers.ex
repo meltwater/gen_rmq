@@ -65,7 +65,8 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672",
-        reconnect: false
+        reconnect: false,
+        queue_ttl: 100
       ]
     end
 
@@ -74,6 +75,32 @@ defmodule TestConsumer do
     end
 
     def handle_message(_message) do
+    end
+  end
+
+  defmodule WithConnectionProvided do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_in_queue",
+        exchange: "gen_rmq_in_exchange",
+        routing_key: "#",
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 100
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithConnectionProvided"
+    end
+
+    def handle_message(message) do
+      payload = Poison.decode!(message.payload)
+      Agent.update(__MODULE__, &MapSet.put(&1, payload))
+      GenRMQ.Consumer.ack(message)
     end
   end
 end
