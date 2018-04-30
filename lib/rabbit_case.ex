@@ -55,7 +55,7 @@ defmodule GenRMQ.RabbitCase do
         queue_count(context, :dl_queue)
       end
 
-      defp queue_count(context, queue) do
+      def queue_count(context, queue) do
         {:ok, chan} = AMQP.Channel.open(context[:rabbit_conn])
         {:ok, %{message_count: count}} = AMQP.Queue.declare(chan, context[queue], passive: true)
         AMQP.Channel.close(chan)

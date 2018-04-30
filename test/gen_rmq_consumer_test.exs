@@ -68,7 +68,7 @@ defmodule GenRMQ.ConsumerTest do
       end)
     end
 
-    test "should termiate after connection failure when reconnection disabled" do
+    test "should terminate after connection failure when reconnection disabled" do
       {:ok, consumer_pid} = GenRMQ.Consumer.start_link(WithoutReconnection, name: :consumer_no_reconnection)
 
       state = :sys.get_state(consumer_pid)
@@ -77,6 +77,18 @@ defmodule GenRMQ.ConsumerTest do
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == false
         assert Process.whereis(WithoutReconnection) == nil
+      end)
+    end
+
+    test "should terminate after queue deletion" do
+      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default, name: :consumer)
+
+      state = :sys.get_state(consumer_pid)
+      AMQP.Queue.delete(state.out, state[:config][:queue])
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == false
+        assert Process.whereis(Default) == nil
       end)
     end
   end
