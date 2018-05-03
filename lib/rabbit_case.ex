@@ -48,18 +48,27 @@ defmodule GenRMQ.RabbitCase do
       end
 
       def out_queue_count(context) do
-        queue_count(context, :out_queue)
+        queue_count!(context[:rabbit_conn], context[:out_queue])
       end
 
       def dl_queue_count(context) do
-        queue_count(context, :dl_queue)
+        queue_count!(context[:rabbit_conn], context[:dl_queue])
       end
 
-      def queue_count(context, queue) do
-        {:ok, chan} = AMQP.Channel.open(context[:rabbit_conn])
-        {:ok, %{message_count: count}} = AMQP.Queue.declare(chan, context[queue], passive: true)
+      def queue_count!(conn, queue) do
+        {:ok, chan} = AMQP.Channel.open(conn)
+        {:ok, %{message_count: count}} = AMQP.Queue.declare(chan, queue, passive: true)
         AMQP.Channel.close(chan)
         count
+      end
+
+      def queue_count(conn, queue) do
+        try do
+          {:ok, queue_count!(conn, queue)}
+        catch
+          :exit, _ ->
+            {:error, :not_found}
+        end
       end
     end
   end
