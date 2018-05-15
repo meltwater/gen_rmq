@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/meltwater/gen_rmq.svg?branch=master)](https://travis-ci.org/meltwater/gen_rmq)
+[![Hex Version](http://img.shields.io/hexpm/v/gen_rmq.svg)](https://hex.pm/packages/gen_rmq)
 [![Coverage Status](https://coveralls.io/repos/github/meltwater/gen_rmq/badge.svg?branch=master)](https://coveralls.io/github/meltwater/gen_rmq?branch=master)
 [![Dependency Status](https://www.versioneye.com/user/projects/5afabc4d0fb24f0e5baac110/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/5afabc4d0fb24f0e5baac110)
 
