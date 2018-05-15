@@ -58,6 +58,12 @@ defmodule GenRMQ.Consumer do
   `reconnect` - defines if consumer should reconnect on connection termination.
   By default reconnection is enabled.
 
+  `deadletter` - defines if consumer should setup deadletter exchange and queue.
+
+  `deadletter_queue` - defines name of the deadletter queue.
+
+  `deadletter_exchange` - defines name of the deadletter exchange.
+
   ## Examples:
   ```
   def init() do
@@ -70,7 +76,10 @@ defmodule GenRMQ.Consumer do
       concurrency: true,
       queue_ttl: 5000,
       retry_delay_function: fn attempt -> :timer.sleep(1000 * attempt) end,
-      reconnect: true
+      reconnect: true,
+      deadletter: true,
+      deadletter_queue: "gen_rmq_in_queue_error",
+      deadletter_exchange: "gen_rmq_exchange.deadletter"
     ]
   end
   ```
@@ -85,7 +94,10 @@ defmodule GenRMQ.Consumer do
               concurrency: Boolean.t(),
               queue_ttl: Integer.t(),
               retry_delay_function: Function.t(),
-              reconnect: Booleam.t()
+              reconnect: Booleam.t(),
+              deadletter: Boolean.t(),
+              deadletter_queue: String.t(),
+              deadletter_exchange: String.t()
             ]
 
   @doc """
@@ -326,14 +338,9 @@ defmodule GenRMQ.Consumer do
     prefetch_count = String.to_integer(config[:prefetch_count])
     ttl = config[:queue_ttl]
 
-    queue_error = "#{queue}_error"
-    exchange_error = "#{exchange}.deadletter"
+    deadletter_args = setup_deadletter(chan, config)
+    arguments = deadletter_args |> setup_ttl(ttl)
 
-    arguments =
-      [{"x-dead-letter-exchange", :longstr, exchange_error}]
-      |> setup_ttl(ttl)
-
-    setup_deadletter(chan, exchange_error, queue_error, setup_ttl([], ttl))
     Basic.qos(chan, prefetch_count: prefetch_count)
     Queue.declare(chan, queue, durable: true, arguments: arguments)
     Exchange.topic(chan, exchange, durable: true)
@@ -341,10 +348,24 @@ defmodule GenRMQ.Consumer do
     queue
   end
 
-  defp setup_deadletter(chan, dl_exchange, dl_queue, arguments) do
-    Queue.declare(chan, dl_queue, durable: true, arguments: arguments)
-    Exchange.topic(chan, dl_exchange, durable: true)
-    Queue.bind(chan, dl_queue, dl_exchange, routing_key: "#")
+  defp setup_deadletter(chan, config) do
+    case Keyword.get(config, :deadletter, true) do
+      true ->
+        ttl = config[:queue_ttl]
+        queue = config[:queue]
+        exchange = config[:exchange]
+        dl_queue = config[:deadletter_queue] || "#{queue}_error"
+        dl_exchange = config[:deadletter_queue] || "#{exchange}.deadletter"
+
+        Queue.declare(chan, dl_queue, durable: true, arguments: setup_ttl([], ttl))
+        Exchange.topic(chan, dl_exchange, durable: true)
+        Queue.bind(chan, dl_queue, dl_exchange, routing_key: "#")
+
+        [{"x-dead-letter-exchange", :longstr, dl_exchange}]
+
+      false ->
+        []
+    end
   end
 
   defp setup_ttl(arguments, nil), do: arguments

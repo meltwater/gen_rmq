@@ -18,6 +18,10 @@ defmodule TestConsumer do
       "TestConsumer.Default"
     end
 
+    def handle_message(%GenRMQ.Message{payload: "\"reject\""} = message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
     def handle_message(message) do
       payload = Poison.decode!(message.payload)
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
@@ -65,7 +69,8 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672",
-        reconnect: false
+        reconnect: false,
+        queue_ttl: 100
       ]
     end
 
@@ -74,6 +79,57 @@ defmodule TestConsumer do
     end
 
     def handle_message(_message) do
+    end
+  end
+
+  defmodule WithoutDeadletter do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_in_queue_no_deadletter",
+        exchange: "gen_rmq_in_exchange_no_deadletter",
+        routing_key: "#",
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 100,
+        deadletter: false
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithoutDeadletter"
+    end
+
+    def handle_message(message) do
+      GenRMQ.Consumer.reject(message)
+    end
+  end
+
+  defmodule WithoutCustomDeadletter do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_in_queue_custom_deadletter",
+        exchange: "gen_rmq_in_exchange_custom_deadletter",
+        routing_key: "#",
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 100,
+        deadletter_queue: "dl_queue",
+        deadletter_exchange: "dl_exchange"
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithoutCustomDeadletter"
+    end
+
+    def handle_message(message) do
+      GenRMQ.Consumer.reject(message)
     end
   end
 end
