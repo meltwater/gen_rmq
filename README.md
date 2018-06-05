@@ -121,7 +121,7 @@ Over the next two months it has been used in at least three Meltwater production
 
 The MIT License (MIT)
 
-Copyright (c) 2016 Meltwater Inc. [http://underthehood.meltwater.com/][underthehood]
+Copyright (c) 2018 Meltwater Inc. [http://underthehood.meltwater.com/][underthehood]
 
 [behaviours]: https://hexdocs.pm/elixir/behaviours.html
 [amqp]: https://github.com/pma/amqp
