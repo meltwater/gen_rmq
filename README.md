@@ -1,12 +1,11 @@
 [![Build Status](https://travis-ci.org/meltwater/gen_rmq.svg?branch=master)](https://travis-ci.org/meltwater/gen_rmq)
 [![Hex Version](http://img.shields.io/hexpm/v/gen_rmq.svg)](https://hex.pm/packages/gen_rmq)
 [![Coverage Status](https://coveralls.io/repos/github/meltwater/gen_rmq/badge.svg?branch=master)](https://coveralls.io/github/meltwater/gen_rmq?branch=master)
-[![Dependency Status](https://www.versioneye.com/user/projects/5afabc4d0fb24f0e5baac110/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/5afabc4d0fb24f0e5baac110)
 
 # GenRMQ
 
-GenRMQ is a set of [behaviours](https://hexdocs.pm/elixir/behaviours.html) meant to be used to create RabbitMQ consumers and publishers.
-Internally it is using [AMQP](https://github.com/pma/amqp) elixir RabbitMQ client. The idea is to reduce boilerplate consumer / publisher
+GenRMQ is a set of [behaviours][behaviours] meant to be used to create RabbitMQ consumers and publishers.
+Internally it is using [AMQP][amqp] elixir RabbitMQ client. The idea is to reduce boilerplate consumer / publisher
 code, which usually includes:
 
 * creating connection / channel and keeping it in a state
@@ -15,21 +14,22 @@ code, which usually includes:
 
 The project currently provides the following functionality:
 
-- `GenRMQ.Consumer` - a behaviour for implementing RabbitMQ consumers
-- `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
-- `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors
-- `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage](test/gen_rmq_publisher_test.exs))
+* `GenRMQ.Consumer` - a behaviour for implementing RabbitMQ consumers
+* `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
+* `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors
+* `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage][rabbit_case_example])
 
 ## Installation
+
 ~~~elixir
 def deps do
-  [{:gen_rmq, "~> 0.1.7"}]
+  [{:gen_rmq, "~> 0.2.0"}]
 end
 ~~~
 
 ## Examples
 
-More thorough examples for using `GenRMQ.Consumer` and `GenRMQ.Publisher` can be found in the [examples](examples) directory.
+More thorough examples for using `GenRMQ.Consumer` and `GenRMQ.Publisher` can be found in the [examples][examples] directory.
 
 ### Consumer
 
@@ -63,20 +63,21 @@ GenRMQ.Consumer.start_link(Consumer, name: Consumer)
 ~~~
 
 This will result in:
+
 * durable `gen_rmq_exchange.deadletter` exchange created or redeclared
 * durable `gen_rmq_in_queue_error` queue created or redeclared. It will be bound to `gen_rmq_exchange.deadletter`
-* durable `gen_rmq_exchange` exchange created or redeclared
-* durable `gen_rmq_in_queue` queue created or redeclared. It will be bound to `gen_rmq_exchange`
-exchange and has a deadletter exchange set to `gen_rmq_exchange.deadletter`
+* durable topic `gen_rmq_exchange` exchange created or redeclared
+* durable `gen_rmq_in_queue` queue created or redeclared. It will be bound to `gen_rmq_exchange` exchange and has a deadletter exchange set to `gen_rmq_exchange.deadletter`
 * every `handle_message` callback will executed in separate process. This can be disabled by setting `concurrency: false` in `init` callback
 * on failed rabbitmq connection it will wait for a bit and then reconnect
 
 Optionally, you can:
+
 * specify queue ttl with `queue_ttl` attribute
 * disable deadletter setup by setting `deadletter` attribute to `false`
 * define custom names for deadletter queue / exchange by specifying `deadletter_queue` / `deadletter_exchange` attributes
 
-For all available options please check [consumer documentation](lib/consumer.ex).
+For all available options please check [consumer documentation][consumer_doc].
 
 ### Publisher
 
@@ -99,20 +100,35 @@ GenRMQ.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
 ~~~
 
 ## Running tests
-You need [docker-compose](https://docs.docker.com/compose/) installed.
+
+You need [docker-compose][dokcer_compose] installed.
+
 ~~~bash
 $ make test
 ~~~
 
 ## How to contribute
-We happily accept contributions in the form of [Github PRs](https://help.github.com/articles/about-pull-requests/)
-or in the form of bug reports, comments/suggestions or usage questions by creating a [github issue](https://github.com/meltwater/gen_rmq/issues).
+
+We happily accept contributions in the form of [Github PRs][github_prs]
+or in the form of bug reports, comments/suggestions or usage questions by creating a [github issue][gen_rmq_issues].
 
 ## Notes on project maturity
+
 This library was developed as a Meltwater internal project starting in January 2018.
 Over the next two months it has been used in at least three Meltwater production services.
 
 ## License
+
 The MIT License (MIT)
 
-Copyright (c) 2016 Meltwater Inc. http://underthehood.meltwater.com/
+Copyright (c) 2018 Meltwater Inc. [http://underthehood.meltwater.com/][underthehood]
+
+[behaviours]: https://hexdocs.pm/elixir/behaviours.html
+[amqp]: https://github.com/pma/amqp
+[rabbit_case_example]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
+[examples]: https://github.com/meltwater/gen_rmq/tree/master/examples
+[consumer_doc]: https://github.com/meltwater/gen_rmq/blob/master/lib/consumer.ex
+[dokcer_compose]: https://docs.docker.com/compose/
+[github_prs]: https://help.github.com/articles/about-pull-requests/
+[gen_rmq_issues]: https://github.com/meltwater/gen_rmq/issues
+[underthehood]: http://underthehood.meltwater.com/
