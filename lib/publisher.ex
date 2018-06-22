@@ -11,8 +11,8 @@ defmodule GenRMQ.Publisher do
 
   # list of fields permitted in message metadata at top level
   @metadata_fields :P_basic
-    |> Record.extract(from_lib: "rabbit_common/include/rabbit_framing.hrl")
-    |> Keyword.keys()
+                   |> Record.extract(from_lib: "rabbit_common/include/rabbit_framing.hrl")
+                   |> Keyword.keys()
 
   ##############################################################################
   # GenRMQ.Publisher callbacks
@@ -160,7 +160,6 @@ defmodule GenRMQ.Publisher do
         connect(state)
     end
   end
-
 
   # Put standard metadata fields to top level, everything else into headers
   defp merge_metadata(base, custom) do

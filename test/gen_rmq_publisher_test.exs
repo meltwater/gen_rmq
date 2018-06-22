@@ -87,6 +87,7 @@ defmodule GenRMQ.PublisherTest do
       message = %{"msg" => "msg"}
 
       {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
+
       GenRMQ.Publisher.publish(
         TestPublisher,
         Poison.encode!(message),
@@ -94,21 +95,21 @@ defmodule GenRMQ.PublisherTest do
         message_id: "message_id_1",
         correlation_id: "correlation_id_1",
         header1: "value"
-        )
+      )
 
-        Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
-        {:ok, received_message, meta} = get_message_from_queue(context)
+      Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
+      {:ok, received_message, meta} = get_message_from_queue(context)
 
-        assert message == received_message
-        assert meta[:message_id] == "message_id_1"
-        assert meta[:correlation_id] == "correlation_id_1"
-        refute meta[:header1]
+      assert message == received_message
+      assert meta[:message_id] == "message_id_1"
+      assert meta[:correlation_id] == "correlation_id_1"
+      refute meta[:header1]
 
-        assert [
-            {"message_id", :longstr, "message_id_1"},
-            {"correlation_id", :longstr, "correlation_id_1"},
-            {"header1", :longstr, "value"}
-          ] == meta[:headers]
+      assert [
+               {"message_id", :longstr, "message_id_1"},
+               {"correlation_id", :longstr, "correlation_id_1"},
+               {"header1", :longstr, "value"}
+             ] == meta[:headers]
     end
 
     test "should reconnect after connection failure", context do
