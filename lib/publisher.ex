@@ -9,6 +9,11 @@ defmodule GenRMQ.Publisher do
 
   require Logger
 
+  # list of fields permitted in message metadata at top level
+  @metadata_fields :P_basic
+    |> Record.extract(from_lib: "rabbit_common/include/rabbit_framing.hrl")
+    |> Keyword.keys()
+
   ##############################################################################
   # GenRMQ.Publisher callbacks
   ##############################################################################
@@ -84,7 +89,8 @@ defmodule GenRMQ.Publisher do
 
   `routing_key` - optional routing key to set for given message
 
-  `headers` - optional headers to set for given message
+  `headers` - optional metadata/headers to set for given message. Keys that
+              are allowed in metadata are also copied there.
 
   ## Examples:
   ```
@@ -117,7 +123,7 @@ defmodule GenRMQ.Publisher do
 
   @doc false
   def handle_call({:publish, msg, key, headers}, _from, %{channel: channel, config: config} = state) do
-    metadata = config |> base_metadata |> Keyword.merge(headers: headers)
+    metadata = config |> base_metadata() |> merge_metadata(headers)
     result = Basic.publish(channel, config[:exchange], key, msg, metadata)
     {:reply, result, state}
   end
@@ -153,6 +159,18 @@ defmodule GenRMQ.Publisher do
         :timer.sleep(5000)
         connect(state)
     end
+  end
+
+
+  # Put standard metadata fields to top level, everything else into headers
+  defp merge_metadata(base, custom) do
+    custom
+    # take "standard" fields and put them into metadata top-level
+    |> Keyword.take(@metadata_fields)
+    # put default values, override custom values on conflict
+    |> Keyword.merge(base)
+    # put all custom fields in the headers
+    |> Keyword.merge(headers: custom)
   end
 
   defp base_metadata(config) do
