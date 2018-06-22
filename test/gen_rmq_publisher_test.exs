@@ -105,11 +105,7 @@ defmodule GenRMQ.PublisherTest do
       assert meta[:correlation_id] == "correlation_id_1"
       refute meta[:header1]
 
-      assert [
-               {"message_id", :longstr, "message_id_1"},
-               {"correlation_id", :longstr, "correlation_id_1"},
-               {"header1", :longstr, "value"}
-             ] == meta[:headers]
+      assert [{"header1", :longstr, "value"}] == meta[:headers]
     end
 
     test "should reconnect after connection failure", context do
