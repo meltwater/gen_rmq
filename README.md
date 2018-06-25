@@ -101,7 +101,7 @@ GenRMQ.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
 
 ## Running tests
 
-You need [docker-compose][dokcer_compose] installed.
+You need [docker-compose][docker_compose] installed.
 
 ~~~bash
 $ make test
@@ -128,7 +128,7 @@ Copyright (c) 2018 Meltwater Inc. [http://underthehood.meltwater.com/][undertheh
 [rabbit_case_example]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
 [examples]: https://github.com/meltwater/gen_rmq/tree/master/examples
 [consumer_doc]: https://github.com/meltwater/gen_rmq/blob/master/lib/consumer.ex
-[dokcer_compose]: https://docs.docker.com/compose/
+[docker_compose]: https://docs.docker.com/compose/
 [github_prs]: https://help.github.com/articles/about-pull-requests/
 [gen_rmq_issues]: https://github.com/meltwater/gen_rmq/issues
 [underthehood]: http://underthehood.meltwater.com/
