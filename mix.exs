@@ -1,7 +1,7 @@
 defmodule GenRMQ.Mixfile do
   use Mix.Project
 
-  @version "0.2.1"
+  @version "1.0.0"
 
   def project do
     [
