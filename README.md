@@ -27,7 +27,7 @@ def deps do
 end
 ~~~
 
-## Migrating from `0.*` to `1.*`
+## Migrating from 0.* to 1.*
 
 Since version `1.0.0` we have updated `amqp` dependency to version `1.0.3`.
 This might require some extra steps to configure / disable [lager][lager] in your application.
