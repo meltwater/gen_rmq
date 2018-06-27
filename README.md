@@ -2,6 +2,10 @@
 [![Hex Version](http://img.shields.io/hexpm/v/gen_rmq.svg)](https://hex.pm/packages/gen_rmq)
 [![Coverage Status](https://coveralls.io/repos/github/meltwater/gen_rmq/badge.svg?branch=master)](https://coveralls.io/github/meltwater/gen_rmq?branch=master)
 
+# Migrating to version 1.0.0
+
+If you are already using `0.x` versions, please check [how to migrate to `1.0.0`][migrating_to_100].
+
 # GenRMQ
 
 GenRMQ is a set of [behaviours][behaviours] meant to be used to create RabbitMQ consumers and publishers.
@@ -18,10 +22,6 @@ The project currently provides the following functionality:
 * `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
 * `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors
 * `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage][rabbit_case_example])
-
-# Migrating to version 1.0.0
-
-If you are already using `0.x` versions, please check [how to migrate to `1.0.0`][migrating_to_100].
 
 ## Installation
 
