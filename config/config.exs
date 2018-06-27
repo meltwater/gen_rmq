@@ -20,10 +20,11 @@ use Mix.Config
 #
 config :logger, level: :error
 
-config :lager, :crash_log, false
-config :lager, handlers: [level: :critical]
-config :lager, :error_logger_redirect, false
-config :lager, :error_logger_whitelist, [Logger.ErrorHandler]
+config :lager,
+  crash_log: false,
+  handlers: [level: :critical],
+  error_logger_redirect: false,
+  error_logger_whitelist: [Logger.ErrorHandler]
 
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment
