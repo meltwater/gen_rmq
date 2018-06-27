@@ -19,6 +19,10 @@ The project currently provides the following functionality:
 * `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors
 * `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage][rabbit_case_example])
 
+# Migrating to version 1.0.0
+
+If you are already using `0.x` versions, please check [how to migrate to `1.0.0`][migrating_to_100].
+
 ## Installation
 
 ~~~elixir
@@ -26,23 +30,6 @@ def deps do
   [{:gen_rmq, "~> 1.0.0"}]
 end
 ~~~
-
-## Migrating from 0.* to 1.*
-
-Since version `1.0.0` we have updated `amqp` dependency to version `1.0.3`.
-This might require some extra steps to configure / disable [lager][lager] in your application.
-
-One of the solutions might be to silence it completely by adding below configuration to
-your application config:
-
-~~~elixir
-config :lager, :crash_log, false
-config :lager, handlers: [level: :critical]
-config :lager, :error_logger_redirect, false
-config :lager, :error_logger_whitelist, [Logger.ErrorHandler]
-~~~
-
-Check more regarding lager and elixir support [here][lager_elixir].
 
 ## Examples
 
@@ -143,8 +130,7 @@ Copyright (c) 2018 Meltwater Inc. [http://underthehood.meltwater.com/][undertheh
 [behaviours]: https://hexdocs.pm/elixir/behaviours.html
 [amqp]: https://github.com/pma/amqp
 [rabbit_case_example]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
-[lager]: https://github.com/pma/amqp/wiki/Upgrade-from-0.X-to-1.0#lager
-[lager_elixir]: https://github.com/erlang-lager/lager#elixir-support
+[migrating_to_100]: https://github.com/meltwater/gen_rmq/wiki/Migrations#0---100
 [examples]: https://github.com/meltwater/gen_rmq/tree/master/examples
 [consumer_doc]: https://github.com/meltwater/gen_rmq/blob/master/lib/consumer.ex
 [docker_compose]: https://docs.docker.com/compose/
