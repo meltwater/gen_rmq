@@ -23,9 +23,13 @@ The project currently provides the following functionality:
 
 ~~~elixir
 def deps do
-  [{:gen_rmq, "~> 0.2.1"}]
+  [{:gen_rmq, "~> 1.0.0"}]
 end
 ~~~
+
+## Migrations
+
+Please check [how to migrate to gen_rmq `1.0.0`][migrating_to_100] from previous versions.
 
 ## Examples
 
@@ -101,7 +105,7 @@ GenRMQ.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
 
 ## Running tests
 
-You need [docker-compose][dokcer_compose] installed.
+You need [docker-compose][docker_compose] installed.
 
 ~~~bash
 $ make test
@@ -126,9 +130,10 @@ Copyright (c) 2018 Meltwater Inc. [http://underthehood.meltwater.com/][undertheh
 [behaviours]: https://hexdocs.pm/elixir/behaviours.html
 [amqp]: https://github.com/pma/amqp
 [rabbit_case_example]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
+[migrating_to_100]: https://github.com/meltwater/gen_rmq/wiki/Migrations#0---100
 [examples]: https://github.com/meltwater/gen_rmq/tree/master/examples
 [consumer_doc]: https://github.com/meltwater/gen_rmq/blob/master/lib/consumer.ex
-[dokcer_compose]: https://docs.docker.com/compose/
+[docker_compose]: https://docs.docker.com/compose/
 [github_prs]: https://help.github.com/articles/about-pull-requests/
 [gen_rmq_issues]: https://github.com/meltwater/gen_rmq/issues
 [underthehood]: http://underthehood.meltwater.com/
