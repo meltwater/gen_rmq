@@ -1,19 +1,11 @@
 language: elixir
 elixir:
+  - 1.5
   - 1.6
 
 otp_release:
+  - 19.0
   - 20.0
-  - 21.0
-
-matrix:
-  include:
-    - elixir: '1.5'
-      otp_release:
-        - '19.0'
-    - elixir: '1.5'
-      otp_release:
-        - '20.0'
 
 sudo: required
 
