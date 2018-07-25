@@ -1,4 +1,4 @@
-defmodule MyApp.ExampleConsumer do
+defmodule ExampleConsumer do
   @moduledoc """
   Example GenRMQ.Consumer implementation
   """
@@ -6,7 +6,6 @@ defmodule MyApp.ExampleConsumer do
 
   require Logger
 
-  alias Mix.Project
   alias GenRMQ.Message
 
   ##############################################################################
@@ -32,11 +31,18 @@ defmodule MyApp.ExampleConsumer do
   ##############################################################################
 
   def init() do
-    Application.get_env(:my_app, __MODULE__)
+    [
+      queue: "example_queue",
+      exchange: "example_exchange",
+      routing_key: "routing_key.#",
+      prefetch_count: "10",
+      uri: "amqp://guest:guest@localhost:5672"
+    ]
   end
 
   def handle_message(%Message{} = message) do
-    # Implement your logic here.
+    Logger.info("Received message: #{inspect(message)}")
+    ack(message)
   rescue
     exception ->
       Logger.error(Exception.format(:error, exception, System.stacktrace()))
@@ -45,8 +51,6 @@ defmodule MyApp.ExampleConsumer do
 
   def consumer_tag() do
     {:ok, hostname} = :inet.gethostname()
-    app = Project.config() |> Keyword.get(:app)
-    version = Project.config() |> Keyword.get(:version)
-    "#{hostname}-#{app}-#{version}-consumer"
+    "#{hostname}-example-consumer"
   end
 end

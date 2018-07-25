@@ -1,4 +1,4 @@
-defmodule MyApp.ExamplePublisher do
+defmodule ExamplePublisher do
   @moduledoc """
   Example GenRMQ.Publisher implementation
   """
@@ -11,12 +11,15 @@ defmodule MyApp.ExamplePublisher do
     GenRMQ.Publisher.start_link(__MODULE__, name: __MODULE__)
   end
 
-  def publish_message(message) do
+  def publish_message(message, routing_key) do
     Logger.info("Publishing message #{inspect(message)}")
-    GenRMQ.Publisher.publish(__MODULE__, message)
+    GenRMQ.Publisher.publish(__MODULE__, message, routing_key)
   end
 
   def init() do
-    Application.get_env(:my_app, __MODULE__)
+    [
+      exchange: "example_exchange",
+      uri: "amqp://guest:guest@localhost:5672"
+    ]
   end
 end
