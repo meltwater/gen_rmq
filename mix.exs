@@ -1,7 +1,7 @@
 defmodule GenRMQ.Mixfile do
   use Mix.Project
 
-  @version "1.0.0"
+  @version "1.0.1"
 
   def project do
     [
@@ -38,6 +38,10 @@ defmodule GenRMQ.Mixfile do
   defp deps do
     [
       {:amqp, "~> 1.0"},
+      # Fixes:
+      # https://github.com/pma/amqp/issues/99
+      # https://github.com/rabbitmq/rabbitmq-common/issues/269
+      {:ranch_proxy_protocol, "~> 2.0", override: true},
       {:credo, "~> 0.8", only: :dev},
       {:excoveralls, "~> 0.9.1", only: :test},
       {:poison, "~> 3.1", only: [:dev, :test]},
