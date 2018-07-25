@@ -11,6 +11,8 @@ matrix:
     - elixir: '1.5'
       otp_release:
         - '19.0'
+    - elixir: '1.5'
+      otp_release:
         - '20.0'
 
 sudo: required
