@@ -234,7 +234,7 @@ defmodule GenRMQ.Consumer do
   @doc false
   def handle_info({:basic_cancel, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.warn("[#{module}]: The consumer was unexpectedly cancelled, tag: #{consumer_tag}")
-    {:stop, :normal, state}
+    {:stop, :cancelled, state}
   end
 
   @doc false
@@ -258,8 +258,15 @@ defmodule GenRMQ.Consumer do
   end
 
   @doc false
-  def terminate(reason, %{module: module}) do
+  def terminate(:connection_closed = reason, %{module: module}) do
+    # Since connection has been closed no need to clean it up
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
+  end
+
+  @doc false
+  def terminate(reason, %{module: module, conn: conn}) do
+    Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
+    AMQP.Connection.close(conn)
   end
 
   ##############################################################################
@@ -280,7 +287,7 @@ defmodule GenRMQ.Consumer do
 
   defp handle_reconnect(false, %{module: module} = state) do
     Logger.info("[#{module}]: Reconnection is disabled. Terminating consumer.")
-    {:stop, :normal, state}
+    {:stop, :connection_closed, state}
   end
 
   defp handle_reconnect(_, state) do
