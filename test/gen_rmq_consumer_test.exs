@@ -24,6 +24,17 @@ defmodule GenRMQ.ConsumerTest do
       assert pid == Process.whereis(Default)
     end
 
+    test "should close connection after being stopped" do
+      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default, name: Default)
+      state = :sys.get_state(consumer_pid)
+
+      GenRMQ.Consumer.stop(Default, :normal)
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(state.conn.pid) == false
+      end)
+    end
+
     test "should return consumer config" do
       {:ok, config} = GenRMQ.Consumer.init(%{module: Default})
       assert Default.init() == config[:config]
@@ -68,6 +79,7 @@ defmodule GenRMQ.ConsumerTest do
     end
 
     test "should terminate after queue deletion" do
+      Process.flag(:trap_exit, true)
       {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default)
       state = :sys.get_state(consumer_pid)
 
@@ -75,6 +87,30 @@ defmodule GenRMQ.ConsumerTest do
 
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == false
+      end)
+    end
+
+    test "should send exit signal after queue deletion" do
+      Process.flag(:trap_exit, true)
+      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default)
+      state = :sys.get_state(consumer_pid)
+
+      AMQP.Queue.delete(state.out, state[:config][:queue])
+
+      assert_receive({:EXIT, ^consumer_pid, :cancelled})
+    end
+
+    test "should close connection and channels after queue deletion" do
+      Process.flag(:trap_exit, true)
+      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default)
+      state = :sys.get_state(consumer_pid)
+
+      AMQP.Queue.delete(state.out, state[:config][:queue])
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(state.conn.pid) == false
+        assert Process.alive?(state.in.pid) == false
+        assert Process.alive?(state.out.pid) == false
       end)
     end
   end
@@ -95,6 +131,7 @@ defmodule GenRMQ.ConsumerTest do
 
   describe "GenRMQ.Consumer with reconnection disabled" do
     test "should terminate after connection failure" do
+      Process.flag(:trap_exit, true)
       {:ok, consumer_pid} = GenRMQ.Consumer.start_link(WithoutReconnection)
       state = :sys.get_state(consumer_pid)
 
@@ -104,6 +141,16 @@ defmodule GenRMQ.ConsumerTest do
         assert Process.alive?(consumer_pid) == false
         assert Process.whereis(WithoutReconnection) == nil
       end)
+    end
+
+    test "should send exit signal after connection failure" do
+      Process.flag(:trap_exit, true)
+      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(WithoutReconnection)
+      state = :sys.get_state(consumer_pid)
+
+      AMQP.Connection.close(state.conn)
+
+      assert_receive({:EXIT, ^consumer_pid, :connection_closed})
     end
   end
 
