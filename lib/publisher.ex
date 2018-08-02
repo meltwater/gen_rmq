@@ -116,6 +116,7 @@ defmodule GenRMQ.Publisher do
   ##############################################################################
 
   @doc false
+  @impl GenServer
   def init(%{module: module} = initial_state) do
     config = apply(module, :init, [])
 
@@ -125,6 +126,7 @@ defmodule GenRMQ.Publisher do
   end
 
   @doc false
+  @impl GenServer
   def handle_call({:publish, msg, key, metadata}, _from, %{channel: channel, config: config} = state) do
     metadata = config |> base_metadata() |> merge_metadata(metadata)
     result = Basic.publish(channel, config[:exchange], key, msg, metadata)
@@ -132,6 +134,7 @@ defmodule GenRMQ.Publisher do
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config}) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
     {:ok, state} = setup_publisher(%{module: module, config: config})

@@ -203,6 +203,7 @@ defmodule GenRMQ.Consumer do
   ##############################################################################
 
   @doc false
+  @impl GenServer
   def init(%{module: module} = initial_state) do
     config = apply(module, :init, [])
 
@@ -218,11 +219,13 @@ defmodule GenRMQ.Consumer do
   end
 
   @doc false
+  @impl GenServer
   def handle_call({:recover, requeue}, _from, %{in: channel} = state) do
     {:reply, Basic.recover(channel, requeue: requeue), state}
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config} = state) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
 
@@ -232,24 +235,28 @@ defmodule GenRMQ.Consumer do
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:basic_consume_ok, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.info("[#{module}]: Broker confirmed consumer with tag #{consumer_tag}")
     {:noreply, state}
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:basic_cancel, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.warn("[#{module}]: The consumer was unexpectedly cancelled, tag: #{consumer_tag}")
     {:stop, :cancelled, state}
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:basic_cancel_ok, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.info("[#{module}]: Consumer was cancelled, tag: #{consumer_tag}")
     {:noreply, state}
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:basic_deliver, payload, attributes}, %{module: module, config: config} = state) do
     %{delivery_tag: tag, routing_key: routing_key, redelivered: redelivered} = attributes
     Logger.debug("[#{module}]: Received message. Tag: #{tag}, routing key: #{routing_key}, redelivered: #{redelivered}")
@@ -264,12 +271,14 @@ defmodule GenRMQ.Consumer do
   end
 
   @doc false
+  @impl GenServer
   def terminate(:connection_closed = reason, %{module: module}) do
     # Since connection has been closed no need to clean it up
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
   end
 
   @doc false
+  @impl GenServer
   def terminate(reason, %{module: module, conn: conn}) do
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
     AMQP.Connection.close(conn)
