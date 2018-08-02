@@ -107,7 +107,7 @@ defmodule TestConsumer do
     end
   end
 
-  defmodule WithoutCustomDeadletter do
+  defmodule WithCustomDeadletter do
     @moduledoc false
     @behaviour GenRMQ.Consumer
 
@@ -125,7 +125,7 @@ defmodule TestConsumer do
     end
 
     def consumer_tag() do
-      "TestConsumer.WithoutCustomDeadletter"
+      "TestConsumer.WithCustomDeadletter"
     end
 
     def handle_message(message) do

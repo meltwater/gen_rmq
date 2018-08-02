@@ -8,7 +8,7 @@ defmodule GenRMQ.ConsumerTest do
   alias TestConsumer.WithoutConcurrency
   alias TestConsumer.WithoutReconnection
   alias TestConsumer.WithoutDeadletter
-  alias TestConsumer.WithoutCustomDeadletter
+  alias TestConsumer.WithCustomDeadletter
 
   @uri "amqp://guest:guest@localhost:5672"
   @exchange "gen_rmq_in_exchange"
@@ -170,7 +170,7 @@ defmodule GenRMQ.ConsumerTest do
 
     test "should deadletter a message to a custom queue", context do
       message = %{"msg" => "some message"}
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(WithoutCustomDeadletter)
+      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(WithCustomDeadletter)
       state = :sys.get_state(consumer_pid)
 
       publish_message(context[:rabbit_conn], state.config[:exchange], Poison.encode!(message))
