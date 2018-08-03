@@ -2,7 +2,7 @@ defmodule ExamplePublisher do
   @moduledoc """
   Example GenRMQ.Publisher implementation
 
-  To try it:
+  Sample usage:
   ```
   MIX_ENV=test iex -S mix
   iex(1)> ExamplePublisher.start_link()

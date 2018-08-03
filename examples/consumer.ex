@@ -2,7 +2,7 @@ defmodule ExampleConsumer do
   @moduledoc """
   Example GenRMQ.Consumer implementation.
 
-  To try it:
+  Sample usage:
   ```
   MIX_ENV=test iex -S mix
   iex(1)> ExampleConsumer.start_link()
