@@ -4,46 +4,62 @@ defmodule GenRMQ.ConsumerTest do
 
   alias GenRMQ.Test.Assert
 
+  alias GenRMQ.Consumer
   alias TestConsumer.Default
+  alias TestConsumer.WithCustomDeadletter
   alias TestConsumer.WithoutConcurrency
-  alias TestConsumer.WithoutReconnection
   alias TestConsumer.WithoutDeadletter
-  alias TestConsumer.WithoutCustomDeadletter
+  alias TestConsumer.WithoutReconnection
 
   @uri "amqp://guest:guest@localhost:5672"
-  @exchange "gen_rmq_in_exchange"
 
   setup_all do
     {:ok, conn} = rmq_open(@uri)
-    {:ok, rabbit_conn: conn, exchange: @exchange}
+    {:ok, rabbit_conn: conn}
   end
 
-  describe "GenRMQ.Consumer" do
-    test "should start new consumer" do
-      {:ok, pid} = GenRMQ.Consumer.start_link(Default, name: Default)
-      assert pid == Process.whereis(Default)
+  describe "GenRMQ.Consumer.start_link/2" do
+    test "should start a new consumer" do
+      {:ok, pid} = Consumer.start_link(Default)
+      assert Process.alive?(pid)
     end
 
+    test "should start a new consumer registered by name" do
+      {:ok, pid} = Consumer.start_link(Default, name: Default)
+      assert pid == Process.whereis(Default)
+    end
+  end
+
+  describe "GenRMQ.Consumer.stop/2" do
     test "should close connection after being stopped" do
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default, name: Default)
+      {:ok, consumer_pid} = Consumer.start_link(Default, name: Default)
       state = :sys.get_state(consumer_pid)
 
-      GenRMQ.Consumer.stop(Default, :normal)
+      Consumer.stop(Default, :normal)
 
       Assert.repeatedly(fn ->
         assert Process.alive?(state.conn.pid) == false
       end)
     end
 
-    test "should return consumer config" do
-      {:ok, config} = GenRMQ.Consumer.init(%{module: Default})
-      assert Default.init() == config[:config]
+    test "should send exit signal after abnormal termination" do
+      Process.flag(:trap_exit, true)
+      {:ok, consumer_pid} = Consumer.start_link(Default, name: Default)
+
+      Consumer.stop(Default, :not_normal)
+
+      assert_receive({:EXIT, ^consumer_pid, :not_normal})
+    end
+  end
+
+  describe "TestConsumer.Default" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: Default)
+      with_test_consumer(Default)
     end
 
     test "should receive a message", context do
       message = %{"msg" => "some message"}
-      {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: Default)
-      {:ok, _} = GenRMQ.Consumer.start_link(Default)
 
       publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
 
@@ -52,9 +68,8 @@ defmodule GenRMQ.ConsumerTest do
       end)
     end
 
-    test "should reject a message", context do
+    test "should reject a message", %{consumer: consumer_pid} = context do
       message = "reject"
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default)
       state = :sys.get_state(consumer_pid)
 
       publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
@@ -64,10 +79,8 @@ defmodule GenRMQ.ConsumerTest do
       end)
     end
 
-    test "should reconnect after connection failure", context do
-      message = %{"msg" => "disconnect"}
-      {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: Default)
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default)
+    test "should reconnect after connection failure", %{consumer: consumer_pid} = context do
+      message = "disconnect"
       state = :sys.get_state(consumer_pid)
 
       AMQP.Connection.close(state.conn)
@@ -78,9 +91,8 @@ defmodule GenRMQ.ConsumerTest do
       end)
     end
 
-    test "should terminate after queue deletion" do
+    test "should terminate after queue deletion", %{consumer: consumer_pid} do
       Process.flag(:trap_exit, true)
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default)
       state = :sys.get_state(consumer_pid)
 
       AMQP.Queue.delete(state.out, state[:config][:queue])
@@ -90,9 +102,8 @@ defmodule GenRMQ.ConsumerTest do
       end)
     end
 
-    test "should send exit signal after queue deletion" do
+    test "should send exit signal after queue deletion", %{consumer: consumer_pid} do
       Process.flag(:trap_exit, true)
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default)
       state = :sys.get_state(consumer_pid)
 
       AMQP.Queue.delete(state.out, state[:config][:queue])
@@ -100,9 +111,8 @@ defmodule GenRMQ.ConsumerTest do
       assert_receive({:EXIT, ^consumer_pid, :cancelled})
     end
 
-    test "should close connection and channels after queue deletion" do
+    test "should close connection and channels after queue deletion", %{consumer: consumer_pid} do
       Process.flag(:trap_exit, true)
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(Default)
       state = :sys.get_state(consumer_pid)
 
       AMQP.Queue.delete(state.out, state[:config][:queue])
@@ -115,24 +125,30 @@ defmodule GenRMQ.ConsumerTest do
     end
   end
 
-  describe "GenRMQ.Consumer with concurrency disabled" do
-    test "should receive a message and handle it in the same consumer process", context do
+  describe "TestConsumer.WithoutConcurrency" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithoutConcurrency)
+      with_test_consumer(WithoutConcurrency)
+    end
+
+    test "should receive a message and handle it in the same consumer process", %{consumer: consumer_pid} = context do
       message = %{"msg" => "handled in the same process"}
-      {:ok, _} = Agent.start_link(fn -> MapSet.new() end, name: WithoutConcurrency)
-      {:ok, pid} = GenRMQ.Consumer.start_link(WithoutConcurrency)
 
       publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
 
       Assert.repeatedly(fn ->
-        assert Agent.get(WithoutConcurrency, fn set -> {message, pid} in set end) == true
+        assert Agent.get(WithoutConcurrency, fn set -> {message, consumer_pid} in set end) == true
       end)
     end
   end
 
-  describe "GenRMQ.Consumer with reconnection disabled" do
-    test "should terminate after connection failure" do
+  describe "TestConsumer.WithoutReconnection" do
+    setup do
+      with_test_consumer(WithoutReconnection)
+    end
+
+    test "should terminate after connection failure", %{consumer: consumer_pid} do
       Process.flag(:trap_exit, true)
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(WithoutReconnection)
       state = :sys.get_state(consumer_pid)
 
       AMQP.Connection.close(state.conn)
@@ -143,9 +159,8 @@ defmodule GenRMQ.ConsumerTest do
       end)
     end
 
-    test "should send exit signal after connection failure" do
+    test "should send exit signal after connection failure", %{consumer: consumer_pid} do
       Process.flag(:trap_exit, true)
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(WithoutReconnection)
       state = :sys.get_state(consumer_pid)
 
       AMQP.Connection.close(state.conn)
@@ -154,10 +169,13 @@ defmodule GenRMQ.ConsumerTest do
     end
   end
 
-  describe "GenRMQ.Consumer with custom deadletter setup" do
-    test "should skip deadletter setup", context do
+  describe "TestConsumer.WithoutDeadletter" do
+    setup do
+      with_test_consumer(WithoutDeadletter)
+    end
+
+    test "should skip deadletter setup", %{consumer: consumer_pid} = context do
       message = %{"msg" => "some message"}
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(WithoutDeadletter)
       state = :sys.get_state(consumer_pid)
 
       publish_message(context[:rabbit_conn], state.config[:exchange], Poison.encode!(message))
@@ -167,10 +185,15 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:error, :not_found}
       end)
     end
+  end
 
-    test "should deadletter a message to a custom queue", context do
+  describe "TestConsumer.WithCustomDeadletter" do
+    setup do
+      with_test_consumer(WithCustomDeadletter)
+    end
+
+    test "should deadletter a message to a custom queue", %{consumer: consumer_pid} = context do
       message = %{"msg" => "some message"}
-      {:ok, consumer_pid} = GenRMQ.Consumer.start_link(WithoutCustomDeadletter)
       state = :sys.get_state(consumer_pid)
 
       publish_message(context[:rabbit_conn], state.config[:exchange], Poison.encode!(message))
@@ -180,5 +203,16 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], "dl_queue") == {:ok, 1}
       end)
     end
+  end
+
+  defp with_test_consumer(module) do
+    {:ok, consumer_pid} = Consumer.start_link(module)
+
+    exchange =
+      module
+      |> :erlang.apply(:init, [])
+      |> Keyword.get(:exchange)
+
+    {:ok, %{consumer: consumer_pid, exchange: exchange}}
   end
 end

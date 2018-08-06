@@ -203,20 +203,29 @@ defmodule GenRMQ.Consumer do
   ##############################################################################
 
   @doc false
+  @impl GenServer
   def init(%{module: module} = initial_state) do
     config = apply(module, :init, [])
 
-    initial_state
-    |> Map.merge(%{config: config, reconnect_attempt: 0})
-    |> rabbitmq_connect
+    state =
+      initial_state
+      |> Map.put(:config, config)
+      |> Map.put(:reconnect_attempt, 0)
+      |> get_connection()
+      |> open_channels()
+      |> setup_consumer()
+
+    {:ok, state}
   end
 
   @doc false
+  @impl GenServer
   def handle_call({:recover, requeue}, _from, %{in: channel} = state) do
     {:reply, Basic.recover(channel, requeue: requeue), state}
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config} = state) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
 
@@ -226,24 +235,28 @@ defmodule GenRMQ.Consumer do
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:basic_consume_ok, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.info("[#{module}]: Broker confirmed consumer with tag #{consumer_tag}")
     {:noreply, state}
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:basic_cancel, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.warn("[#{module}]: The consumer was unexpectedly cancelled, tag: #{consumer_tag}")
     {:stop, :cancelled, state}
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:basic_cancel_ok, %{consumer_tag: consumer_tag}}, %{module: module} = state) do
     Logger.info("[#{module}]: Consumer was cancelled, tag: #{consumer_tag}")
     {:noreply, state}
   end
 
   @doc false
+  @impl GenServer
   def handle_info({:basic_deliver, payload, attributes}, %{module: module, config: config} = state) do
     %{delivery_tag: tag, routing_key: routing_key, redelivered: redelivered} = attributes
     Logger.debug("[#{module}]: Received message. Tag: #{tag}, routing key: #{routing_key}, redelivered: #{redelivered}")
@@ -258,12 +271,14 @@ defmodule GenRMQ.Consumer do
   end
 
   @doc false
+  @impl GenServer
   def terminate(:connection_closed = reason, %{module: module}) do
     # Since connection has been closed no need to clean it up
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
   end
 
   @doc false
+  @impl GenServer
   def terminate(reason, %{module: module, conn: conn}) do
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
     AMQP.Connection.close(conn)
@@ -291,30 +306,21 @@ defmodule GenRMQ.Consumer do
   end
 
   defp handle_reconnect(_, state) do
-    {:ok, new_state} =
+    new_state =
       state
       |> Map.put(:reconnect_attempt, 0)
-      |> rabbitmq_connect()
+      |> get_connection()
+      |> open_channels()
+      |> setup_consumer()
 
     {:noreply, new_state}
   end
 
-  defp rabbitmq_connect(%{config: config, module: module, reconnect_attempt: attempt} = state) do
-    rabbit_uri = config[:uri]
-    retry_delay_fn = config[:retry_delay_function] || (&linear_delay/1)
-
-    case Connection.open(rabbit_uri) do
+  defp get_connection(%{config: config, module: module, reconnect_attempt: attempt} = state) do
+    case Connection.open(config[:uri]) do
       {:ok, conn} ->
         Process.monitor(conn.pid)
-
-        {:ok, chan} = Channel.open(conn)
-        {:ok, out_chan} = Channel.open(conn)
-
-        queue = setup_rabbit(chan, config)
-        consumer_tag = apply(module, :consumer_tag, [])
-
-        {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, consumer_tag: consumer_tag)
-        {:ok, %{in: chan, out: out_chan, conn: conn, config: config, module: module}}
+        Map.put(state, :conn, conn)
 
       {:error, e} ->
         Logger.error(
@@ -322,23 +328,23 @@ defmodule GenRMQ.Consumer do
             "#{inspect(strip_key(config, :uri))}, reason #{inspect(e)}"
         )
 
+        retry_delay_fn = config[:retry_delay_function] || (&linear_delay/1)
         next_attempt = attempt + 1
         retry_delay_fn.(next_attempt)
-        rabbitmq_connect(%{state | reconnect_attempt: next_attempt})
+
+        state
+        |> Map.put(:reconnect_attempt, next_attempt)
+        |> get_connection()
     end
   end
 
-  defp linear_delay(attempt) do
-    :timer.sleep(attempt * 1_000)
+  defp open_channels(%{conn: conn} = state) do
+    {:ok, chan} = Channel.open(conn)
+    {:ok, out_chan} = Channel.open(conn)
+    Map.merge(state, %{in: chan, out: out_chan})
   end
 
-  defp strip_key(keyword_list, key) do
-    keyword_list
-    |> Keyword.delete(key)
-    |> Keyword.put(key, "[FILTERED]")
-  end
-
-  defp setup_rabbit(chan, config) do
+  defp setup_consumer(%{in: chan, config: config, module: module} = state) do
     queue = config[:queue]
     exchange = config[:exchange]
     routing_key = config[:routing_key]
@@ -352,7 +358,10 @@ defmodule GenRMQ.Consumer do
     Queue.declare(chan, queue, durable: true, arguments: arguments)
     Exchange.topic(chan, exchange, durable: true)
     Queue.bind(chan, queue, exchange, routing_key: routing_key)
-    queue
+
+    consumer_tag = apply(module, :consumer_tag, [])
+    {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, consumer_tag: consumer_tag)
+    state
   end
 
   defp setup_deadletter(chan, config) do
@@ -374,6 +383,14 @@ defmodule GenRMQ.Consumer do
         []
     end
   end
+
+  defp strip_key(keyword_list, key) do
+    keyword_list
+    |> Keyword.delete(key)
+    |> Keyword.put(key, "[FILTERED]")
+  end
+
+  defp linear_delay(attempt), do: :timer.sleep(attempt * 1_000)
 
   defp setup_ttl(arguments, nil), do: arguments
   defp setup_ttl(arguments, ttl), do: [{"x-expires", :long, ttl} | arguments]

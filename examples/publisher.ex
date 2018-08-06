@@ -1,6 +1,13 @@
 defmodule ExamplePublisher do
   @moduledoc """
   Example GenRMQ.Publisher implementation
+
+  Sample usage:
+  ```
+  MIX_ENV=test iex -S mix
+  iex(1)> ExamplePublisher.start_link()
+  iex(2)> ExamplePublisher.publish_message("test", "routing_key")
+  ```
   """
 
   @behaviour GenRMQ.Publisher
