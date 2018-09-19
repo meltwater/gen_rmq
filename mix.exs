@@ -42,7 +42,7 @@ defmodule GenRMQ.Mixfile do
       {:excoveralls, "~> 0.10.0", only: :test},
       {:poison, "~> 3.1", only: [:dev, :test]},
       {:earmark, "~> 1.2", only: :dev},
-      {:ex_doc, "~> 0.18", only: :dev}
+      {:ex_doc, "~> 0.18.0", only: :dev}
     ]
   end
 

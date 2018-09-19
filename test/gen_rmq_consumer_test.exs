@@ -22,11 +22,13 @@ defmodule GenRMQ.ConsumerTest do
     test "should start a new consumer" do
       {:ok, pid} = Consumer.start_link(Default)
       assert Process.alive?(pid)
+      assert Consumer.stop(pid, :normal) == :ok
     end
 
     test "should start a new consumer registered by name" do
       {:ok, pid} = Consumer.start_link(Default, name: Default)
       assert pid == Process.whereis(Default)
+      assert Consumer.stop(pid, :normal) == :ok
     end
   end
 
@@ -212,6 +214,12 @@ defmodule GenRMQ.ConsumerTest do
       module
       |> :erlang.apply(:init, [])
       |> Keyword.get(:exchange)
+
+    on_exit(fn ->
+      if Process.alive?(consumer_pid) do
+        Consumer.stop(consumer_pid, :normal)
+      end
+    end)
 
     {:ok, %{consumer: consumer_pid, exchange: exchange}}
   end
