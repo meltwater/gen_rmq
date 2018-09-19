@@ -17,3 +17,6 @@ before_script:
 
 script:
   - make test_ci
+
+after_script:
+  - make doc
