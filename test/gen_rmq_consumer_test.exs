@@ -10,6 +10,7 @@ defmodule GenRMQ.ConsumerTest do
   alias TestConsumer.WithoutConcurrency
   alias TestConsumer.WithoutDeadletter
   alias TestConsumer.WithoutReconnection
+  alias TestConsumer.WithPriority
 
   @uri "amqp://guest:guest@localhost:5672"
 
@@ -203,6 +204,23 @@ defmodule GenRMQ.ConsumerTest do
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == true
         assert queue_count(context[:rabbit_conn], "dl_queue") == {:ok, 1}
+      end)
+    end
+  end
+
+  describe "TestConsumer.WithPriority" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithPriority)
+      with_test_consumer(WithPriority)
+    end
+
+    test "should receive a message", context do
+      message = %{"msg" => "message with prio"}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message), "", priority: 5)
+
+      Assert.repeatedly(fn ->
+        assert Agent.get(WithPriority, fn set -> message in set end) == true
       end)
     end
   end

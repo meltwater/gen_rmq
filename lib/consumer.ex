@@ -45,6 +45,11 @@ defmodule GenRMQ.Consumer do
   the queue has not been redeclared, and basic.get has not been invoked
   for a duration of at least the expiration period
 
+  `queue_max_priority` - defines if a declared queue should be a priority queue.
+  Should be set to a value from `1..255` range. If it is greater than `255`, queue
+  max priority will be set to `255`. Values between `1` and `10` are
+  [recommened](https://www.rabbitmq.com/priority.html#resource-usage).
+
   `concurrency` - defines if `handle_message` callback is called
   in seperate process using [spawn](https://hexdocs.pm/elixir/Process.html#spawn/2)
   function. By default concurrency is enabled. To disable, set it to `false`
@@ -79,7 +84,8 @@ defmodule GenRMQ.Consumer do
       reconnect: true,
       deadletter: true,
       deadletter_queue: "gen_rmq_in_queue_error",
-      deadletter_exchange: "gen_rmq_exchange.deadletter"
+      deadletter_exchange: "gen_rmq_exchange.deadletter",
+      queue_max_priority: 10
     ]
   end
   ```
@@ -350,9 +356,14 @@ defmodule GenRMQ.Consumer do
     routing_key = config[:routing_key]
     prefetch_count = String.to_integer(config[:prefetch_count])
     ttl = config[:queue_ttl]
+    max_priority = config[:queue_max_priority]
 
     deadletter_args = setup_deadletter(chan, config)
-    arguments = deadletter_args |> setup_ttl(ttl)
+
+    arguments =
+      deadletter_args
+      |> setup_ttl(ttl)
+      |> setup_priority(max_priority)
 
     Basic.qos(chan, prefetch_count: prefetch_count)
     Queue.declare(chan, queue, durable: true, arguments: arguments)
@@ -394,6 +405,16 @@ defmodule GenRMQ.Consumer do
 
   defp setup_ttl(arguments, nil), do: arguments
   defp setup_ttl(arguments, ttl), do: [{"x-expires", :long, ttl} | arguments]
+
+  @max_priority 255
+
+  defp setup_priority(arguments, max_priority) when is_integer(max_priority) and max_priority <= @max_priority,
+    do: [{"x-max-priority", :long, max_priority} | arguments]
+
+  defp setup_priority(arguments, max_priority) when is_integer(max_priority) and max_priority > @max_priority,
+    do: [{"x-max-priority", :long, @max_priority} | arguments]
+
+  defp setup_priority(arguments, _), do: arguments
 
   ##############################################################################
   ##############################################################################

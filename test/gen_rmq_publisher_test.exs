@@ -108,6 +108,25 @@ defmodule GenRMQ.PublisherTest do
       assert [{"header1", :longstr, "value"}] == meta[:headers]
     end
 
+    test "should publish a message with priority", context do
+      message = %{"msg" => "with prio"}
+
+      {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
+
+      GenRMQ.Publisher.publish(
+        TestPublisher,
+        Poison.encode!(message),
+        "some.routing.key",
+        priority: 100
+      )
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
+      {:ok, received_message, meta} = get_message_from_queue(context)
+
+      assert message == received_message
+      assert meta[:priority] == 100
+    end
+
     test "should reconnect after connection failure", context do
       message = %{"msg" => "pub_disc"}
 
