@@ -35,10 +35,10 @@ defmodule GenRMQ.ConsumerTest do
 
   describe "GenRMQ.Consumer.stop/2" do
     test "should close connection after being stopped" do
-      {:ok, consumer_pid} = Consumer.start_link(Default, name: Default)
+      {:ok, consumer_pid} = Consumer.start_link(Default)
       state = :sys.get_state(consumer_pid)
 
-      Consumer.stop(Default, :normal)
+      Consumer.stop(consumer_pid, :normal)
 
       Assert.repeatedly(fn ->
         assert Process.alive?(state.conn.pid) == false
@@ -47,9 +47,9 @@ defmodule GenRMQ.ConsumerTest do
 
     test "should send exit signal after abnormal termination" do
       Process.flag(:trap_exit, true)
-      {:ok, consumer_pid} = Consumer.start_link(Default, name: Default)
+      {:ok, consumer_pid} = Consumer.start_link(Default)
 
-      Consumer.stop(Default, :not_normal)
+      Consumer.stop(consumer_pid, :not_normal)
 
       assert_receive({:EXIT, ^consumer_pid, :not_normal})
     end
