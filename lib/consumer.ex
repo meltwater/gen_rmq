@@ -46,7 +46,7 @@ defmodule GenRMQ.Consumer do
   for a duration of at least the expiration period
 
   `queue_max_priority` - defines if a declared queue should be a priority queue.
-  Should be set to a value from `0..255` range. If it is greater than `255`, queue
+  Should be set to a value from `1..255` range. If it is greater than `255`, queue
   max priority will be set to `255`. Values between `1` and `10` are
   [recommened](https://www.rabbitmq.com/priority.html#resource-usage).
 
