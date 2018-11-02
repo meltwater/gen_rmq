@@ -81,6 +81,7 @@ Optionally, you can:
 * specify queue ttl with `queue_ttl` attribute
 * disable deadletter setup by setting `deadletter` attribute to `false`
 * define custom names for deadletter queue / exchange by specifying `deadletter_queue` / `deadletter_exchange` attributes
+* create a [priority queue][priority_queues] with `queue_max_priority` attribute
 
 For all available options please check [consumer documentation][consumer_doc].
 
@@ -137,4 +138,5 @@ Copyright (c) 2018 Meltwater Inc. [http://underthehood.meltwater.com/][undertheh
 [docker_compose]: https://docs.docker.com/compose/
 [github_prs]: https://help.github.com/articles/about-pull-requests/
 [gen_rmq_issues]: https://github.com/meltwater/gen_rmq/issues
+[priority_queues]: https://www.rabbitmq.com/priority.html
 [underthehood]: http://underthehood.meltwater.com/
