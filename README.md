@@ -24,7 +24,7 @@ The project currently provides the following functionality:
 
 ~~~elixir
 def deps do
-  [{:gen_rmq, "~> 1.0.1"}]
+  [{:gen_rmq, "~> 1.0.2"}]
 end
 ~~~
 
