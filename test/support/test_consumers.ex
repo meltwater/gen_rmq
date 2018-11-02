@@ -70,7 +70,7 @@ defmodule TestConsumer do
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672",
         reconnect: false,
-        queue_ttl: 100
+        queue_ttl: 1000
       ]
     end
 
@@ -118,7 +118,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 100,
+        queue_ttl: 1000,
         deadletter_queue: "dl_queue",
         deadletter_exchange: "dl_exchange"
       ]
@@ -144,7 +144,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 100,
+        queue_ttl: 1000,
         queue_max_priority: 100
       ]
     end
