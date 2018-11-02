@@ -103,7 +103,8 @@ defmodule GenRMQ.Consumer do
               reconnect: Booleam.t(),
               deadletter: Boolean.t(),
               deadletter_queue: String.t(),
-              deadletter_exchange: String.t()
+              deadletter_exchange: String.t(),
+              queue_max_priority: Integer.t()
             ]
 
   @doc """
