@@ -100,7 +100,7 @@ defmodule GenRMQ.Consumer do
               concurrency: Boolean.t(),
               queue_ttl: Integer.t(),
               retry_delay_function: Function.t(),
-              reconnect: Booleam.t(),
+              reconnect: Boolean.t(),
               deadletter: Boolean.t(),
               deadletter_queue: String.t(),
               deadletter_exchange: String.t(),
