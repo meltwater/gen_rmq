@@ -2,6 +2,7 @@ defmodule GenRMQ.PublisherTest do
   use ExUnit.Case, async: false
   use GenRMQ.RabbitCase
 
+  alias GenRMQ.Publisher
   alias GenRMQ.Test.Assert
 
   @uri "amqp://guest:guest@localhost:5672"
@@ -30,23 +31,27 @@ defmodule GenRMQ.PublisherTest do
     purge_queues(@uri, [@out_queue])
   end
 
-  describe "GenRMQ.Publisher" do
-    test "should start new publisher for given module" do
+  describe "start_link/2" do
+    test "should start a new publisher" do
+      {:ok, pid} = GenRMQ.Publisher.start_link(TestPublisher)
+      assert Process.alive?(pid)
+    end
+
+    test "should start a new publisher registered by name" do
       {:ok, pid} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
-      assert pid == Process.whereis(TestPublisher)
+      assert Process.whereis(TestPublisher) == pid
+    end
+  end
+
+  describe "GenRMQ.Publisher" do
+    setup do
+      with_test_publisher()
     end
 
-    test "should return publisher config" do
-      {:ok, config} = GenRMQ.Publisher.init(%{module: TestPublisher})
-
-      assert TestPublisher.init() == config[:config]
-    end
-
-    test "should publish message", context do
+    test "should publish message", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
-      GenRMQ.Publisher.publish(TestPublisher, Poison.encode!(%{"msg" => "msg"}))
+      GenRMQ.Publisher.publish(publisher_pid, Poison.encode!(%{"msg" => "msg"}))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -56,11 +61,10 @@ defmodule GenRMQ.PublisherTest do
       assert [] == meta[:headers]
     end
 
-    test "should publish message with custom routing key", context do
+    test "should publish message with custom routing key", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
-      GenRMQ.Publisher.publish(TestPublisher, Poison.encode!(message), "some.routing.key")
+      GenRMQ.Publisher.publish(publisher_pid, Poison.encode!(message), "some.routing.key")
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -70,11 +74,10 @@ defmodule GenRMQ.PublisherTest do
       assert [] == meta[:headers]
     end
 
-    test "should publish message with headers", context do
+    test "should publish message with headers", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
-      GenRMQ.Publisher.publish(TestPublisher, Poison.encode!(message), "some.routing.key", header1: "value")
+      GenRMQ.Publisher.publish(publisher_pid, Poison.encode!(message), "some.routing.key", header1: "value")
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -83,13 +86,11 @@ defmodule GenRMQ.PublisherTest do
       assert [{"header1", :longstr, "value"}] == meta[:headers]
     end
 
-    test "should override standard metadata fields from headers", context do
+    test "should override standard metadata fields from headers", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
-
       GenRMQ.Publisher.publish(
-        TestPublisher,
+        publisher_pid,
         Poison.encode!(message),
         "some.routing.key",
         message_id: "message_id_1",
@@ -108,13 +109,11 @@ defmodule GenRMQ.PublisherTest do
       assert [{"header1", :longstr, "value"}] == meta[:headers]
     end
 
-    test "should publish a message with priority", context do
+    test "should publish a message with priority", %{publisher: publisher_pid} = context do
       message = %{"msg" => "with prio"}
 
-      {:ok, _} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
-
       GenRMQ.Publisher.publish(
-        TestPublisher,
+        publisher_pid,
         Poison.encode!(message),
         "some.routing.key",
         priority: 100
@@ -127,12 +126,9 @@ defmodule GenRMQ.PublisherTest do
       assert meta[:priority] == 100
     end
 
-    test "should reconnect after connection failure", context do
+    test "should reconnect after connection failure", %{publisher: publisher_pid, state: state} = context do
       message = %{"msg" => "pub_disc"}
 
-      {:ok, publisher_pid} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
-
-      state = :sys.get_state(publisher_pid)
       Process.exit(state.channel.conn.pid, :kill)
 
       Assert.repeatedly(fn ->
@@ -140,7 +136,7 @@ defmodule GenRMQ.PublisherTest do
         assert new_state.channel.conn.pid != state.channel.conn.pid
       end)
 
-      GenRMQ.Publisher.publish(TestPublisher, Poison.encode!(message))
+      GenRMQ.Publisher.publish(publisher_pid, Poison.encode!(message))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -150,11 +146,7 @@ defmodule GenRMQ.PublisherTest do
       assert [] == meta[:headers]
     end
 
-    test "should close connection and channel on termination" do
-      Process.flag(:trap_exit, true)
-      {:ok, publisher_pid} = GenRMQ.Publisher.start_link(TestPublisher)
-      state = :sys.get_state(publisher_pid)
-
+    test "should close connection and channel on termination", %{publisher: publisher_pid, state: state} do
       Process.exit(publisher_pid, :shutdown)
 
       Assert.repeatedly(fn ->
@@ -162,5 +154,15 @@ defmodule GenRMQ.PublisherTest do
         assert Process.alive?(state.channel.pid) == false
       end)
     end
+  end
+
+  defp with_test_publisher(module \\ TestPublisher) do
+    Process.flag(:trap_exit, true)
+    {:ok, publisher_pid} = Publisher.start_link(module)
+
+    state = :sys.get_state(publisher_pid)
+
+    on_exit(fn -> Process.exit(publisher_pid, :normal) end)
+    {:ok, %{publisher: publisher_pid, state: state}}
   end
 end
