@@ -149,5 +149,18 @@ defmodule GenRMQ.PublisherTest do
       assert "" == meta[:routing_key]
       assert [] == meta[:headers]
     end
+
+    test "should close connection and channel on termination" do
+      Process.flag(:trap_exit, true)
+      {:ok, publisher_pid} = GenRMQ.Publisher.start_link(TestPublisher)
+      state = :sys.get_state(publisher_pid)
+
+      Process.exit(publisher_pid, :shutdown)
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(state.conn.pid) == false
+        assert Process.alive?(state.channel.pid) == false
+      end)
+    end
   end
 end
