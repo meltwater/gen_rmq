@@ -144,9 +144,10 @@ defmodule GenRMQ.Publisher do
 
   @doc false
   @impl GenServer
-  def terminate(reason, %{module: module, conn: conn}) do
+  def terminate(reason, %{module: module, conn: conn, channel: channel}) do
     Logger.debug("[#{module}]: Terminating publisher, reason: #{inspect(reason)}")
-    AMQP.Connection.close(conn)
+    Channel.close(channel)
+    Connection.close(conn)
   end
 
   ##############################################################################

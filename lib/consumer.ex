@@ -287,9 +287,11 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   @impl GenServer
-  def terminate(reason, %{module: module, conn: conn}) do
+  def terminate(reason, %{module: module, conn: conn, in: in_chan, out: out_chan}) do
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
-    AMQP.Connection.close(conn)
+    Channel.close(in_chan)
+    Channel.close(out_chan)
+    Connection.close(conn)
   end
 
   ##############################################################################
