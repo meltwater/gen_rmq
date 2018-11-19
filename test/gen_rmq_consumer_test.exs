@@ -126,6 +126,20 @@ defmodule GenRMQ.ConsumerTest do
         assert Process.alive?(state.out.pid) == false
       end)
     end
+
+    test "should close connection and channels after shutdown signal" do
+      Process.flag(:trap_exit, true)
+      {:ok, consumer_pid} = Consumer.start_link(Default)
+      state = :sys.get_state(consumer_pid)
+
+      Process.exit(consumer_pid, :shutdown)
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(state.conn.pid) == false
+        assert Process.alive?(state.in.pid) == false
+        assert Process.alive?(state.out.pid) == false
+      end)
+    end
   end
 
   describe "TestConsumer.WithoutConcurrency" do
@@ -233,12 +247,7 @@ defmodule GenRMQ.ConsumerTest do
       |> :erlang.apply(:init, [])
       |> Keyword.get(:exchange)
 
-    on_exit(fn ->
-      if Process.alive?(consumer_pid) do
-        Consumer.stop(consumer_pid, :normal)
-      end
-    end)
-
+    on_exit(fn -> Process.exit(consumer_pid, :normal) end)
     {:ok, %{consumer: consumer_pid, exchange: exchange}}
   end
 end

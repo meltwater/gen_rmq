@@ -118,6 +118,7 @@ defmodule GenRMQ.Publisher do
   @doc false
   @impl GenServer
   def init(%{module: module} = initial_state) do
+    Process.flag(:trap_exit, true)
     config = apply(module, :init, [])
 
     initial_state
@@ -141,6 +142,14 @@ defmodule GenRMQ.Publisher do
     {:noreply, state}
   end
 
+  @doc false
+  @impl GenServer
+  def terminate(reason, %{module: module, conn: conn, channel: channel}) do
+    Logger.debug("[#{module}]: Terminating publisher, reason: #{inspect(reason)}")
+    Channel.close(channel)
+    Connection.close(conn)
+  end
+
   ##############################################################################
   # Helpers
   ##############################################################################
@@ -151,7 +160,7 @@ defmodule GenRMQ.Publisher do
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
     Exchange.topic(channel, config[:exchange], durable: true)
-    {:ok, %{channel: channel, module: module, config: config}}
+    {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
 
   defp connect(%{module: module, config: config} = state) do
