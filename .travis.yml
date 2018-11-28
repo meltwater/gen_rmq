@@ -9,6 +9,11 @@ otp_release:
   - 20.0
   - 21.0
 
+matrix:
+  exclude:
+    - elixir: 1.5
+      otp_release: 21
+
 sudo: required
 
 services:
