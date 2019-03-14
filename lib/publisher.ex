@@ -120,10 +120,9 @@ defmodule GenRMQ.Publisher do
   def init(%{module: module} = initial_state) do
     Process.flag(:trap_exit, true)
     config = apply(module, :init, [])
-
-    initial_state
-    |> Map.merge(%{config: config})
-    |> setup_publisher
+    state = Map.merge(initial_state, %{config: config})
+    send(self(), :init)
+    {:ok, state}
   end
 
   @doc false
@@ -132,6 +131,14 @@ defmodule GenRMQ.Publisher do
     metadata = config |> base_metadata() |> merge_metadata(metadata)
     result = Basic.publish(channel, config[:exchange], key, msg, metadata)
     {:reply, result, state}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_info(:init, %{module: module, config: config}) do
+    Logger.info("[#{module}]: Setting up publisher connection and configuration")
+    {:ok, state} = setup_publisher(%{module: module, config: config})
+    {:noreply, state}
   end
 
   @doc false
@@ -155,8 +162,6 @@ defmodule GenRMQ.Publisher do
   ##############################################################################
 
   defp setup_publisher(%{module: module, config: config} = state) do
-    Logger.info("[#{module}]: Setting up publisher connection and configuration")
-
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
     Exchange.topic(channel, config[:exchange], durable: true)
