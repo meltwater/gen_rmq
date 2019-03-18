@@ -219,9 +219,8 @@ defmodule GenRMQ.Consumer do
       initial_state
       |> Map.put(:config, config)
       |> Map.put(:reconnect_attempt, 0)
-      |> get_connection()
-      |> open_channels()
-      |> setup_consumer()
+
+    send(self(), :init)
 
     {:ok, state}
   end
@@ -230,6 +229,18 @@ defmodule GenRMQ.Consumer do
   @impl GenServer
   def handle_call({:recover, requeue}, _from, %{in: channel} = state) do
     {:reply, Basic.recover(channel, requeue: requeue), state}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_info(:init, state) do
+    state =
+      state
+      |> get_connection()
+      |> open_channels()
+      |> setup_consumer()
+
+    {:noreply, state}
   end
 
   @doc false
