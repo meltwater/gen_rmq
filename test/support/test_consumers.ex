@@ -23,7 +23,7 @@ defmodule TestConsumer do
     end
 
     def handle_message(message) do
-      payload = Poison.decode!(message.payload)
+      payload = Jason.decode!(message.payload)
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
@@ -51,7 +51,7 @@ defmodule TestConsumer do
 
     def handle_message(message) do
       consuming_process = self()
-      payload = Poison.decode!(message.payload)
+      payload = Jason.decode!(message.payload)
 
       Agent.update(__MODULE__, &MapSet.put(&1, {payload, consuming_process}))
       GenRMQ.Consumer.ack(message)
@@ -154,7 +154,7 @@ defmodule TestConsumer do
     end
 
     def handle_message(message) do
-      payload = Poison.decode!(message.payload)
+      payload = Jason.decode!(message.payload)
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
