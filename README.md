@@ -103,7 +103,7 @@ end
 
 ~~~elixir
 GenRMQ.Publisher.start_link(Publisher, name: Publisher)
-GenRMQ.Publisher.publish(Publisher, Poison.encode!(%{msg: "msg"}))
+GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 ~~~
 
 ## Running tests

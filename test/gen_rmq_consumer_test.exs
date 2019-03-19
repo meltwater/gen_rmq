@@ -62,7 +62,7 @@ defmodule GenRMQ.ConsumerTest do
     test "should receive a message", context do
       message = %{"msg" => "some message"}
 
-      publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
       Assert.repeatedly(fn ->
         assert Agent.get(Default, fn set -> message in set end) == true
@@ -72,7 +72,7 @@ defmodule GenRMQ.ConsumerTest do
     test "should reject a message", %{state: state} = context do
       message = "reject"
 
-      publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
       Assert.repeatedly(fn ->
         assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:ok, 1}
@@ -83,7 +83,7 @@ defmodule GenRMQ.ConsumerTest do
       message = "disconnect"
       AMQP.Connection.close(state.conn)
 
-      publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
       Assert.repeatedly(fn ->
         assert Agent.get(Default, fn set -> message in set end) == true
@@ -134,7 +134,7 @@ defmodule GenRMQ.ConsumerTest do
     test "should receive a message and handle it in the same consumer process", %{consumer: consumer_pid} = context do
       message = %{"msg" => "handled in the same process"}
 
-      publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
       Assert.repeatedly(fn ->
         assert Agent.get(WithoutConcurrency, fn set -> {message, consumer_pid} in set end) == true
@@ -171,7 +171,7 @@ defmodule GenRMQ.ConsumerTest do
     test "should skip deadletter setup", %{consumer: consumer_pid, state: state} = context do
       message = %{"msg" => "some message"}
 
-      publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == true
@@ -189,7 +189,7 @@ defmodule GenRMQ.ConsumerTest do
     test "should deadletter a message to a custom queue", %{consumer: consumer_pid} = context do
       message = %{"msg" => "some message"}
 
-      publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message))
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == true
@@ -207,7 +207,7 @@ defmodule GenRMQ.ConsumerTest do
     test "should receive a message", context do
       message = %{"msg" => "message with prio"}
 
-      publish_message(context[:rabbit_conn], context[:exchange], Poison.encode!(message), "", priority: 5)
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "", priority: 5)
 
       Assert.repeatedly(fn ->
         assert Agent.get(WithPriority, fn set -> message in set end) == true

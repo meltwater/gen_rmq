@@ -51,7 +51,7 @@ defmodule GenRMQ.PublisherTest do
     test "should publish message", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      GenRMQ.Publisher.publish(publisher_pid, Poison.encode!(%{"msg" => "msg"}))
+      GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(%{"msg" => "msg"}))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -64,7 +64,7 @@ defmodule GenRMQ.PublisherTest do
     test "should publish message with custom routing key", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      GenRMQ.Publisher.publish(publisher_pid, Poison.encode!(message), "some.routing.key")
+      GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key")
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -77,7 +77,7 @@ defmodule GenRMQ.PublisherTest do
     test "should publish message with headers", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      GenRMQ.Publisher.publish(publisher_pid, Poison.encode!(message), "some.routing.key", header1: "value")
+      GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key", header1: "value")
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -91,7 +91,7 @@ defmodule GenRMQ.PublisherTest do
 
       GenRMQ.Publisher.publish(
         publisher_pid,
-        Poison.encode!(message),
+        Jason.encode!(message),
         "some.routing.key",
         message_id: "message_id_1",
         correlation_id: "correlation_id_1",
@@ -114,7 +114,7 @@ defmodule GenRMQ.PublisherTest do
 
       GenRMQ.Publisher.publish(
         publisher_pid,
-        Poison.encode!(message),
+        Jason.encode!(message),
         "some.routing.key",
         priority: 100
       )
@@ -136,7 +136,7 @@ defmodule GenRMQ.PublisherTest do
         assert new_state.channel.conn.pid != state.channel.conn.pid
       end)
 
-      GenRMQ.Publisher.publish(publisher_pid, Poison.encode!(message))
+      GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
