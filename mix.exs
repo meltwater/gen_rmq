@@ -39,7 +39,7 @@ defmodule GenRMQ.Mixfile do
     [
       {:amqp, "~> 1.1"},
       {:credo, "~> 1.0", only: :dev},
-      {:excoveralls, "~> 0.10.0", only: :test},
+      {:excoveralls, "~> 0.11.0", only: :test},
       {:jason, "~> 1.1", only: [:dev, :test]},
       {:earmark, "~> 1.2", only: :dev},
       {:ex_doc, "~> 0.18.0", only: :dev}
