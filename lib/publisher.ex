@@ -106,7 +106,7 @@ defmodule GenRMQ.Publisher do
           message :: Binary.t(),
           routing_key :: String.t(),
           metadata :: Keyword.t()
-        ) :: :ok
+        ) :: :ok | {:error, reason :: :blocked | :closing}
   def publish(publisher, message, routing_key \\ "", metadata \\ []) do
     GenServer.call(publisher, {:publish, message, routing_key, metadata})
   end
