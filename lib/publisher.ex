@@ -47,7 +47,7 @@ defmodule GenRMQ.Publisher do
   @callback init() :: [
               exchange: String.t(),
               uri: String.t(),
-              app_id: Atom.t()
+              app_id: atom
             ]
 
   ##############################################################################
@@ -75,7 +75,7 @@ defmodule GenRMQ.Publisher do
   ```
 
   """
-  @spec start_link(module :: Module.t(), options :: Keyword.t()) :: {:ok, Pid.t()} | {:error, Any.t()}
+  @spec start_link(module :: module(), options :: Keyword.t()) :: {:ok, pid} | {:error, term}
   def start_link(module, options \\ []) do
     GenServer.start_link(__MODULE__, %{module: module}, options)
   end
@@ -102,8 +102,8 @@ defmodule GenRMQ.Publisher do
 
   """
   @spec publish(
-          publisher :: Atom.t() | Pid.t(),
-          message :: Binary.t(),
+          publisher :: atom | pid,
+          message :: String.t(),
           routing_key :: String.t(),
           metadata :: Keyword.t()
         ) :: :ok

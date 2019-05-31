@@ -97,14 +97,14 @@ defmodule GenRMQ.Consumer do
               routing_key: String.t(),
               prefetch_count: String.t(),
               uri: String.t(),
-              concurrency: Boolean.t(),
-              queue_ttl: Integer.t(),
-              retry_delay_function: Function.t(),
-              reconnect: Boolean.t(),
-              deadletter: Boolean.t(),
+              concurrency: boolean,
+              queue_ttl: integer,
+              retry_delay_function: function,
+              reconnect: boolean,
+              deadletter: boolean,
               deadletter_queue: String.t(),
               deadletter_exchange: String.t(),
-              queue_max_priority: Integer.t()
+              queue_max_priority: integer
             ]
 
   @doc """
@@ -134,7 +134,7 @@ defmodule GenRMQ.Consumer do
   ```
 
   """
-  @callback handle_message(message :: GenRMQ.Message.t()) :: :ok
+  @callback handle_message(message :: %GenRMQ.Message{}) :: :ok
 
   ##############################################################################
   # GenRMQ.Consumer API
@@ -161,7 +161,7 @@ defmodule GenRMQ.Consumer do
   ```
 
   """
-  @spec start_link(module :: Module.t(), options :: Keyword.t()) :: {:ok, Pid.t()} | {:error, Any.t()}
+  @spec start_link(module :: module(), options :: Keyword.t()) :: {:ok, pid} | {:error, term}
   def start_link(module, options \\ []) do
     GenServer.start_link(__MODULE__, %{module: module}, options)
   end
@@ -178,7 +178,7 @@ defmodule GenRMQ.Consumer do
   ```
 
   """
-  @spec stop(name :: Atom.t() | Pit.t(), reason :: Any.t()) :: :ok
+  @spec stop(name :: atom | pid, reason :: term) :: :ok
   def stop(name, reason) do
     GenServer.stop(name, reason)
   end
@@ -188,7 +188,7 @@ defmodule GenRMQ.Consumer do
 
   `message` - `GenRMQ.Message` struct
   """
-  @spec ack(message :: GenRMQ.Message.t()) :: :ok
+  @spec ack(message :: %GenRMQ.Message{}) :: :ok
   def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}) do
     Basic.ack(channel, tag)
   end
@@ -200,7 +200,7 @@ defmodule GenRMQ.Consumer do
 
   `requeue` - indicates if message should be requeued
   """
-  @spec reject(message :: GenRMQ.Message.t(), requeue :: Boolean.t()) :: :ok
+  @spec reject(message :: %GenRMQ.Message{}, requeue :: boolean) :: :ok
   def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}, requeue \\ false) do
     Basic.reject(channel, tag, requeue: requeue)
   end
