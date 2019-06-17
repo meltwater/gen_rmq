@@ -15,6 +15,9 @@ deps: mix.exs
 	mix deps.get
 	touch deps
 
+dialyzer: deps
+	mix dialyzer
+
 doc: deps
 	mix docs
 

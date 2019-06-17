@@ -20,6 +20,10 @@ defmodule GenRMQ.Mixfile do
         main: "readme",
         source_ref: "v#{@version}",
         source_url: "https://github.com/meltwater/gen_rmq"
+      ],
+      dialyzer: [
+        plt_add_apps: [:mix],
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ]
     ]
   end

@@ -21,9 +21,14 @@ services:
 
 before_script:
   - make code-analysis
+  - make dialyzer
 
 script:
   - make test_ci
 
 after_script:
   - make doc
+
+cache:
+  directories:
+    - priv/plts

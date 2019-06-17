@@ -21,3 +21,7 @@ erl_crash.dump
 
 # Ignore Elixir Language Server files
 /.elixir_ls
+
+# Ignore Dialyzer plt files
+*.plt
+*.plt.hash

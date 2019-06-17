@@ -4,9 +4,7 @@ defmodule GenRMQ.RabbitCase do
   access to the rabbit mq.
   """
 
-  use ExUnit.CaseTemplate
-
-  using do
+  defmacro __using__([]) do
     quote do
       use AMQP
 
