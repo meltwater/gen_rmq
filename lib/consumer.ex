@@ -408,10 +408,13 @@ defmodule GenRMQ.Consumer do
         Exchange.topic(chan, dl_exchange, durable: true)
         Queue.bind(chan, dl_queue, dl_exchange, routing_key: dl_routing_key)
 
-        [
-          {"x-dead-letter-exchange", :longstr, dl_exchange},
-          {"x-dead-letter-routing-key", :longstr, dl_routing_key}
-        ]
+        [{"x-dead-letter-exchange", :longstr, dl_exchange}] ++
+        case dl_routing_key do
+          "#" ->
+            []
+          _ ->
+            [{"x-dead-letter-routing-key", :longstr, dl_routing_key}]
+        end
 
       false ->
         []
