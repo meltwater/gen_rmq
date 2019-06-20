@@ -81,7 +81,7 @@ Optionally, you can:
 
 * specify queue ttl with `queue_ttl` attribute
 * disable deadletter setup by setting `deadletter` attribute to `false`
-* define custom names for deadletter queue / exchange by specifying `deadletter_queue` / `deadletter_exchange` attributes
+* define custom names for deadletter queue / exchange / routnig key by specifying `deadletter_queue` / `deadletter_exchange` / `deadletter_routing_key` attributes
 * create a [priority queue][priority_queues] with `queue_max_priority` attribute
 
 For all available options please check [consumer documentation][consumer_doc].
