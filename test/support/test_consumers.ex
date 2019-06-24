@@ -120,7 +120,8 @@ defmodule TestConsumer do
         uri: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1000,
         deadletter_queue: "dl_queue",
-        deadletter_exchange: "dl_exchange"
+        deadletter_exchange: "dl_exchange",
+        deadletter_routing_key: "dl_routing_key",
       ]
     end
 
