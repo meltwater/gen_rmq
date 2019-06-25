@@ -25,3 +25,8 @@ erl_crash.dump
 # Ignore Dialyzer plt files
 *.plt
 *.plt.hash
+
+# Elixir Plugin (Idea)
+/projectFilesBackup/
+/.idea/
+*.iml

@@ -65,9 +65,11 @@ defmodule GenRMQ.Consumer do
 
   `deadletter` - defines if consumer should setup deadletter exchange and queue.
 
-  `deadletter_queue` - defines name of the deadletter queue.
+  `deadletter_queue` - defines name of the deadletter queue (**Default:** Same as queue name suffixed by `_error`).
 
-  `deadletter_exchange` - defines name of the deadletter exchange.
+  `deadletter_exchange` - defines name of the deadletter exchange (**Default:** Same as exchange name suffixed by `.deadletter`).
+
+  `deadletter_routing_key` - defines name of the deadletter routing key (**Default:** `#`).
 
   ## Examples:
   ```
@@ -85,6 +87,7 @@ defmodule GenRMQ.Consumer do
       deadletter: true,
       deadletter_queue: "gen_rmq_in_queue_error",
       deadletter_exchange: "gen_rmq_exchange.deadletter",
+      deadletter_routing_key: "#",
       queue_max_priority: 10
     ]
   end
@@ -104,6 +107,7 @@ defmodule GenRMQ.Consumer do
               deadletter: boolean,
               deadletter_queue: String.t(),
               deadletter_exchange: String.t(),
+              deadletter_routing_key: String.t(),
               queue_max_priority: integer
             ]
 
@@ -397,13 +401,20 @@ defmodule GenRMQ.Consumer do
         queue = config[:queue]
         exchange = config[:exchange]
         dl_queue = config[:deadletter_queue] || "#{queue}_error"
-        dl_exchange = config[:deadletter_queue] || "#{exchange}.deadletter"
+        dl_exchange = config[:deadletter_exchange] || "#{exchange}.deadletter"
+        dl_routing_key = config[:deadletter_routing_key] || "#"
 
         Queue.declare(chan, dl_queue, durable: true, arguments: setup_ttl([], ttl))
         Exchange.topic(chan, dl_exchange, durable: true)
-        Queue.bind(chan, dl_queue, dl_exchange, routing_key: "#")
+        Queue.bind(chan, dl_queue, dl_exchange, routing_key: dl_routing_key)
 
-        [{"x-dead-letter-exchange", :longstr, dl_exchange}]
+        [{"x-dead-letter-exchange", :longstr, dl_exchange}] ++
+        case dl_routing_key do
+          "#" ->
+            []
+          _ ->
+            [{"x-dead-letter-routing-key", :longstr, dl_routing_key}]
+        end
 
       false ->
         []

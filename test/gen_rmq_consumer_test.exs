@@ -194,6 +194,9 @@ defmodule GenRMQ.ConsumerTest do
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == true
         assert queue_count(context[:rabbit_conn], "dl_queue") == {:ok, 1}
+        {:ok, chan} = AMQP.Channel.open(context[:rabbit_conn])
+        {:ok, _payload, %{routing_key: "dl_routing_key"}} = AMQP.Basic.get(chan, "dl_queue")
+        AMQP.Channel.close(chan)
       end)
     end
   end
