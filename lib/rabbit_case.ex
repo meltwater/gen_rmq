@@ -28,8 +28,12 @@ defmodule GenRMQ.RabbitCase do
       end
 
       def get_message_from_queue(context) do
-        {:ok, chan} = AMQP.Channel.open(context[:rabbit_conn])
-        {:ok, payload, meta} = AMQP.Basic.get(chan, context[:out_queue])
+        get_message_from_queue(context[:rabbit_conn], context[:out_queue])
+      end
+
+      def get_message_from_queue(conn, queue) do
+        {:ok, chan} = AMQP.Channel.open(conn)
+        {:ok, payload, meta} = AMQP.Basic.get(chan, queue)
         {:ok, Jason.decode!(payload), meta}
       end
 

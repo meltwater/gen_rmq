@@ -186,17 +186,18 @@ defmodule GenRMQ.ConsumerTest do
       with_test_consumer(WithCustomDeadletter)
     end
 
-    test "should deadletter a message to a custom queue", %{consumer: consumer_pid} = context do
+    test "should deadletter a message to a custom queue", %{consumer: consumer_pid, state: state} = context do
       message = %{"msg" => "some message"}
+      dl_queue = state[:config][:deadletter_queue]
 
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == true
-        assert queue_count(context[:rabbit_conn], "dl_queue") == {:ok, 1}
-        {:ok, chan} = AMQP.Channel.open(context[:rabbit_conn])
-        {:ok, _payload, %{routing_key: "dl_routing_key"}} = AMQP.Basic.get(chan, "dl_queue")
-        AMQP.Channel.close(chan)
+        assert queue_count(context[:rabbit_conn], dl_queue) == {:ok, 1}
+        {:ok, _, meta} = get_message_from_queue(context[:rabbit_conn], dl_queue)
+        assert meta[:routing_key] == "dl_routing_key"
+        assert meta[:exchange] == "dl_exchange"
       end)
     end
   end
