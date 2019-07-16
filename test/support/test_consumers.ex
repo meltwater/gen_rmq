@@ -160,4 +160,124 @@ defmodule TestConsumer do
       GenRMQ.Consumer.ack(message)
     end
   end
+
+  defmodule WithTopicExchange do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_wt_in_queue",
+        exchange: {:topic, "gen_rmq_in_wt_exchange"},
+        routing_key: "#",
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithTopicExchange"
+    end
+
+    def handle_message(%GenRMQ.Message{payload: "\"reject\""} = message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_message(message) do
+      payload = Jason.decode!(message.payload)
+      Agent.update(__MODULE__, &MapSet.put(&1, payload))
+      GenRMQ.Consumer.ack(message)
+    end
+  end
+
+  defmodule WithDirectExchange do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_wd_in_queue",
+        exchange: {:direct, "gen_rmq_in_wd_exchange"},
+        routing_key: "#",
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithDirectExchange"
+    end
+
+    def handle_message(%GenRMQ.Message{payload: "\"reject\""} = message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_message(message) do
+      payload = Jason.decode!(message.payload)
+      Agent.update(__MODULE__, &MapSet.put(&1, payload))
+      GenRMQ.Consumer.ack(message)
+    end
+  end
+
+  defmodule WithFanoutExchange do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_wf_in_queue",
+        exchange: {:fanout, "gen_rmq_in_wf_exchange"},
+        routing_key: "#",
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithDirectExchange"
+    end
+
+    def handle_message(%GenRMQ.Message{payload: "\"reject\""} = message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_message(message) do
+      payload = Jason.decode!(message.payload)
+      Agent.update(__MODULE__, &MapSet.put(&1, payload))
+      GenRMQ.Consumer.ack(message)
+    end
+  end
+
+  defmodule WithMultiBindingExchange do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_mb_in_queue",
+        exchange: {:direct, "gen_rmq_in_mb_exchange"},
+        routing_key: ["routing_key_1", "routing_key_2"],
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithMultiBindingExchange"
+    end
+
+    def handle_message(%GenRMQ.Message{payload: "\"reject\""} = message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_message(message) do
+      payload = Jason.decode!(message.payload)
+      Agent.update(__MODULE__, &MapSet.put(&1, payload))
+      GenRMQ.Consumer.ack(message)
+    end
+  end
 end

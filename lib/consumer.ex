@@ -29,10 +29,10 @@ defmodule GenRMQ.Consumer do
   `uri` - RabbitMQ uri
 
   `queue` - the name of the queue to consume.
-  If does not exist it will be created
+  If does not exist, it will be created.
 
-  `exchange` - the name of the exchange to which `queue` should be bind.
-  If does not exist it will be created
+  `exchange` - the exchange to which `queue` should be bound. If does not
+   exist, it will be created.
 
   `routing_key` - queue binding key
 
@@ -96,8 +96,8 @@ defmodule GenRMQ.Consumer do
   """
   @callback init() :: [
               queue: String.t(),
-              exchange: String.t(),
-              routing_key: String.t(),
+              exchange: GenRMQ.Binding.exchange(),
+              routing_key: [String.t()] | String.t(),
               prefetch_count: String.t(),
               uri: String.t(),
               concurrency: boolean,
@@ -386,8 +386,7 @@ defmodule GenRMQ.Consumer do
 
     Basic.qos(chan, prefetch_count: prefetch_count)
     Queue.declare(chan, queue, durable: true, arguments: arguments)
-    Exchange.topic(chan, exchange, durable: true)
-    Queue.bind(chan, queue, exchange, routing_key: routing_key)
+    GenRMQ.Binding.bind_exchange_and_queue(chan, exchange, queue, routing_key)
 
     consumer_tag = apply(module, :consumer_tag, [])
     {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, consumer_tag: consumer_tag)
@@ -399,14 +398,13 @@ defmodule GenRMQ.Consumer do
       true ->
         ttl = config[:queue_ttl]
         queue = config[:queue]
-        exchange = config[:exchange]
+        exchange = GenRMQ.Binding.exchange_name(config[:exchange])
         dl_queue = config[:deadletter_queue] || "#{queue}_error"
         dl_exchange = config[:deadletter_exchange] || "#{exchange}.deadletter"
         dl_routing_key = config[:deadletter_routing_key] || "#"
 
         Queue.declare(chan, dl_queue, durable: true, arguments: setup_ttl([], ttl))
-        Exchange.topic(chan, dl_exchange, durable: true)
-        Queue.bind(chan, dl_queue, dl_exchange, routing_key: dl_routing_key)
+        GenRMQ.Binding.bind_exchange_and_queue(chan, dl_exchange, dl_queue, dl_routing_key)
 
         [{"x-dead-letter-exchange", :longstr, dl_exchange}] ++
           case dl_routing_key do

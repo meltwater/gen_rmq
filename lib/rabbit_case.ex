@@ -14,8 +14,8 @@ defmodule GenRMQ.RabbitCase do
 
       def publish_message(conn, exchange, message, routing_key \\ "#", meta \\ []) do
         {:ok, channel} = AMQP.Channel.open(conn)
-        AMQP.Exchange.topic(channel, exchange, durable: true)
-        AMQP.Basic.publish(channel, exchange, routing_key, message, meta)
+        GenRMQ.Binding.declare_exchange(channel, exchange)
+        AMQP.Basic.publish(channel, GenRMQ.Binding.exchange_name(exchange), routing_key, message, meta)
         AMQP.Channel.close(channel)
       end
 
