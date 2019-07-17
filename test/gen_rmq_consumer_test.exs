@@ -1,6 +1,7 @@
 defmodule GenRMQ.ConsumerTest do
   use ExUnit.Case, async: false
   use GenRMQ.RabbitCase
+  import ConsumerSharedTests
 
   alias GenRMQ.Test.Assert
 
@@ -63,70 +64,19 @@ defmodule GenRMQ.ConsumerTest do
       with_test_consumer(Default)
     end
 
-    test "should receive a message", context do
-      message = %{"msg" => "some message"}
+    receive_message_test(Default)
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    reject_message_test()
 
-      Assert.repeatedly(fn ->
-        assert Agent.get(Default, fn set -> message in set end) == true
-      end)
-    end
+    reconnect_after_connection_failure_test(Default)
 
-    test "should reject a message", %{state: state} = context do
-      message = "reject"
+    terminate_after_queue_deletion_test()
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    exit_signal_after_queue_deletion_test()
 
-      Assert.repeatedly(fn ->
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:ok, 1}
-      end)
-    end
+    close_connection_and_channels_after_deletion_test()
 
-    test "should reconnect after connection failure", %{state: state} = context do
-      message = "disconnect"
-      AMQP.Connection.close(state.conn)
-
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
-
-      Assert.repeatedly(fn ->
-        assert Agent.get(Default, fn set -> message in set end) == true
-      end)
-    end
-
-    test "should terminate after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(consumer_pid) == false
-      end)
-    end
-
-    test "should send exit signal after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      assert_receive({:EXIT, ^consumer_pid, :cancelled})
-    end
-
-    test "should close connection and channels after queue deletion", %{state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
-
-    test "should close connection and channels after shutdown signal", %{consumer: consumer_pid, state: state} do
-      Process.exit(consumer_pid, :shutdown)
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
+    close_connection_and_channels_after_shutdown_test()
   end
 
   describe "TestConsumer.WithoutConcurrency" do
@@ -229,70 +179,19 @@ defmodule GenRMQ.ConsumerTest do
       with_test_consumer(WithTopicExchange)
     end
 
-    test "should receive a message", context do
-      message = %{"msg" => "some message"}
+    receive_message_test(WithTopicExchange)
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    reject_message_test()
 
-      Assert.repeatedly(fn ->
-        assert Agent.get(WithTopicExchange, fn set -> message in set end) == true
-      end)
-    end
+    reconnect_after_connection_failure_test(WithTopicExchange)
 
-    test "should reject a message", %{state: state} = context do
-      message = "reject"
+    terminate_after_queue_deletion_test()
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    exit_signal_after_queue_deletion_test()
 
-      Assert.repeatedly(fn ->
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:ok, 1}
-      end)
-    end
+    close_connection_and_channels_after_deletion_test()
 
-    test "should reconnect after connection failure", %{state: state} = context do
-      message = "disconnect"
-      AMQP.Connection.close(state.conn)
-
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
-
-      Assert.repeatedly(fn ->
-        assert Agent.get(WithTopicExchange, fn set -> message in set end) == true
-      end)
-    end
-
-    test "should terminate after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(consumer_pid) == false
-      end)
-    end
-
-    test "should send exit signal after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      assert_receive({:EXIT, ^consumer_pid, :cancelled})
-    end
-
-    test "should close connection and channels after queue deletion", %{state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
-
-    test "should close connection and channels after shutdown signal", %{consumer: consumer_pid, state: state} do
-      Process.exit(consumer_pid, :shutdown)
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
+    close_connection_and_channels_after_shutdown_test()
   end
 
   describe "TestConsumer.WithDirectExchange" do
@@ -301,70 +200,19 @@ defmodule GenRMQ.ConsumerTest do
       with_test_consumer(WithDirectExchange)
     end
 
-    test "should receive a message", context do
-      message = %{"msg" => "some message"}
+    receive_message_test(WithDirectExchange)
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    reject_message_test()
 
-      Assert.repeatedly(fn ->
-        assert Agent.get(WithDirectExchange, fn set -> message in set end) == true
-      end)
-    end
+    reconnect_after_connection_failure_test(WithDirectExchange)
 
-    test "should reject a message", %{state: state} = context do
-      message = "reject"
+    terminate_after_queue_deletion_test()
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    exit_signal_after_queue_deletion_test()
 
-      Assert.repeatedly(fn ->
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:ok, 1}
-      end)
-    end
+    close_connection_and_channels_after_deletion_test()
 
-    test "should reconnect after connection failure", %{state: state} = context do
-      message = "disconnect"
-      AMQP.Connection.close(state.conn)
-
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
-
-      Assert.repeatedly(fn ->
-        assert Agent.get(WithDirectExchange, fn set -> message in set end) == true
-      end)
-    end
-
-    test "should terminate after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(consumer_pid) == false
-      end)
-    end
-
-    test "should send exit signal after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      assert_receive({:EXIT, ^consumer_pid, :cancelled})
-    end
-
-    test "should close connection and channels after queue deletion", %{state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
-
-    test "should close connection and channels after shutdown signal", %{consumer: consumer_pid, state: state} do
-      Process.exit(consumer_pid, :shutdown)
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
+    close_connection_and_channels_after_shutdown_test()
   end
 
   describe "TestConsumer.WithFanoutExchange" do
@@ -383,60 +231,17 @@ defmodule GenRMQ.ConsumerTest do
       end)
     end
 
-    test "should reject a message", %{state: state} = context do
-      message = "reject"
+    reject_message_test()
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    reconnect_after_connection_failure_test(WithFanoutExchange)
 
-      Assert.repeatedly(fn ->
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:ok, 1}
-      end)
-    end
+    terminate_after_queue_deletion_test()
 
-    test "should reconnect after connection failure", %{state: state} = context do
-      message = "disconnect"
-      AMQP.Connection.close(state.conn)
+    exit_signal_after_queue_deletion_test()
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    close_connection_and_channels_after_deletion_test()
 
-      Assert.repeatedly(fn ->
-        assert Agent.get(WithFanoutExchange, fn set -> message in set end) == true
-      end)
-    end
-
-    test "should terminate after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(consumer_pid) == false
-      end)
-    end
-
-    test "should send exit signal after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      assert_receive({:EXIT, ^consumer_pid, :cancelled})
-    end
-
-    test "should close connection and channels after queue deletion", %{state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
-
-    test "should close connection and channels after shutdown signal", %{consumer: consumer_pid, state: state} do
-      Process.exit(consumer_pid, :shutdown)
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
+    close_connection_and_channels_after_shutdown_test()
   end
 
   describe "TestConsumer.WithMultiBindingExchange" do
@@ -486,39 +291,13 @@ defmodule GenRMQ.ConsumerTest do
       end)
     end
 
-    test "should terminate after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
+    terminate_after_queue_deletion_test()
 
-      Assert.repeatedly(fn ->
-        assert Process.alive?(consumer_pid) == false
-      end)
-    end
+    exit_signal_after_queue_deletion_test()
 
-    test "should send exit signal after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
+    close_connection_and_channels_after_deletion_test()
 
-      assert_receive({:EXIT, ^consumer_pid, :cancelled})
-    end
-
-    test "should close connection and channels after queue deletion", %{state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
-
-    test "should close connection and channels after shutdown signal", %{consumer: consumer_pid, state: state} do
-      Process.exit(consumer_pid, :shutdown)
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
+    close_connection_and_channels_after_shutdown_test()
   end
 
   defp with_test_consumer(module) do
