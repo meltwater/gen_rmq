@@ -160,4 +160,27 @@ defmodule TestConsumer do
       GenRMQ.Consumer.ack(message)
     end
   end
+
+  defmodule WithoutBinding do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_in_queue_without_binding",
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1000,
+        with_binding: false
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithoutBinding"
+    end
+
+    def handle_message(message) do
+      GenRMQ.Consumer.reject(message)
+    end
+  end
 end

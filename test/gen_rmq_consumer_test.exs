@@ -7,6 +7,7 @@ defmodule GenRMQ.ConsumerTest do
   alias GenRMQ.Consumer
   alias TestConsumer.Default
   alias TestConsumer.WithCustomDeadletter
+  alias TestConsumer.WithoutBinding
   alias TestConsumer.WithoutConcurrency
   alias TestConsumer.WithoutDeadletter
   alias TestConsumer.WithoutReconnection
@@ -215,6 +216,20 @@ defmodule GenRMQ.ConsumerTest do
 
       Assert.repeatedly(fn ->
         assert Agent.get(WithPriority, fn set -> message in set end) == true
+      end)
+    end
+  end
+
+  describe "TestConsumer.WithoutBinding" do
+    setup do
+      with_test_consumer(WithoutBinding)
+    end
+
+    test "should create a queue without binding", %{consumer: consumer_pid, state: state} do
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert is_nil(state[:config][:routing_key])
+        assert is_nil(state[:config][:exchange])
       end)
     end
   end

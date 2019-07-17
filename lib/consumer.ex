@@ -243,6 +243,7 @@ defmodule GenRMQ.Consumer do
       |> get_connection()
       |> open_channels()
       |> setup_consumer()
+      |> setup_binding()
 
     {:noreply, state}
   end
@@ -337,6 +338,7 @@ defmodule GenRMQ.Consumer do
       |> get_connection()
       |> open_channels()
       |> setup_consumer()
+      |> setup_binding()
 
     {:noreply, new_state}
   end
@@ -371,8 +373,6 @@ defmodule GenRMQ.Consumer do
 
   defp setup_consumer(%{in: chan, config: config, module: module} = state) do
     queue = config[:queue]
-    exchange = config[:exchange]
-    routing_key = config[:routing_key]
     prefetch_count = String.to_integer(config[:prefetch_count])
     ttl = config[:queue_ttl]
     max_priority = config[:queue_max_priority]
@@ -386,12 +386,25 @@ defmodule GenRMQ.Consumer do
 
     Basic.qos(chan, prefetch_count: prefetch_count)
     Queue.declare(chan, queue, durable: true, arguments: arguments)
-    Exchange.topic(chan, exchange, durable: true)
-    Queue.bind(chan, queue, exchange, routing_key: routing_key)
 
     consumer_tag = apply(module, :consumer_tag, [])
     {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, consumer_tag: consumer_tag)
     state
+  end
+
+  defp setup_binding(%{in: chan, config: config} = state) do
+    if Keyword.get(config, :with_binding, true) do
+      queue = config[:queue]
+      exchange = config[:exchange]
+      routing_key = config[:routing_key]
+
+      Exchange.topic(chan, exchange, durable: true)
+      Queue.bind(chan, queue, exchange, routing_key: routing_key)
+
+      state
+    else
+      state
+    end
   end
 
   defp setup_deadletter(chan, config) do
