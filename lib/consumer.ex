@@ -71,6 +71,8 @@ defmodule GenRMQ.Consumer do
 
   `deadletter_routing_key` - defines name of the deadletter routing key (**Default:** `#`).
 
+  `with_binding` - gives possibility to setup consumer without binding (**Default:** `true`)
+
   ## Examples:
   ```
   def init() do
@@ -88,7 +90,8 @@ defmodule GenRMQ.Consumer do
       deadletter_queue: "gen_rmq_in_queue_error",
       deadletter_exchange: "gen_rmq_exchange.deadletter",
       deadletter_routing_key: "#",
-      queue_max_priority: 10
+      queue_max_priority: 10,
+      with_binding: true
     ]
   end
   ```
@@ -108,7 +111,8 @@ defmodule GenRMQ.Consumer do
               deadletter_queue: String.t(),
               deadletter_exchange: String.t(),
               deadletter_routing_key: String.t(),
-              queue_max_priority: integer
+              queue_max_priority: integer,
+              with_binding: boolean
             ]
 
   @doc """
