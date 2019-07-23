@@ -77,14 +77,7 @@ This will result in:
 * every `handle_message` callback will executed in separate process. This can be disabled by setting `concurrency: false` in `init` callback
 * on failed rabbitmq connection it will wait for a bit and then reconnect
 
-Optionally, you can:
-
-* specify queue ttl with `queue_ttl` attribute
-* disable deadletter setup by setting `deadletter` attribute to `false`
-* define custom names for deadletter queue / exchange / routing key by specifying `deadletter_queue` / `deadletter_exchange` / `deadletter_routing_key` attributes
-* create a [priority queue][priority_queues] with `queue_max_priority` attribute
-
-For all available options please check [consumer documentation][consumer_doc].
+There are many options to control the consumer setup details, please check the `c:GenRMQ.Consumer.init/0` [docs][consumer_doc] for all available settings.
 
 ### Publisher
 
