@@ -1,6 +1,7 @@
 defmodule GenRMQ.ConsumerTest do
   use ExUnit.Case, async: false
   use GenRMQ.RabbitCase
+  import ConsumerSharedTests
 
   alias GenRMQ.Test.Assert
 
@@ -11,6 +12,10 @@ defmodule GenRMQ.ConsumerTest do
   alias TestConsumer.WithoutDeadletter
   alias TestConsumer.WithoutReconnection
   alias TestConsumer.WithPriority
+  alias TestConsumer.WithTopicExchange
+  alias TestConsumer.WithDirectExchange
+  alias TestConsumer.WithFanoutExchange
+  alias TestConsumer.WithMultiBindingExchange
 
   @uri "amqp://guest:guest@localhost:5672"
 
@@ -59,70 +64,19 @@ defmodule GenRMQ.ConsumerTest do
       with_test_consumer(Default)
     end
 
-    test "should receive a message", context do
-      message = %{"msg" => "some message"}
+    receive_message_test(Default)
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    reject_message_test()
 
-      Assert.repeatedly(fn ->
-        assert Agent.get(Default, fn set -> message in set end) == true
-      end)
-    end
+    reconnect_after_connection_failure_test(Default)
 
-    test "should reject a message", %{state: state} = context do
-      message = "reject"
+    terminate_after_queue_deletion_test()
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+    exit_signal_after_queue_deletion_test()
 
-      Assert.repeatedly(fn ->
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:ok, 1}
-      end)
-    end
+    close_connection_and_channels_after_deletion_test()
 
-    test "should reconnect after connection failure", %{state: state} = context do
-      message = "disconnect"
-      AMQP.Connection.close(state.conn)
-
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
-
-      Assert.repeatedly(fn ->
-        assert Agent.get(Default, fn set -> message in set end) == true
-      end)
-    end
-
-    test "should terminate after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(consumer_pid) == false
-      end)
-    end
-
-    test "should send exit signal after queue deletion", %{consumer: consumer_pid, state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      assert_receive({:EXIT, ^consumer_pid, :cancelled})
-    end
-
-    test "should close connection and channels after queue deletion", %{state: state} do
-      AMQP.Queue.delete(state.out, state[:config][:queue])
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
-
-    test "should close connection and channels after shutdown signal", %{consumer: consumer_pid, state: state} do
-      Process.exit(consumer_pid, :shutdown)
-
-      Assert.repeatedly(fn ->
-        assert Process.alive?(state.conn.pid) == false
-        assert Process.alive?(state.in.pid) == false
-        assert Process.alive?(state.out.pid) == false
-      end)
-    end
+    close_connection_and_channels_after_shutdown_test()
   end
 
   describe "TestConsumer.WithoutConcurrency" do
@@ -217,6 +171,133 @@ defmodule GenRMQ.ConsumerTest do
         assert Agent.get(WithPriority, fn set -> message in set end) == true
       end)
     end
+  end
+
+  describe "TestConsumer.WithTopicExchange" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithTopicExchange)
+      with_test_consumer(WithTopicExchange)
+    end
+
+    receive_message_test(WithTopicExchange)
+
+    reject_message_test()
+
+    reconnect_after_connection_failure_test(WithTopicExchange)
+
+    terminate_after_queue_deletion_test()
+
+    exit_signal_after_queue_deletion_test()
+
+    close_connection_and_channels_after_deletion_test()
+
+    close_connection_and_channels_after_shutdown_test()
+  end
+
+  describe "TestConsumer.WithDirectExchange" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithDirectExchange)
+      with_test_consumer(WithDirectExchange)
+    end
+
+    receive_message_test(WithDirectExchange)
+
+    reject_message_test()
+
+    reconnect_after_connection_failure_test(WithDirectExchange)
+
+    terminate_after_queue_deletion_test()
+
+    exit_signal_after_queue_deletion_test()
+
+    close_connection_and_channels_after_deletion_test()
+
+    close_connection_and_channels_after_shutdown_test()
+  end
+
+  describe "TestConsumer.WithFanoutExchange" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithFanoutExchange)
+      with_test_consumer(WithFanoutExchange)
+    end
+
+    test "should receive a message, no matter the routing key", context do
+      message = %{"msg" => "some message"}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "sdlkjkjlefberBogusKEYWHatever")
+
+      Assert.repeatedly(fn ->
+        assert Agent.get(WithFanoutExchange, fn set -> message in set end) == true
+      end)
+    end
+
+    reject_message_test()
+
+    reconnect_after_connection_failure_test(WithFanoutExchange)
+
+    terminate_after_queue_deletion_test()
+
+    exit_signal_after_queue_deletion_test()
+
+    close_connection_and_channels_after_deletion_test()
+
+    close_connection_and_channels_after_shutdown_test()
+  end
+
+  describe "TestConsumer.WithMultiBindingExchange" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithMultiBindingExchange)
+      with_test_consumer(WithMultiBindingExchange)
+    end
+
+    test "should receive a message under the first key", context do
+      message = %{"msg" => "some message"}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "routing_key_2")
+
+      Assert.repeatedly(fn ->
+        assert Agent.get(WithMultiBindingExchange, fn set -> message in set end) == true
+      end)
+    end
+
+    test "should receive a message under the second key", context do
+      message = %{"msg" => "some message"}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "routing_key_2")
+
+      Assert.repeatedly(fn ->
+        assert Agent.get(WithMultiBindingExchange, fn set -> message in set end) == true
+      end)
+    end
+
+    test "should reject a message", %{state: state} = context do
+      message = "reject"
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "routing_key_1")
+
+      Assert.repeatedly(fn ->
+        assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:ok, 1}
+      end)
+    end
+
+    test "should reconnect after connection failure", %{state: state} = context do
+      message = "disconnect"
+      AMQP.Connection.close(state.conn)
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "routing_key_1")
+
+      Assert.repeatedly(fn ->
+        assert Agent.get(WithMultiBindingExchange, fn set -> message in set end) == true
+      end)
+    end
+
+    terminate_after_queue_deletion_test()
+
+    exit_signal_after_queue_deletion_test()
+
+    close_connection_and_channels_after_deletion_test()
+
+    close_connection_and_channels_after_shutdown_test()
   end
 
   defp with_test_consumer(module) do

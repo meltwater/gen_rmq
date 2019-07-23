@@ -26,7 +26,7 @@ defmodule GenRMQ.Publisher do
 
   `uri` - RabbitMQ uri
 
-  `exchange` - the name of the target exchange. If does not exist it will be created
+  `exchange` - the target exchange. If does not exist, it will be created.
 
   ### Optional:
 
@@ -45,7 +45,7 @@ defmodule GenRMQ.Publisher do
 
   """
   @callback init() :: [
-              exchange: String.t(),
+              exchange: GenRMQ.Binding.exchange(),
               uri: String.t(),
               app_id: atom
             ]
@@ -129,7 +129,7 @@ defmodule GenRMQ.Publisher do
   @impl GenServer
   def handle_call({:publish, msg, key, metadata}, _from, %{channel: channel, config: config} = state) do
     metadata = config |> base_metadata() |> merge_metadata(metadata)
-    result = Basic.publish(channel, config[:exchange], key, msg, metadata)
+    result = Basic.publish(channel, GenRMQ.Binding.exchange_name(config[:exchange]), key, msg, metadata)
     {:reply, result, state}
   end
 
@@ -164,7 +164,7 @@ defmodule GenRMQ.Publisher do
   defp setup_publisher(%{module: module, config: config} = state) do
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
-    Exchange.topic(channel, config[:exchange], durable: true)
+    GenRMQ.Binding.declare_exchange(channel, config[:exchange])
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
 
