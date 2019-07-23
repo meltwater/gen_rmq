@@ -28,15 +28,14 @@ defmodule GenRMQ.Consumer do
 
   `uri` - RabbitMQ uri
 
-  `queue` - the name of the queue to consume.
-  If does not exist, it will be created.
+  `queue` - the name of the queue to consume. If it does not exist, it will be created.
 
-  `exchange` - the exchange to which `queue` should be bound. If does not
-   exist, it will be created.
+  `exchange` - Name or `{type, name}` of the exchange to which `queue` should be bound. If it does not exist, it will be created.
+  For valid exchange types see `GenRMQ.Binding`.
 
-  `routing_key` - queue binding key
+  `routing_key` - queue binding key, can also be a list.
 
-  `prefetch_count` - limit the number of unacknowledged messages
+  `prefetch_count` - limit the number of unacknowledged messages.
 
   ### Optional:
 
