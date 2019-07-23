@@ -83,6 +83,8 @@ Optionally, you can:
 * disable deadletter setup by setting `deadletter` attribute to `false`
 * define custom names for deadletter queue / exchange / routing key by specifying `deadletter_queue` / `deadletter_exchange` / `deadletter_routing_key` attributes
 * create a [priority queue][priority_queues] with `queue_max_priority` attribute
+* control the type of exchange to create by using a `{type, name}` tuple for the `exchange` setting. Valid types: `:topic`, `:direct`, `:fanout`. Example: `{:direct, "my.exchange"}`. Note that a `headers` exchange is not supported right now.
+* set up multible routing keys by using a list instead of string for the `routing_key` setting
 
 For all available options please check [consumer documentation][consumer_doc].
 
