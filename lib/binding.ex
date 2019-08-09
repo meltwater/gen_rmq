@@ -54,9 +54,8 @@ defmodule GenRMQ.Binding do
     exchange
   end
 
-
   defp bind_queue(chan, queue, exchange_name, routing_key) when is_list(routing_key) do
-    Enum.reduce_while(routing_key, :ok, fn(rk, acc) ->
+    Enum.reduce_while(routing_key, :ok, fn rk, acc ->
       case Queue.bind(chan, queue, exchange_name, routing_key: rk) do
         :ok -> {:cont, acc}
         err -> {:halt, err}
