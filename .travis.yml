@@ -15,7 +15,7 @@ services:
 
 before_script:
   - make code-analysis
-  - make dialyzer
+  # - make dialyzer
 
 script:
   - make test_ci
