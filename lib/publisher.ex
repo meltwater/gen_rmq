@@ -114,7 +114,7 @@ defmodule GenRMQ.Publisher do
           message :: String.t(),
           routing_key :: String.t(),
           metadata :: Keyword.t()
-        ) :: :ok | {:error, reason :: :blocked | :closing}
+        ) :: :ok | {:error, reason :: :blocked | :closing | :timeout}
   def publish(publisher, message, routing_key \\ "", metadata \\ []) do
     GenServer.call(publisher, {:publish, message, routing_key, metadata})
   end
@@ -137,9 +137,9 @@ defmodule GenRMQ.Publisher do
   @impl GenServer
   def handle_call({:publish, msg, key, metadata}, _from, %{channel: channel, config: config} = state) do
     metadata = config |> base_metadata() |> merge_metadata(metadata)
-    result = Basic.publish(channel, GenRMQ.Binding.exchange_name(config[:exchange]), key, msg, metadata)
-    true = wait_for_confirmation(channel, config)
-    {:reply, result, state}
+    publish_result = Basic.publish(channel, GenRMQ.Binding.exchange_name(config[:exchange]), key, msg, metadata)
+    confirmation_result = wait_for_confirmation(channel, config)
+    {:reply, publish_result(publish_result, confirmation_result), state}
   end
 
   @doc false
@@ -191,6 +191,10 @@ defmodule GenRMQ.Publisher do
 
   defp wait_for_confirmation(channel, true, max_wait_time), do: AMQP.Confirm.wait_for_confirms(channel, max_wait_time)
   defp wait_for_confirmation(_, _, _), do: true
+
+  defp publish_result(:ok, true), do: :ok
+  defp publish_result(:ok, :timeout), do: {:error, :confirmat_timeout}
+  defp publish_result(error, _), do: error
 
   defp connect(%{module: module, config: config} = state) do
     case Connection.open(config[:uri]) do
