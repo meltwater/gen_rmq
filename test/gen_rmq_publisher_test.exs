@@ -5,21 +5,12 @@ defmodule GenRMQ.PublisherTest do
   alias GenRMQ.Publisher
   alias GenRMQ.Test.Assert
 
+  alias TestPublisher.Default
+  alias TestPublisher.WithConfirmations
+
   @uri "amqp://guest:guest@localhost:5672"
   @exchange "gen_rmq_out_exchange"
   @out_queue "gen_rmq_out_queue"
-
-  defmodule TestPublisher do
-    @behaviour GenRMQ.Publisher
-
-    def init() do
-      [
-        exchange: "gen_rmq_out_exchange",
-        uri: "amqp://guest:guest@localhost:5672",
-        app_id: :my_app_id
-      ]
-    end
-  end
 
   setup_all do
     {:ok, conn} = rmq_open(@uri)
@@ -33,19 +24,19 @@ defmodule GenRMQ.PublisherTest do
 
   describe "start_link/2" do
     test "should start a new publisher" do
-      {:ok, pid} = GenRMQ.Publisher.start_link(TestPublisher)
+      {:ok, pid} = GenRMQ.Publisher.start_link(Default)
       assert Process.alive?(pid)
     end
 
     test "should start a new publisher registered by name" do
-      {:ok, pid} = GenRMQ.Publisher.start_link(TestPublisher, name: TestPublisher)
-      assert Process.whereis(TestPublisher) == pid
+      {:ok, pid} = GenRMQ.Publisher.start_link(Default, name: Default)
+      assert Process.whereis(Default) == pid
     end
   end
 
-  describe "GenRMQ.Publisher" do
+  describe "TestPublisher.Default" do
     setup do
-      with_test_publisher()
+      with_test_publisher(Default)
     end
 
     test "should publish message", %{publisher: publisher_pid} = context do
@@ -156,7 +147,23 @@ defmodule GenRMQ.PublisherTest do
     end
   end
 
-  defp with_test_publisher(module \\ TestPublisher) do
+  describe "TestPublisher.WithConfirmations" do
+    setup do
+      with_test_publisher(WithConfirmations)
+    end
+
+    test "should publish a message and wait for a confirmation", %{publisher: publisher_pid} = context do
+      message = %{"msg" => "with confirmation"}
+      GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key")
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
+      {:ok, received_message, _meta} = get_message_from_queue(context)
+
+      assert message == received_message
+    end
+  end
+
+  defp with_test_publisher(module) do
     Process.flag(:trap_exit, true)
     {:ok, publisher_pid} = Publisher.start_link(module)
 

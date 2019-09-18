@@ -32,13 +32,19 @@ defmodule GenRMQ.Publisher do
 
   `app_id` - publishing application ID
 
+  `activate_confirmations` - activates publishing confirmations on the channel
+
+  `max_confirmation_wait_time` - maximum time in seconds to wait for a confirmation
+
   ## Examples:
   ```
   def init() do
     [
       exchange: "gen_rmq_exchange",
       uri: "amqp://guest:guest@localhost:5672"
-      app_id: :my_app_id
+      app_id: :my_app_id,
+      activate_confirmations: true,
+      max_confirmation_wait_time: 10
     ]
   end
   ```
@@ -47,7 +53,9 @@ defmodule GenRMQ.Publisher do
   @callback init() :: [
               exchange: GenRMQ.Binding.exchange(),
               uri: String.t(),
-              app_id: atom
+              app_id: atom,
+              activate_confirmations: boolean,
+              max_confirmation_wait_time: integer
             ]
 
   ##############################################################################
@@ -130,6 +138,7 @@ defmodule GenRMQ.Publisher do
   def handle_call({:publish, msg, key, metadata}, _from, %{channel: channel, config: config} = state) do
     metadata = config |> base_metadata() |> merge_metadata(metadata)
     result = Basic.publish(channel, GenRMQ.Binding.exchange_name(config[:exchange]), key, msg, metadata)
+    true = wait_for_confirmation(channel, config)
     {:reply, result, state}
   end
 
@@ -165,8 +174,23 @@ defmodule GenRMQ.Publisher do
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
     GenRMQ.Binding.declare_exchange(channel, config[:exchange])
+
+    with_confirmations = Keyword.get(config, :activate_confirmations, false)
+    :ok = activate_confirmations(channel, with_confirmations)
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
+
+  defp activate_confirmations(channel, true), do: AMQP.Confirm.select(channel)
+  defp activate_confirmations(_, _), do: :ok
+
+  defp wait_for_confirmation(channel, config) do
+    with_confirmations = Keyword.get(config, :activate_confirmations, false)
+    max_wait_time = config |> Keyword.get(:max_confirmation_wait_time, 10) |> :timer.seconds()
+    wait_for_confirmation(channel, with_confirmations, max_wait_time)
+  end
+
+  defp wait_for_confirmation(channel, true, max_wait_time), do: AMQP.Confirm.wait_for_confirms(channel, max_wait_time)
+  defp wait_for_confirmation(_, _, _), do: true
 
   defp connect(%{module: module, config: config} = state) do
     case Connection.open(config[:uri]) do
