@@ -34,7 +34,7 @@ defmodule GenRMQ.Publisher do
 
   `activate_confirmations` - activates publishing confirmations on the channel
 
-  `max_confirmation_wait_time` - maximum time in seconds to wait for a confirmation
+  `max_confirmation_wait_time` - maximum time in milliseconds to wait for a confirmation. By default it is 5_000 (5s).
 
   ## Examples:
   ```
@@ -44,7 +44,7 @@ defmodule GenRMQ.Publisher do
       uri: "amqp://guest:guest@localhost:5672"
       app_id: :my_app_id,
       activate_confirmations: true,
-      max_confirmation_wait_time: 10
+      max_confirmation_wait_time: 5_000
     ]
   end
   ```
@@ -185,7 +185,7 @@ defmodule GenRMQ.Publisher do
 
   defp wait_for_confirmation(channel, config) do
     with_confirmations = Keyword.get(config, :activate_confirmations, false)
-    max_wait_time = config |> Keyword.get(:max_confirmation_wait_time, 10) |> :timer.seconds()
+    max_wait_time = config |> Keyword.get(:max_confirmation_wait_time, 5_000)
     wait_for_confirmation(channel, with_confirmations, max_wait_time)
   end
 
