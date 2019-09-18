@@ -224,7 +224,12 @@ defmodule GenRMQ.ConsumerTest do
     test "should receive a message, no matter the routing key", context do
       message = %{"msg" => "some message"}
 
-      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "sdlkjkjlefberBogusKEYWHatever")
+      publish_message(
+        context[:rabbit_conn],
+        context[:exchange],
+        Jason.encode!(message),
+        "sdlkjkjlefberBogusKEYWHatever"
+      )
 
       Assert.repeatedly(fn ->
         assert Agent.get(WithFanoutExchange, fn set -> message in set end) == true

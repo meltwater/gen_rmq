@@ -1,13 +1,13 @@
 defmodule GenRMQ.Mixfile do
   use Mix.Project
 
-  @version "1.3.0"
+  @version "2.0.0"
 
   def project do
     [
       app: :gen_rmq,
       version: @version,
-      elixir: "~> 1.5",
+      elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
@@ -46,7 +46,7 @@ defmodule GenRMQ.Mixfile do
       {:excoveralls, "~> 0.11.0", only: :test},
       {:jason, "~> 1.1", only: [:dev, :test]},
       {:earmark, "~> 1.2", only: :dev},
-      {:ex_doc, "~> 0.18.0", only: :dev},
+      {:ex_doc, "~> 0.21.0", only: :dev},
       {:dialyxir, "~> 1.0.0-rc.6", only: [:dev], runtime: false}
     ]
   end
