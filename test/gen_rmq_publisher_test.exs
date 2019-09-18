@@ -173,7 +173,7 @@ defmodule GenRMQ.PublisherTest do
       message = %{"msg" => "with confirmation"}
       result = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key")
 
-      assert {:error, :confirmat_timeout} == result
+      assert {:error, :confirmation_timeout} == result
     end
   end
 
