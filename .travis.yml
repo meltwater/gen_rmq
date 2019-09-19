@@ -6,6 +6,7 @@ elixir:
 
 otp_release:
   - 21.0
+  - 22.0
 
 sudo: required
 
