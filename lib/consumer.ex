@@ -223,9 +223,7 @@ defmodule GenRMQ.Consumer do
       |> Map.put(:config, config)
       |> Map.put(:reconnect_attempt, 0)
 
-    send(self(), :init)
-
-    {:ok, state}
+    {:ok, state, {:continue, :init}}
   end
 
   @doc false
@@ -236,7 +234,7 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   @impl GenServer
-  def handle_info(:init, state) do
+  def handle_continue(:init, state) do
     state =
       state
       |> get_connection()
