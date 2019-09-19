@@ -116,12 +116,13 @@ or in the form of bug reports, comments/suggestions or usage questions by creati
 
 This library was developed as a Meltwater internal project starting in January 2018.
 Over the next two months it has been used in at least three Meltwater production services.
+Are you using `gen_rmq` in production? Please let us know, we are curious!
 
 ## License
 
 The MIT License (MIT)
 
-Copyright (c) 2018 Meltwater Inc. [http://underthehood.meltwater.com/][underthehood]
+Copyright (c) 2018 - 2019 Meltwater Inc. [http://underthehood.meltwater.com/][underthehood]
 
 [behaviours]: https://hexdocs.pm/elixir/behaviours.html
 [amqp]: https://github.com/pma/amqp
