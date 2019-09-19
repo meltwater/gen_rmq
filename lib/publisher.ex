@@ -32,7 +32,7 @@ defmodule GenRMQ.Publisher do
 
   `app_id` - publishing application ID
 
-  `activate_confirmations` - activates publishing confirmations on the channel
+  `enable_confirmations` - activates publishing confirmations on the channel. By default it is `false`.
 
   `max_confirmation_wait_time` - maximum time in milliseconds to wait for a confirmation. By default it is 5_000 (5s).
 
@@ -43,7 +43,7 @@ defmodule GenRMQ.Publisher do
       exchange: "gen_rmq_exchange",
       uri: "amqp://guest:guest@localhost:5672"
       app_id: :my_app_id,
-      activate_confirmations: true,
+      enable_confirmations: true,
       max_confirmation_wait_time: 5_000
     ]
   end
@@ -54,7 +54,7 @@ defmodule GenRMQ.Publisher do
               exchange: GenRMQ.Binding.exchange(),
               uri: String.t(),
               app_id: atom,
-              activate_confirmations: boolean,
+              enable_confirmations: boolean,
               max_confirmation_wait_time: integer
             ]
 
@@ -175,7 +175,7 @@ defmodule GenRMQ.Publisher do
     {:ok, channel} = Channel.open(conn)
     GenRMQ.Binding.declare_exchange(channel, config[:exchange])
 
-    with_confirmations = Keyword.get(config, :activate_confirmations, false)
+    with_confirmations = Keyword.get(config, :enable_confirmations, false)
     :ok = activate_confirmations(channel, with_confirmations)
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
@@ -184,7 +184,7 @@ defmodule GenRMQ.Publisher do
   defp activate_confirmations(_, _), do: :ok
 
   defp wait_for_confirmation(channel, config) do
-    with_confirmations = Keyword.get(config, :activate_confirmations, false)
+    with_confirmations = Keyword.get(config, :enable_confirmations, false)
     max_wait_time = config |> Keyword.get(:max_confirmation_wait_time, 5_000)
     wait_for_confirmation(channel, with_confirmations, max_wait_time)
   end
