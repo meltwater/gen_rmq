@@ -5,7 +5,6 @@ elixir:
   - 1.9
 
 otp_release:
-  - 20.0
   - 21.0
 
 sudo: required
