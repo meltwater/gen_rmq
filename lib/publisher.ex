@@ -26,13 +26,14 @@ defmodule GenRMQ.Publisher do
 
   `uri` - RabbitMQ uri
 
-  `exchange` - the target exchange. If does not exist, it will be created.
+  `exchange` - name or `{type, name}` of the target exchange. If it does not exist, it will be created.
+  For valid exchange types see `GenRMQ.Binding`.
 
   ### Optional:
 
   `app_id` - publishing application ID
 
-  `enable_confirmations` - activates publishing confirmations on the channel. By default it is `false`.
+  `enable_confirmations` - activates publishing confirmations on the channel. Confirmations are disabled by default.
 
   `max_confirmation_wait_time` - maximum time in milliseconds to wait for a confirmation. By default it is 5_000 (5s).
 
