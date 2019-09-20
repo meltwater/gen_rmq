@@ -180,8 +180,8 @@ defmodule GenRMQ.Publisher do
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
 
+  defp activate_confirmations(_, false), do: :ok
   defp activate_confirmations(channel, true), do: AMQP.Confirm.select(channel)
-  defp activate_confirmations(_, _), do: :ok
 
   defp wait_for_confirmation(channel, config) do
     with_confirmations = Keyword.get(config, :enable_confirmations, false)
@@ -189,8 +189,8 @@ defmodule GenRMQ.Publisher do
     wait_for_confirmation(channel, with_confirmations, max_wait_time)
   end
 
+  defp wait_for_confirmation(_, false, _), do: true
   defp wait_for_confirmation(channel, true, max_wait_time), do: AMQP.Confirm.wait_for_confirms(channel, max_wait_time)
-  defp wait_for_confirmation(_, _, _), do: true
 
   defp publish_result(:ok, true), do: :ok
   defp publish_result(:ok, :timeout), do: {:error, :confirmation_timeout}
