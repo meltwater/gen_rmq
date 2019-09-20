@@ -7,7 +7,6 @@ defmodule GenRMQ.PublisherTest do
 
   alias TestPublisher.Default
   alias TestPublisher.WithConfirmations
-  alias TestPublisher.WithConfirmationsAnd0Timeout
 
   @uri "amqp://guest:guest@localhost:5672"
   @exchange "gen_rmq_out_exchange"
@@ -160,19 +159,6 @@ defmodule GenRMQ.PublisherTest do
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       assert match?({:ok, ^message, _}, get_message_from_queue(context))
       assert {:ok, :confirmed} == publish_result
-    end
-  end
-
-  describe "TestPublisher.WithConfirmationsAnd0Timeout" do
-    setup do
-      with_test_publisher(WithConfirmationsAnd0Timeout)
-    end
-
-    test "should return timeout error while waiting for a confirmation", %{publisher: publisher_pid} do
-      message = %{"msg" => "with confirmation"}
-      result = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key")
-
-      assert {:error, :confirmation_timeout} == result
     end
   end
 
