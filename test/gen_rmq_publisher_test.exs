@@ -155,12 +155,11 @@ defmodule GenRMQ.PublisherTest do
 
     test "should publish a message and wait for a confirmation", %{publisher: publisher_pid} = context do
       message = %{"msg" => "with confirmation"}
-      GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key")
+      publish_result = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key")
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
-      {:ok, received_message, _meta} = get_message_from_queue(context)
-
-      assert message == received_message
+      assert match?({:ok, ^message, _}, get_message_from_queue(context))
+      assert {:ok, :confirmed} == publish_result
     end
   end
 

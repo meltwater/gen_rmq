@@ -114,7 +114,7 @@ defmodule GenRMQ.Publisher do
           message :: String.t(),
           routing_key :: String.t(),
           metadata :: Keyword.t()
-        ) :: :ok | {:error, reason :: :blocked | :closing | :confirmation_timeout}
+        ) :: :ok | {:ok, :confirmed} | {:error, reason :: :blocked | :closing | :confirmation_timeout}
   def publish(publisher, message, routing_key \\ "", metadata \\ []) do
     GenServer.call(publisher, {:publish, message, routing_key, metadata})
   end
@@ -189,10 +189,11 @@ defmodule GenRMQ.Publisher do
     wait_for_confirmation(channel, with_confirmations, max_wait_time)
   end
 
-  defp wait_for_confirmation(_, false, _), do: true
+  defp wait_for_confirmation(_, false, _), do: :confirmation_disabled
   defp wait_for_confirmation(channel, true, max_wait_time), do: AMQP.Confirm.wait_for_confirms(channel, max_wait_time)
 
-  defp publish_result(:ok, true), do: :ok
+  defp publish_result(:ok, :confirmation_disabled), do: :ok
+  defp publish_result(:ok, true = _confirmed), do: {:ok, :confirmed}
   defp publish_result(:ok, :timeout), do: {:error, :confirmation_timeout}
   defp publish_result(error, _), do: error
 

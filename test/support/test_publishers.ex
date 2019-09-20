@@ -21,7 +21,7 @@ defmodule TestPublisher do
         exchange: "gen_rmq_out_exchange",
         uri: "amqp://guest:guest@localhost:5672",
         app_id: :my_app_id,
-        activate_confirmations: true
+        enable_confirmations: true
       ]
     end
   end
