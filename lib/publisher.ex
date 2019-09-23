@@ -26,11 +26,16 @@ defmodule GenRMQ.Publisher do
 
   `uri` - RabbitMQ uri
 
-  `exchange` - the target exchange. If does not exist, it will be created.
+  `exchange` - name or `{type, name}` of the target exchange. If it does not exist, it will be created.
+  For valid exchange types see `GenRMQ.Binding`.
 
   ### Optional:
 
   `app_id` - publishing application ID
+
+  `enable_confirmations` - activates publishing confirmations on the channel. Confirmations are disabled by default.
+
+  `max_confirmation_wait_time` - maximum time in milliseconds to wait for a confirmation. By default it is 5_000 (5s).
 
   ## Examples:
   ```
@@ -38,7 +43,9 @@ defmodule GenRMQ.Publisher do
     [
       exchange: "gen_rmq_exchange",
       uri: "amqp://guest:guest@localhost:5672"
-      app_id: :my_app_id
+      app_id: :my_app_id,
+      enable_confirmations: true,
+      max_confirmation_wait_time: 5_000
     ]
   end
   ```
@@ -47,7 +54,9 @@ defmodule GenRMQ.Publisher do
   @callback init() :: [
               exchange: GenRMQ.Binding.exchange(),
               uri: String.t(),
-              app_id: atom
+              app_id: atom,
+              enable_confirmations: boolean,
+              max_confirmation_wait_time: integer
             ]
 
   ##############################################################################
@@ -106,7 +115,7 @@ defmodule GenRMQ.Publisher do
           message :: String.t(),
           routing_key :: String.t(),
           metadata :: Keyword.t()
-        ) :: :ok | {:error, reason :: :blocked | :closing}
+        ) :: :ok | {:ok, :confirmed} | {:error, reason :: :blocked | :closing | :confirmation_timeout}
   def publish(publisher, message, routing_key \\ "", metadata \\ []) do
     GenServer.call(publisher, {:publish, message, routing_key, metadata})
   end
@@ -129,8 +138,9 @@ defmodule GenRMQ.Publisher do
   @impl GenServer
   def handle_call({:publish, msg, key, metadata}, _from, %{channel: channel, config: config} = state) do
     metadata = config |> base_metadata() |> merge_metadata(metadata)
-    result = Basic.publish(channel, GenRMQ.Binding.exchange_name(config[:exchange]), key, msg, metadata)
-    {:reply, result, state}
+    publish_result = Basic.publish(channel, GenRMQ.Binding.exchange_name(config[:exchange]), key, msg, metadata)
+    confirmation_result = wait_for_confirmation(channel, config)
+    {:reply, publish_result(publish_result, confirmation_result), state}
   end
 
   @doc false
@@ -165,8 +175,28 @@ defmodule GenRMQ.Publisher do
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
     GenRMQ.Binding.declare_exchange(channel, config[:exchange])
+
+    with_confirmations = Keyword.get(config, :enable_confirmations, false)
+    :ok = activate_confirmations(channel, with_confirmations)
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
+
+  defp activate_confirmations(_, false), do: :ok
+  defp activate_confirmations(channel, true), do: AMQP.Confirm.select(channel)
+
+  defp wait_for_confirmation(channel, config) do
+    with_confirmations = Keyword.get(config, :enable_confirmations, false)
+    max_wait_time = config |> Keyword.get(:max_confirmation_wait_time, 5_000)
+    wait_for_confirmation(channel, with_confirmations, max_wait_time)
+  end
+
+  defp wait_for_confirmation(_, false, _), do: :confirmation_disabled
+  defp wait_for_confirmation(channel, true, max_wait_time), do: AMQP.Confirm.wait_for_confirms(channel, max_wait_time)
+
+  defp publish_result(:ok, :confirmation_disabled), do: :ok
+  defp publish_result(:ok, true = _confirmed), do: {:ok, :confirmed}
+  defp publish_result(:ok, :timeout), do: {:error, :confirmation_timeout}
+  defp publish_result(error, _), do: error
 
   defp connect(%{module: module, config: config} = state) do
     case Connection.open(config[:uri]) do
