@@ -42,7 +42,7 @@ defmodule GenRMQ.PublisherTest do
     test "should publish message", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(%{"msg" => "msg"}))
+      :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(%{"msg" => "msg"}))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -68,7 +68,7 @@ defmodule GenRMQ.PublisherTest do
     test "should publish message with headers", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key", header1: "value")
+      :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key", header1: "value")
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
@@ -80,7 +80,7 @@ defmodule GenRMQ.PublisherTest do
     test "should override standard metadata fields from headers", %{publisher: publisher_pid} = context do
       message = %{"msg" => "msg"}
 
-      GenRMQ.Publisher.publish(
+      :ok = GenRMQ.Publisher.publish(
         publisher_pid,
         Jason.encode!(message),
         "some.routing.key",
@@ -103,7 +103,7 @@ defmodule GenRMQ.PublisherTest do
     test "should publish a message with priority", %{publisher: publisher_pid} = context do
       message = %{"msg" => "with prio"}
 
-      GenRMQ.Publisher.publish(
+      :ok = GenRMQ.Publisher.publish(
         publisher_pid,
         Jason.encode!(message),
         "some.routing.key",
@@ -127,7 +127,7 @@ defmodule GenRMQ.PublisherTest do
         assert new_state.channel.conn.pid != state.channel.conn.pid
       end)
 
-      GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message))
+      :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message))
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, received_message, meta} = get_message_from_queue(context)
