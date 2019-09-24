@@ -1,0 +1,10 @@
+version: 1
+update_configs:
+  - package_manager: "elixir:hex"
+    directory: "/"
+    update_schedule: "weekly"
+
+    automerged_updates:
+    - match:
+        dependency_type: "development"
+        update_type: "semver:patch"
