@@ -5,7 +5,6 @@ defmodule GenRMQ.Publisher do
 
   use GenServer
   use AMQP
-  alias Mix.Project
 
   require Logger
 
@@ -231,7 +230,7 @@ defmodule GenRMQ.Publisher do
   end
 
   defp app_id(config) do
-    config[:app_id] || Keyword.get(Project.config(), :app)
+    config[:app_id] || :gen_rmq
   end
 
   ##############################################################################
