@@ -230,7 +230,7 @@ defmodule GenRMQ.Publisher do
   end
 
   defp app_id(config) do
-    config[:app_id]
+    config[:app_id] || :gen_rmq
   end
 
   ##############################################################################
