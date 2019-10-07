@@ -30,7 +30,7 @@ defmodule GenRMQ.Publisher do
 
   ### Optional:
 
-  `app_id` - publishing application ID
+  `app_id` - publishing application ID. By default it is `:gen_rmq`.
 
   `enable_confirmations` - activates publishing confirmations on the channel. Confirmations are disabled by default.
 
