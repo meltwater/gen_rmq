@@ -9,9 +9,23 @@ defmodule GenRMQ.Publisher do
   require Logger
 
   # list of fields permitted in message metadata at top level
-  @metadata_fields :P_basic
-                   |> Record.extract(from_lib: "rabbit_common/include/rabbit_framing.hrl")
-                   |> Keyword.keys()
+  @metadata_fields ~w(
+    mandatory
+    immediate
+    content_type
+    content_encoding
+    persistent
+    priority
+    correlation_id
+    reply_to
+    expiration
+    message_id
+    timestamp
+    type
+    user_id
+    app_id
+    cluster_id
+  )a
 
   ##############################################################################
   # GenRMQ.Publisher callbacks
@@ -97,11 +111,11 @@ defmodule GenRMQ.Publisher do
 
   `routing_key` - optional routing key to set for given message
 
-  `metadata` - optional metadata to set for given message. Keys that
-              are not allowed in metadata are moved under the `:headers`
-              field. Do not include a `:headers` field here: it will be
-              created automatically with all non-standard keys that you have
-              provided.
+  `metadata` - optional metadata to set for given message. Keys that \
+              are not allowed in metadata are moved under the `:headers` \
+              field. Do not include a `:headers` field here: it will be \
+              created automatically with all non-standard keys that you have \
+              provided. For a full list of options see `AMQP.Basic.publish/5`
 
   ## Examples:
   ```
