@@ -133,6 +133,19 @@ defmodule GenRMQ.Publisher do
     GenServer.call(publisher, {:publish, message, routing_key, metadata})
   end
 
+  @doc """
+  Gets the channel handlerassociate with the given publisher. Be aware that the channel
+  may be invalidated after this function returns so it is suggested that this channel
+  handler not be used long after this function call or persisted anywhere else. Its
+  primary use is as an escape hatch from gen_rmq to call arbitrary amqp functions.
+
+  `publisher` - name or PID of the publisher
+  """
+  @spec get_channel(publisher :: atom | pid)
+  def get_channel(publisher) do
+    GenServer.call(publisher, :get_channel)
+  end
+
   ##############################################################################
   # GenServer callbacks
   ##############################################################################
@@ -154,6 +167,12 @@ defmodule GenRMQ.Publisher do
     publish_result = Basic.publish(channel, GenRMQ.Binding.exchange_name(config[:exchange]), key, msg, metadata)
     confirmation_result = wait_for_confirmation(channel, config)
     {:reply, publish_result(publish_result, confirmation_result), state}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_call(:get_channel, _from, %{channel: channel} = state) do
+    {:reply, channel, state}
   end
 
   @doc false
