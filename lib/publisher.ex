@@ -141,7 +141,7 @@ defmodule GenRMQ.Publisher do
 
   `publisher` - name or PID of the publisher
   """
-  @spec get_channel(publisher :: atom | pid)
+  @spec get_channel(publisher :: atom | pid) :: :integer
   def get_channel(publisher) do
     GenServer.call(publisher, :get_channel)
   end
