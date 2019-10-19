@@ -2,6 +2,8 @@ defmodule GenRMQ.PublisherTest do
   use ExUnit.Case, async: false
   use GenRMQ.RabbitCase
 
+  alias AMQP.Queue
+
   alias GenRMQ.Publisher
   alias GenRMQ.Test.Assert
 
@@ -146,6 +148,29 @@ defmodule GenRMQ.PublisherTest do
         assert Process.alive?(state.conn.pid) == false
         assert Process.alive?(state.channel.pid) == false
       end)
+    end
+
+    test "should expose a valid channel through which AMQP calls can be made", %{publisher: publisher_pid} = context do
+      messages = [
+        %{"msg1" => "msg1"},
+        %{"msg2" => "msg2"},
+        %{"msg3" => "msg3"},
+        %{"msg4" => "msg4"},
+        %{"msg5" => "msg5"}
+      ]
+
+      Enum.each(messages, fn message ->
+        :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message))
+      end)
+
+      rmq_channel = GenRMQ.Publisher.get_channel(publisher_pid)
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) == 5 end)
+      assert Queue.message_count(rmq_channel, @out_queue) == 5
+
+      Queue.purge(rmq_channel, @out_queue)
+      Assert.repeatedly(fn -> assert out_queue_count(context) == 0 end)
+      assert Queue.message_count(rmq_channel, @out_queue) == 0
     end
   end
 

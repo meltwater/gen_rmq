@@ -134,10 +134,10 @@ defmodule GenRMQ.Publisher do
   end
 
   @doc """
-  Gets the channel handlerassociate with the given publisher. Be aware that the channel
+  Gets the channel handler associated with the given publisher. Be aware that the channel
   may be invalidated after this function returns so it is suggested that this channel
   handler not be used long after this function call or persisted anywhere else. Its
-  primary use is as an escape hatch from gen_rmq to call arbitrary amqp functions.
+  primary use is as an escape hatch from gen_rmq to call arbitrary AMQP functions.
 
   `publisher` - name or PID of the publisher
   """
