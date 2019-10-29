@@ -8,6 +8,8 @@ defmodule GenRMQ.Publisher do
 
   require Logger
 
+  alias AMQP.Queue
+
   # list of fields permitted in message metadata at top level
   @metadata_fields ~w(
     mandatory
@@ -134,15 +136,68 @@ defmodule GenRMQ.Publisher do
   end
 
   @doc """
-  Gets the channel handler associated with the given publisher. Be aware that the channel
-  may be invalidated after this function returns so it is suggested that this channel
-  handler not be used long after this function call or persisted anywhere else. Its
-  primary use is as an escape hatch from gen_rmq to call arbitrary AMQP functions.
+  Get the number of active consumers on the provided queue. If a nonexistent
+  queue is provided, an error will be raised.
+
   `publisher` - name or PID of the publisher
+
+  `queue` - name of the queue
   """
-  @spec get_channel(publisher :: atom | pid) :: :integer
-  def get_channel(publisher) do
-    GenServer.call(publisher, :get_channel)
+  @spec consumer_count(publisher :: atom | pid, queue :: String.t()) :: integer() | no_return()
+  def consumer_count(publisher, queue) do
+    GenServer.call(publisher, {:consumer_count, queue})
+  end
+
+  @doc """
+  Return whether the provided queue is empty or not. If a nonexistent
+  queue is provided, an error will be raised.
+
+  `publisher` - name or PID of the publisher
+
+  `queue` - name of the queue
+  """
+  @spec empty?(publisher :: atom | pid, queue :: String.t()) :: boolean() | no_return()
+  def empty?(publisher, queue) do
+    GenServer.call(publisher, {:empty?, queue})
+  end
+
+  @doc """
+  Get the number of messages currently ready for delivery in the provided queue.
+  If a nonexistent queue is provided, an error will be raised.
+
+  `publisher` - name or PID of the publisher
+
+  `queue` - name of the queue
+  """
+  @spec message_count(publisher :: atom | pid, queue :: String.t()) :: integer() | no_return()
+  def message_count(publisher, queue) do
+    GenServer.call(publisher, {:message_count, queue})
+  end
+
+  @doc """
+  Drop all message from the provided queue. If a nonexistent
+  queue is provided, an error will be raised.
+
+  `publisher` - name or PID of the publisher
+
+  `queue` - name of the queue
+  """
+  @spec purge(publisher :: atom | pid, queue :: String.t()) :: {:ok, map} | Basic.error()
+  def purge(publisher, queue) do
+    GenServer.call(publisher, {:purge, queue})
+  end
+
+  @doc """
+  Get the message count and consumer count for a particular queue. If a nonexistent
+  queue is provided, an error will be raised.
+
+  `publisher` - name or PID of the publisher
+
+  `queue` - name of the queue
+  """
+  @spec status(publisher :: atom | pid, queue :: String.t()) :: {:ok, map} | Basic.error()
+  def status(publisher, queue) do
+    GenServer.call(publisher, {:status, queue})
   end
 
   ##############################################################################
@@ -170,8 +225,42 @@ defmodule GenRMQ.Publisher do
 
   @doc false
   @impl GenServer
-  def handle_call(:get_channel, _from, %{channel: channel} = state) do
-    {:reply, channel, state}
+  def handle_call({:consumer_count, queue}, _from, %{channel: channel} = state) do
+    result = Queue.consumer_count(channel, queue)
+
+    {:reply, result, state}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_call({:empty?, queue}, _from, %{channel: channel} = state) do
+    result = Queue.empty?(channel, queue)
+
+    {:reply, result, state}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_call({:message_count, queue}, _from, %{channel: channel} = state) do
+    result = Queue.message_count(channel, queue)
+
+    {:reply, result, state}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_call({:purge, queue}, _from, %{channel: channel} = state) do
+    result = Queue.purge(channel, queue)
+
+    {:reply, result, state}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_call({:status, queue}, _from, %{channel: channel} = state) do
+    result = Queue.status(channel, queue)
+
+    {:reply, result, state}
   end
 
   @doc false
