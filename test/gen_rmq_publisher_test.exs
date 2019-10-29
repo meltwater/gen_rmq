@@ -160,8 +160,6 @@ defmodule GenRMQ.PublisherTest do
     end
 
     test "should raise an error when an invalid queue is provided", %{publisher: publisher_pid} do
-      Process.flag(:trap_exit, true)
-
       catch_exit do
         GenRMQ.Publisher.consumer_count(publisher_pid, @invalid_queue)
       end
@@ -191,8 +189,6 @@ defmodule GenRMQ.PublisherTest do
     end
 
     test "should raise an error if the provided queue is invalid", %{publisher: publisher_pid} do
-      Process.flag(:trap_exit, true)
-
       catch_exit do
         GenRMQ.Publisher.empty?(publisher_pid, @invalid_queue)
       end
@@ -225,8 +221,6 @@ defmodule GenRMQ.PublisherTest do
     end
 
     test "should raise an error when an invalid queue is provided", %{publisher: publisher_pid} do
-      Process.flag(:trap_exit, true)
-
       catch_exit do
         GenRMQ.Publisher.message_count(publisher_pid, @invalid_queue)
       end
@@ -258,8 +252,6 @@ defmodule GenRMQ.PublisherTest do
     end
 
     test "should raise an error when an invalid queue is provided", %{publisher: publisher_pid} do
-      Process.flag(:trap_exit, true)
-
       catch_exit do
         GenRMQ.Publisher.purge(publisher_pid, @invalid_queue)
       end
@@ -293,8 +285,6 @@ defmodule GenRMQ.PublisherTest do
     end
 
     test "should raise an error when an invalid queue is provided", %{publisher: publisher_pid} do
-      Process.flag(:trap_exit, true)
-
       catch_exit do
         GenRMQ.Publisher.status(publisher_pid, @invalid_queue)
       end
