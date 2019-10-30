@@ -11,6 +11,7 @@ defmodule GenRMQ.PublisherTest do
   @uri "amqp://guest:guest@localhost:5672"
   @exchange "gen_rmq_out_exchange"
   @out_queue "gen_rmq_out_queue"
+  @invalid_queue "invalid_queue"
 
   setup_all do
     {:ok, conn} = rmq_open(@uri)
@@ -149,6 +150,149 @@ defmodule GenRMQ.PublisherTest do
     end
   end
 
+  describe "consumer_count/2" do
+    setup do
+      with_test_publisher(Default)
+    end
+
+    test "should return the correct number of consumers when a valid queue is provided", %{publisher: publisher_pid} do
+      assert 0 == GenRMQ.Publisher.consumer_count(publisher_pid, @out_queue)
+    end
+
+    test "should raise an error when an invalid queue is provided", %{publisher: publisher_pid} do
+      catch_exit do
+        GenRMQ.Publisher.consumer_count(publisher_pid, @invalid_queue)
+      end
+
+      assert_receive {:EXIT, ^publisher_pid, _error_details}
+    end
+  end
+
+  describe "empty?/2" do
+    setup do
+      with_test_publisher(Default)
+    end
+
+    test "should return true if the provided queue is empty", %{publisher: publisher_pid} do
+      assert true == GenRMQ.Publisher.empty?(publisher_pid, @out_queue)
+    end
+
+    test "should return false if the provided queue is not empty", %{publisher: publisher_pid} = context do
+      messages = generate_messages(5)
+
+      Enum.each(messages, fn message ->
+        :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message))
+      end)
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) == 5 end)
+      assert false == GenRMQ.Publisher.empty?(publisher_pid, @out_queue)
+    end
+
+    test "should raise an error if the provided queue is invalid", %{publisher: publisher_pid} do
+      catch_exit do
+        GenRMQ.Publisher.empty?(publisher_pid, @invalid_queue)
+      end
+
+      assert_receive {:EXIT, ^publisher_pid, _error_details}
+    end
+  end
+
+  describe "message_count/2" do
+    setup do
+      with_test_publisher(Default)
+    end
+
+    test "should return the correct number of messages when a valid empty queue is provided", %{
+      publisher: publisher_pid
+    } do
+      assert 0 == GenRMQ.Publisher.message_count(publisher_pid, @out_queue)
+    end
+
+    test "should return the correct number of messages when a valid queue is provided",
+         %{publisher: publisher_pid} = context do
+      messages = generate_messages(5)
+
+      Enum.each(messages, fn message ->
+        :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message))
+      end)
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) == 5 end)
+      assert length(messages) == GenRMQ.Publisher.message_count(publisher_pid, @out_queue)
+    end
+
+    test "should raise an error when an invalid queue is provided", %{publisher: publisher_pid} do
+      catch_exit do
+        GenRMQ.Publisher.message_count(publisher_pid, @invalid_queue)
+      end
+
+      assert_receive {:EXIT, ^publisher_pid, _error_details}
+    end
+  end
+
+  describe "purge/2" do
+    setup do
+      with_test_publisher(Default)
+    end
+
+    test "should return an ok tuple when a valid empty queue is successfully purged", %{publisher: publisher_pid} do
+      assert {:ok, %{message_count: 0}} == GenRMQ.Publisher.purge(publisher_pid, @out_queue)
+    end
+
+    test "should return an ok tuple when a valid queue with messages is successfully purged",
+         %{publisher: publisher_pid} = context do
+      messages = generate_messages(5)
+
+      Enum.each(messages, fn message ->
+        :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message))
+      end)
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) == 5 end)
+      assert {:ok, %{message_count: 5}} == GenRMQ.Publisher.purge(publisher_pid, @out_queue)
+      assert {:ok, %{message_count: 0}} == GenRMQ.Publisher.purge(publisher_pid, @out_queue)
+    end
+
+    test "should raise an error when an invalid queue is provided", %{publisher: publisher_pid} do
+      catch_exit do
+        GenRMQ.Publisher.purge(publisher_pid, @invalid_queue)
+      end
+
+      assert_receive {:EXIT, ^publisher_pid, _error_details}
+    end
+  end
+
+  describe "status/2" do
+    setup do
+      with_test_publisher(Default)
+    end
+
+    test "should return an ok tuple when a valid empty queue is successfully purged", %{publisher: publisher_pid} do
+      assert {:ok, %{message_count: 0, consumer_count: 0, queue: "gen_rmq_out_queue"}} ==
+               GenRMQ.Publisher.status(publisher_pid, @out_queue)
+    end
+
+    test "should return an ok tuple when a valid queue with messages is successfully purged",
+         %{publisher: publisher_pid} = context do
+      messages = generate_messages(5)
+
+      Enum.each(messages, fn message ->
+        :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message))
+      end)
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) == 5 end)
+
+      assert {:ok, %{message_count: 5, consumer_count: 0, queue: "gen_rmq_out_queue"}} ==
+               GenRMQ.Publisher.status(publisher_pid, @out_queue)
+    end
+
+    test "should raise an error when an invalid queue is provided", %{publisher: publisher_pid} do
+      catch_exit do
+        GenRMQ.Publisher.status(publisher_pid, @invalid_queue)
+      end
+
+      assert_receive {:EXIT, ^publisher_pid, _error_details}
+    end
+  end
+
   describe "TestPublisher.WithConfirmations" do
     setup do
       with_test_publisher(WithConfirmations)
@@ -172,5 +316,12 @@ defmodule GenRMQ.PublisherTest do
 
     on_exit(fn -> Process.exit(publisher_pid, :normal) end)
     {:ok, %{publisher: publisher_pid, state: state}}
+  end
+
+  defp generate_messages(num_messages) do
+    1..num_messages
+    |> Enum.map(fn num ->
+      %{"message_#{num}" => "message_#{num}"}
+    end)
   end
 end
