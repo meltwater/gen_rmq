@@ -8,7 +8,7 @@ defmodule GenRMQ.Publisher do
 
   require Logger
 
-  alias AMQP.Queue
+  alias GenRMQ.Queue
 
   # list of fields permitted in message metadata at top level
   @metadata_fields ~w(
