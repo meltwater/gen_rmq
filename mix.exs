@@ -1,7 +1,7 @@
 defmodule GenRMQ.Mixfile do
   use Mix.Project
 
-  @version "2.3.0"
+  @version "2.3.1"
 
   def project do
     [
@@ -41,13 +41,13 @@ defmodule GenRMQ.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:amqp, "~> 1.1"},
-      {:credo, "~> 1.0", only: :dev},
+      {:amqp, "~> 1.3.3", github: "skunkwerks/amqp"},
+      {:credo, "~> 1.1", only: :dev},
       {:excoveralls, "~> 0.12.0", only: :test},
       {:jason, "~> 1.1", only: [:dev, :test]},
-      {:earmark, "~> 1.2", only: :dev},
-      {:ex_doc, "~> 0.21.0", only: :dev},
-      {:dialyxir, "~> 1.0.0-rc.6", only: [:dev], runtime: false}
+      {:earmark, "~> 1.4", only: :dev},
+      {:ex_doc, "~> 0.21", only: :dev},
+      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false}
     ]
   end
 
