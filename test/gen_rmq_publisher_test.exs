@@ -102,6 +102,19 @@ defmodule GenRMQ.PublisherTest do
       assert [{"header1", :longstr, "value"}] == meta[:headers]
     end
 
+    test "should override default metadata fields", %{publisher: publisher_pid} = context do
+      message = %{"msg" => "msg"}
+      sent_metadata = [app_id: "custom_id", content_type: "text/plain", timestamp: 1]
+      :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key", sent_metadata)
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
+      {:ok, _received_message, received_metadata} = get_message_from_queue(context)
+
+      assert received_metadata[:app_id] == sent_metadata[:app_id]
+      assert received_metadata[:content_type] == sent_metadata[:content_type]
+      assert received_metadata[:timestamp] == sent_metadata[:timestamp]
+    end
+
     test "should publish a message with priority", %{publisher: publisher_pid} = context do
       message = %{"msg" => "with prio"}
 

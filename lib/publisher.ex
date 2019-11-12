@@ -334,10 +334,10 @@ defmodule GenRMQ.Publisher do
   # Put standard metadata fields to top level, everything else into headers
   defp merge_metadata(base, custom) do
     {metadata, headers} = custom |> Keyword.split(@metadata_fields)
-    # take "standard" fields and put them into metadata top-level
-    metadata
-    # put default values, override custom values on conflict
-    |> Keyword.merge(base)
+    # take "base" fields and put them into metadata top-level
+    base
+    # put custom values, override base values on conflict
+    |> Keyword.merge(metadata)
     # put all custom fields in the headers
     |> Keyword.merge(headers: headers)
   end
