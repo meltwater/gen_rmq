@@ -129,8 +129,8 @@ defmodule GenRMQ.ConsumerTest do
 
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == true
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}") == {:ok, 0}
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:error, :not_found}
+        assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}") == {:ok, 0}
+        assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}_error") == {:error, :not_found}
       end)
     end
   end
@@ -281,7 +281,7 @@ defmodule GenRMQ.ConsumerTest do
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "routing_key_1")
 
       Assert.repeatedly(fn ->
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:ok, 1}
+        assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}_error") == {:ok, 1}
       end)
     end
 
