@@ -218,8 +218,14 @@ defmodule GenRMQ.Publisher do
   @impl GenServer
   def handle_call({:publish, msg, key, metadata}, _from, %{channel: channel, config: config} = state) do
     metadata = config |> base_metadata() |> merge_metadata(metadata)
+
+    # :telemetry.execute([:gen_rmq, :publisher, :message, :start])
     publish_result = Basic.publish(channel, GenRMQ.Binding.exchange_name(config[:exchange]), key, msg, metadata)
+    # :telemetry.execute([:gen_rmq, :publisher, :message, :stop])
+    # :telemetry.execute([:gen_rmq, :publisher, :message, :error])
+
     confirmation_result = wait_for_confirmation(channel, config)
+
     {:reply, publish_result(publish_result, confirmation_result), state}
   end
 
@@ -292,12 +298,17 @@ defmodule GenRMQ.Publisher do
   ##############################################################################
 
   defp setup_publisher(%{module: module, config: config} = state) do
+    # :telemetry.execute([:gen_rmq, :publisher, :connect, :start])
+
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
     GenRMQ.Binding.declare_exchange(channel, config[:exchange])
 
     with_confirmations = Keyword.get(config, :enable_confirmations, false)
     :ok = activate_confirmations(channel, with_confirmations)
+
+    # :telemetry.execute([:gen_rmq, :publisher, :connect, :stop])
+
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
 

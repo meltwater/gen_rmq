@@ -192,7 +192,9 @@ defmodule GenRMQ.Consumer do
   `message` - `GenRMQ.Message` struct
   """
   @spec ack(message :: %GenRMQ.Message{}) :: :ok
-  def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}) do
+  def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}} = message) do
+    emit_message_ack_event(message)
+
     Basic.ack(channel, tag)
   end
 
@@ -204,7 +206,9 @@ defmodule GenRMQ.Consumer do
   `requeue` - indicates if message should be requeued
   """
   @spec reject(message :: %GenRMQ.Message{}, requeue :: boolean) :: :ok
-  def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}, requeue \\ false) do
+  def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}} = message, requeue \\ false) do
+    emit_message_reject_event(message, requeue)
+
     Basic.reject(channel, tag, requeue: requeue)
   end
 
@@ -313,14 +317,26 @@ defmodule GenRMQ.Consumer do
   ##############################################################################
 
   defp handle_message(payload, attributes, %{module: module} = state, false) do
+    start_time = System.monotonic_time()
     message = Message.create(attributes, payload, state)
-    apply(module, :handle_message, [message])
+
+    emit_message_start_event(start_time, message)
+    result = apply(module, :handle_message, [message])
+    emit_message_stop_event(start_time, message)
+
+    result
   end
 
   defp handle_message(payload, attributes, %{module: module} = state, true) do
     spawn(fn ->
+      start_time = System.monotonic_time()
       message = Message.create(attributes, payload, state)
-      apply(module, :handle_message, [message])
+
+      emit_message_start_event(start_time, message)
+      result = apply(module, :handle_message, [message])
+      emit_message_stop_event(start_time, message)
+
+      result
     end)
   end
 
@@ -341,6 +357,14 @@ defmodule GenRMQ.Consumer do
   end
 
   defp get_connection(%{config: config, module: module, reconnect_attempt: attempt} = state) do
+    stop_time = System.monotonic_time()
+
+    emit_connect_start_event(start_time, module, attempt)
+
+    # :telemetry.execute([:gen_rmq, :consumer, :connect, :start])
+    # :telemetry.execute([:gen_rmq, :consumer, :connect, :stop])
+    # :telemetry.execute([:gen_rmq, :consumer, :connect, :error])
+
     case Connection.open(config[:uri]) do
       {:ok, conn} ->
         Process.monitor(conn.pid)
@@ -417,6 +441,37 @@ defmodule GenRMQ.Consumer do
       false ->
         []
     end
+  end
+
+  defp emit_message_ack_event(message) do
+    start_time = System.monotonic_time()
+    measurements = %{time: start_time}
+    metadata = %{message: message}
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :ack], measurements, metadata)
+  end
+
+  defp emit_message_reject_event(message, requeue) do
+    start_time = System.monotonic_time()
+    measurements = %{time: start_time}
+    metadata = %{message: message, requeue: requeue}
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :reject], measurements, metadata)
+  end
+
+  defp emit_message_start_event(start_time, message) do
+    measurements = %{time: start_time}
+    metadata = %{message: message}
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :start], measurements, metadata)
+  end
+
+  defp emit_message_stop_event(start_time, message) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: start_time, duration: stop_time - start_time}
+    metadata = %{message: message}
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :stop], measurements, metadata)
   end
 
   defp strip_key(keyword_list, key) do
