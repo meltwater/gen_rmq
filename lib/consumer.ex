@@ -358,9 +358,9 @@ defmodule GenRMQ.Consumer do
 
   defp get_connection(%{config: config, module: module, reconnect_attempt: attempt} = state) do
     start_time = System.monotonic_time()
-    queue = Keyword.get(config, :queue)
-    exchange = Keyword.get(config, :exchange)
-    routing_key = Keyword.get(config, :routing_key)
+    queue = config[:queue]
+    exchange = config[:exchange]
+    routing_key = config[:routing_key]
 
     emit_connect_start_event(start_time, module, attempt, queue, exchange, routing_key)
 
@@ -470,7 +470,7 @@ defmodule GenRMQ.Consumer do
 
   defp emit_message_stop_event(start_time, message) do
     stop_time = System.monotonic_time()
-    measurements = %{time: start_time, duration: stop_time - start_time}
+    measurements = %{time: stop_time, duration: stop_time - start_time}
     metadata = %{message: message}
 
     :telemetry.execute([:gen_rmq, :consumer, :message, :stop], measurements, metadata)
@@ -492,7 +492,7 @@ defmodule GenRMQ.Consumer do
 
   defp emit_connect_stop_event(start_time, module, attempt, queue, exchange, routing_key) do
     stop_time = System.monotonic_time()
-    measurements = %{time: start_time, duration: stop_time - start_time}
+    measurements = %{time: stop_time, duration: stop_time - start_time}
 
     metadata = %{
       module: module,
@@ -507,7 +507,7 @@ defmodule GenRMQ.Consumer do
 
   defp emit_connect_error_event(start_time, module, attempt, queue, exchange, routing_key, error) do
     stop_time = System.monotonic_time()
-    measurements = %{time: start_time, duration: stop_time - start_time}
+    measurements = %{time: stop_time, duration: stop_time - start_time}
 
     metadata = %{
       module: module,
