@@ -357,16 +357,16 @@ defmodule GenRMQ.Consumer do
   end
 
   defp get_connection(%{config: config, module: module, reconnect_attempt: attempt} = state) do
-    stop_time = System.monotonic_time()
+    start_time = System.monotonic_time()
+    queue = Keyword.get(config, :queue)
+    exchange = Keyword.get(config, :exchange)
+    routing_key = Keyword.get(config, :routing_key)
 
-    emit_connect_start_event(start_time, module, attempt)
-
-    # :telemetry.execute([:gen_rmq, :consumer, :connect, :start])
-    # :telemetry.execute([:gen_rmq, :consumer, :connect, :stop])
-    # :telemetry.execute([:gen_rmq, :consumer, :connect, :error])
+    emit_connect_start_event(start_time, module, attempt, queue, exchange, routing_key)
 
     case Connection.open(config[:uri]) do
       {:ok, conn} ->
+        emit_connect_stop_event(start_time, module, attempt, queue, exchange, routing_key)
         Process.monitor(conn.pid)
         Map.put(state, :conn, conn)
 
@@ -375,6 +375,8 @@ defmodule GenRMQ.Consumer do
           "[#{module}]: Failed to connect to RabbitMQ with settings: " <>
             "#{inspect(strip_key(config, :uri))}, reason #{inspect(e)}"
         )
+
+        emit_connect_error_event(start_time, module, attempt, queue, exchange, routing_key, e)
 
         retry_delay_fn = config[:retry_delay_function] || (&linear_delay/1)
         next_attempt = attempt + 1
@@ -472,6 +474,51 @@ defmodule GenRMQ.Consumer do
     metadata = %{message: message}
 
     :telemetry.execute([:gen_rmq, :consumer, :message, :stop], measurements, metadata)
+  end
+
+  defp emit_connect_start_event(start_time, module, attempt, queue, exchange, routing_key) do
+    measurements = %{time: start_time}
+
+    metadata = %{
+      module: module,
+      attempt: attempt,
+      queue: queue,
+      exchange: exchange,
+      routing_key: routing_key
+    }
+
+    :telemetry.execute([:gen_rmq, :consumer, :connect, :start], measurements, metadata)
+  end
+
+  defp emit_connect_stop_event(start_time, module, attempt, queue, exchange, routing_key) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: start_time, duration: stop_time - start_time}
+
+    metadata = %{
+      module: module,
+      attempt: attempt,
+      queue: queue,
+      exchange: exchange,
+      routing_key: routing_key
+    }
+
+    :telemetry.execute([:gen_rmq, :consumer, :connect, :stop], measurements, metadata)
+  end
+
+  defp emit_connect_error_event(start_time, module, attempt, queue, exchange, routing_key, error) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: start_time, duration: stop_time - start_time}
+
+    metadata = %{
+      module: module,
+      attempt: attempt,
+      queue: queue,
+      exchange: exchange,
+      routing_key: routing_key,
+      error: error
+    }
+
+    :telemetry.execute([:gen_rmq, :consumer, :connect, :error], measurements, metadata)
   end
 
   defp strip_key(keyword_list, key) do
