@@ -1,5 +1,11 @@
 defmodule GenRMQ.Consumer.QueueConfiguration do
-  @moduledoc false
+  @moduledoc """
+  Represents configuration of a Consumer queue.
+
+  While this module exists to make management of Consumer queue configurations
+  easier, right now it should be considered a private implementation detail
+  with respect to the consumer configuration API.
+  """
 
   defstruct name: nil,
             ttl: nil,
