@@ -255,6 +255,8 @@ defmodule GenRMQ.Consumer do
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config} = state) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
 
+    emit_connection_down_event(module, reason)
+
     config
     |> Keyword.get(:reconnect, true)
     |> handle_reconnect(state)
@@ -320,9 +322,9 @@ defmodule GenRMQ.Consumer do
     start_time = System.monotonic_time()
     message = Message.create(attributes, payload, state)
 
-    emit_message_start_event(start_time, message)
+    emit_message_start_event(start_time, message, module)
     result = apply(module, :handle_message, [message])
-    emit_message_stop_event(start_time, message)
+    emit_message_stop_event(start_time, message, module)
 
     result
   end
@@ -332,9 +334,9 @@ defmodule GenRMQ.Consumer do
       start_time = System.monotonic_time()
       message = Message.create(attributes, payload, state)
 
-      emit_message_start_event(start_time, message)
+      emit_message_start_event(start_time, message, module)
       result = apply(module, :handle_message, [message])
-      emit_message_stop_event(start_time, message)
+      emit_message_stop_event(start_time, message, module)
 
       result
     end)
@@ -461,19 +463,27 @@ defmodule GenRMQ.Consumer do
     :telemetry.execute([:gen_rmq, :consumer, :message, :reject], measurements, metadata)
   end
 
-  defp emit_message_start_event(start_time, message) do
+  defp emit_message_start_event(start_time, message, module) do
     measurements = %{time: start_time}
-    metadata = %{message: message}
+    metadata = %{message: message, module: module}
 
     :telemetry.execute([:gen_rmq, :consumer, :message, :start], measurements, metadata)
   end
 
-  defp emit_message_stop_event(start_time, message) do
+  defp emit_message_stop_event(start_time, message, module) do
     stop_time = System.monotonic_time()
     measurements = %{time: stop_time, duration: stop_time - start_time}
-    metadata = %{message: message}
+    metadata = %{message: message, module: module}
 
     :telemetry.execute([:gen_rmq, :consumer, :message, :stop], measurements, metadata)
+  end
+
+  defp emit_connection_down_event(module, reason) do
+    start_time = System.monotonic_time()
+    measurements = %{time: start_time}
+    metadata = %{module: module, reason: reason}
+
+    :telemetry.execute([:gen_rmq, :consumer, :connection, :down], measurements, metadata)
   end
 
   defp emit_connect_start_event(start_time, module, attempt, queue, exchange, routing_key) do
