@@ -25,7 +25,7 @@ defmodule ConsumerSharedTests do
         publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
         GenRMQ.Test.Assert.repeatedly(fn ->
-          assert queue_count(context[:rabbit_conn], "#{state.config[:queue]}_error") == {:ok, 1}
+          assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}_error") == {:ok, 1}
         end)
       end
     end
@@ -49,7 +49,7 @@ defmodule ConsumerSharedTests do
   defmacro terminate_after_queue_deletion_test do
     quote do
       test "should terminate after queue deletion", %{consumer: consumer_pid, state: state} do
-        AMQP.Queue.delete(state.out, state[:config][:queue])
+        AMQP.Queue.delete(state.out, state[:config][:queue].name)
 
         GenRMQ.Test.Assert.repeatedly(fn ->
           assert Process.alive?(consumer_pid) == false
@@ -61,7 +61,7 @@ defmodule ConsumerSharedTests do
   defmacro exit_signal_after_queue_deletion_test do
     quote do
       test "should send exit signal after queue deletion", %{consumer: consumer_pid, state: state} do
-        AMQP.Queue.delete(state.out, state[:config][:queue])
+        AMQP.Queue.delete(state.out, state[:config][:queue].name)
 
         assert_receive({:EXIT, ^consumer_pid, :cancelled})
       end
@@ -71,7 +71,7 @@ defmodule ConsumerSharedTests do
   defmacro close_connection_and_channels_after_deletion_test do
     quote do
       test "should close connection and channels after queue deletion", %{state: state} do
-        AMQP.Queue.delete(state.out, state[:config][:queue])
+        AMQP.Queue.delete(state.out, state[:config][:queue].name)
 
         GenRMQ.Test.Assert.repeatedly(fn ->
           assert Process.alive?(state.conn.pid) == false

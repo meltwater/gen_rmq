@@ -15,6 +15,7 @@ defmodule GenRMQ.Consumer do
 
   require Logger
   alias GenRMQ.Message
+  alias GenRMQ.Consumer.QueueConfiguration
 
   ##############################################################################
   # GenRMQ.Consumer callbacks
@@ -218,9 +219,11 @@ defmodule GenRMQ.Consumer do
     Process.flag(:trap_exit, true)
     config = apply(module, :init, [])
 
+    parsed_config = parse_config(config)
+
     state =
       initial_state
-      |> Map.put(:config, config)
+      |> Map.put(:config, parsed_config)
       |> Map.put(:reconnect_attempt, 0)
 
     send(self(), :init)
@@ -312,6 +315,23 @@ defmodule GenRMQ.Consumer do
   # Helpers
   ##############################################################################
 
+  defp parse_config(config) do
+    q_name = Keyword.fetch!(config, :queue)
+    {ttl_val, config_no_q_ttl} = Keyword.pop(config, :queue_ttl, nil)
+    {mp_val, config_no_q_mp} = Keyword.pop(config_no_q_ttl, :queue_max_priority, nil)
+
+    queue_settings =
+      QueueConfiguration.new(
+        q_name,
+        true,
+        ttl_val,
+        mp_val
+      )
+
+    config_no_q_mp
+    |> Keyword.put(:queue, queue_settings)
+  end
+
   defp handle_message(payload, attributes, %{module: module} = state, false) do
     message = Message.create(attributes, payload, state)
     apply(module, :handle_message, [message])
@@ -369,22 +389,18 @@ defmodule GenRMQ.Consumer do
   end
 
   defp setup_consumer(%{in: chan, config: config, module: module} = state) do
-    queue = config[:queue]
+    queue_config = config[:queue]
+    queue = QueueConfiguration.name(queue_config)
     exchange = config[:exchange]
     routing_key = config[:routing_key]
     prefetch_count = String.to_integer(config[:prefetch_count])
-    ttl = config[:queue_ttl]
-    max_priority = config[:queue_max_priority]
 
     deadletter_args = setup_deadletter(chan, config)
 
-    arguments =
-      deadletter_args
-      |> setup_ttl(ttl)
-      |> setup_priority(max_priority)
+    arguments = QueueConfiguration.build_queue_arguments(queue_config, deadletter_args)
 
     Basic.qos(chan, prefetch_count: prefetch_count)
-    Queue.declare(chan, queue, durable: true, arguments: arguments)
+    Queue.declare(chan, queue, durable: QueueConfiguration.durable(queue_config), arguments: arguments)
     GenRMQ.Binding.bind_exchange_and_queue(chan, exchange, queue, routing_key)
 
     consumer_tag = apply(module, :consumer_tag, [])
@@ -395,14 +411,20 @@ defmodule GenRMQ.Consumer do
   defp setup_deadletter(chan, config) do
     case Keyword.get(config, :deadletter, true) do
       true ->
-        ttl = config[:queue_ttl]
-        queue = config[:queue]
+        queue_config = config[:queue]
+        queue = QueueConfiguration.name(queue_config)
         exchange = GenRMQ.Binding.exchange_name(config[:exchange])
         dl_queue = config[:deadletter_queue] || "#{queue}_error"
         dl_exchange = config[:deadletter_exchange] || "#{exchange}.deadletter"
         dl_routing_key = config[:deadletter_routing_key] || "#"
 
-        Queue.declare(chan, dl_queue, durable: true, arguments: setup_ttl([], ttl))
+        Queue.declare(
+          chan,
+          dl_queue,
+          durable: true,
+          arguments: QueueConfiguration.build_ttl_arguments(queue_config, [])
+        )
+
         GenRMQ.Binding.bind_exchange_and_queue(chan, dl_exchange, dl_queue, dl_routing_key)
 
         [{"x-dead-letter-exchange", :longstr, dl_exchange}] ++
@@ -426,19 +448,6 @@ defmodule GenRMQ.Consumer do
   end
 
   defp linear_delay(attempt), do: :timer.sleep(attempt * 1_000)
-
-  defp setup_ttl(arguments, nil), do: arguments
-  defp setup_ttl(arguments, ttl), do: [{"x-expires", :long, ttl} | arguments]
-
-  @max_priority 255
-
-  defp setup_priority(arguments, max_priority) when is_integer(max_priority) and max_priority <= @max_priority,
-    do: [{"x-max-priority", :long, max_priority} | arguments]
-
-  defp setup_priority(arguments, max_priority) when is_integer(max_priority) and max_priority > @max_priority,
-    do: [{"x-max-priority", :long, @max_priority} | arguments]
-
-  defp setup_priority(arguments, _), do: arguments
 
   ##############################################################################
   ##############################################################################
