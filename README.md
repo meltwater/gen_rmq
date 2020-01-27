@@ -106,73 +106,73 @@ It currently exposes the following events:
 
 - `[:gen_rmq, :publisher, :connection, :start]` - Dispatched by a GenRMQ publisher when a connection to RabbitMQ is started
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{exchange: String.t}`
 
 * `[:gen_rmq, :publisher, :connection, :stop]` - Dispatched by a GenRMQ publisher when a connection to RabbitMQ has been established
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time, duration: native_time}`
+  - Metadata: `%{exchange: String.t}`
 
 * `[:gen_rmq, :publisher, :connection, :down]` - Dispatched by a GenRMQ publisher when a connection to RabbitMQ has been lost
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{module: atom, reason: atom}`
 
 * `[:gen_rmq, :publisher, :message, :start]` - Dispatched by a GenRMQ publisher when a message is about to be published to RabbitMQ
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{exchange: String.t, message: String.t}`
 
 * `[:gen_rmq, :publisher, :message, :stop]` - Dispatched by a GenRMQ publisher when a message has been published to RabbitMQ
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time, duration: native_time}`
+  - Metadata: `%{exchange: String.t, message: String.t}`
 
 * `[:gen_rmq, :publisher, :message, :error]` - Dispatched by a GenRMQ publisher when a message failed to be published to RabbitMQ
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time, duration: native_time}`
+  - Metadata: `%{exchange: String.t, message: String.t, kind: atom, reason: atom}`
 
 * `[:gen_rmq, :consumer, :message, :ack]` - Dispatched by a GenRMQ consumer when a message has been acknowledged
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{message: String.t}`
 
 * `[:gen_rmq, :consumer, :message, :reject]` - Dispatched by a GenRMQ consumer when a message has been rejected
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{message: String.t, requeue: boolean}`
 
 * `[:gen_rmq, :consumer, :message, :start]` - Dispatched by a GenRMQ consumer when the processing of a message has begun
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{message: String.t, module: atom}`
 
 * `[:gen_rmq, :consumer, :message, :stop]` - Dispatched by a GenRMQ consumer when the processing of a message has completed
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time, duration: native_time}`
+  - Metadata: `%{message: String.t, module: atom}`
 
 * `[:gen_rmq, :consumer, :connection, :start]` - Dispatched by a GenRMQ consumer when a connection to RabbitMQ is started
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{module: atom, attempt: integer, queue: String.t, exchange: String.t, routing_key: String.t}`
 
 * `[:gen_rmq, :consumer, :connection, :stop]` - Dispatched by a GenRMQ consumer when a connection to RabbitMQ has been established
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time, duration: native_time}`
+  - Metadata: `%{module: atom, attempt: integer, queue: String.t, exchange: String.t, routing_key: String.t}`
 
 * `[:gen_rmq, :consumer, :connection, :error]` - Dispatched by a GenRMQ consumer when a connection to RabbitMQ could not be made
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{module: atom, attempt: integer, queue: String.t, exchange: String.t, routing_key: String.t, error: any}`
 
 * `[:gen_rmq, :consumer, :connection, :down]` - Dispatched by a GenRMQ consumer when a connection to RabbitMQ has been lost
 
-  - Measurement: `%{}`
-  - Metadata: `%{}`
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{module: atom, reason: atom}`
 
 ## Running tests
 

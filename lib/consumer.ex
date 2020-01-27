@@ -364,11 +364,11 @@ defmodule GenRMQ.Consumer do
     exchange = config[:exchange]
     routing_key = config[:routing_key]
 
-    emit_connect_start_event(start_time, module, attempt, queue, exchange, routing_key)
+    emit_connection_start_event(start_time, module, attempt, queue, exchange, routing_key)
 
     case Connection.open(config[:uri]) do
       {:ok, conn} ->
-        emit_connect_stop_event(start_time, module, attempt, queue, exchange, routing_key)
+        emit_connection_stop_event(start_time, module, attempt, queue, exchange, routing_key)
         Process.monitor(conn.pid)
         Map.put(state, :conn, conn)
 
@@ -378,7 +378,7 @@ defmodule GenRMQ.Consumer do
             "#{inspect(strip_key(config, :uri))}, reason #{inspect(e)}"
         )
 
-        emit_connect_error_event(start_time, module, attempt, queue, exchange, routing_key, e)
+        emit_connection_error_event(start_time, module, attempt, queue, exchange, routing_key, e)
 
         retry_delay_fn = config[:retry_delay_function] || (&linear_delay/1)
         next_attempt = attempt + 1
@@ -486,7 +486,7 @@ defmodule GenRMQ.Consumer do
     :telemetry.execute([:gen_rmq, :consumer, :connection, :down], measurements, metadata)
   end
 
-  defp emit_connect_start_event(start_time, module, attempt, queue, exchange, routing_key) do
+  defp emit_connection_start_event(start_time, module, attempt, queue, exchange, routing_key) do
     measurements = %{time: start_time}
 
     metadata = %{
@@ -500,7 +500,7 @@ defmodule GenRMQ.Consumer do
     :telemetry.execute([:gen_rmq, :consumer, :connection, :start], measurements, metadata)
   end
 
-  defp emit_connect_stop_event(start_time, module, attempt, queue, exchange, routing_key) do
+  defp emit_connection_stop_event(start_time, module, attempt, queue, exchange, routing_key) do
     stop_time = System.monotonic_time()
     measurements = %{time: stop_time, duration: stop_time - start_time}
 
@@ -515,7 +515,7 @@ defmodule GenRMQ.Consumer do
     :telemetry.execute([:gen_rmq, :consumer, :connection, :stop], measurements, metadata)
   end
 
-  defp emit_connect_error_event(start_time, module, attempt, queue, exchange, routing_key, error) do
+  defp emit_connection_error_event(start_time, module, attempt, queue, exchange, routing_key, error) do
     stop_time = System.monotonic_time()
     measurements = %{time: stop_time, duration: stop_time - start_time}
 

@@ -310,7 +310,7 @@ defmodule GenRMQ.Publisher do
     start_time = System.monotonic_time()
     exchange = config[:exchange]
 
-    emit_publish_connection_start_event(start_time, exchange)
+    emit_connection_start_event(start_time, exchange)
 
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
@@ -319,7 +319,7 @@ defmodule GenRMQ.Publisher do
     with_confirmations = Keyword.get(config, :enable_confirmations, false)
     :ok = activate_confirmations(channel, with_confirmations)
 
-    emit_publish_connection_stop_event(start_time, exchange)
+    emit_connection_stop_event(start_time, exchange)
 
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
@@ -332,14 +332,14 @@ defmodule GenRMQ.Publisher do
     :telemetry.execute([:gen_rmq, :publisher, :connection, :down], measurements, metadata)
   end
 
-  defp emit_publish_connection_start_event(start_time, exchange) do
+  defp emit_connection_start_event(start_time, exchange) do
     measurements = %{time: start_time}
     metadata = %{exchange: exchange}
 
     :telemetry.execute([:gen_rmq, :publisher, :connection, :start], measurements, metadata)
   end
 
-  defp emit_publish_connection_stop_event(start_time, exchange) do
+  defp emit_connection_stop_event(start_time, exchange) do
     stop_time = System.monotonic_time()
     measurements = %{time: stop_time, duration: stop_time - start_time}
     metadata = %{exchange: exchange}
