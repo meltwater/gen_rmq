@@ -287,6 +287,9 @@ defmodule GenRMQ.Publisher do
   @impl GenServer
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config}) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
+
+    emit_connection_down_event(module, reason)
+
     {:ok, state} = setup_publisher(%{module: module, config: config})
     {:noreply, state}
   end
@@ -307,7 +310,7 @@ defmodule GenRMQ.Publisher do
     start_time = System.monotonic_time()
     exchange = config[:exchange]
 
-    emit_publish_setup_start_event(start_time, exchange)
+    emit_publish_connection_start_event(start_time, exchange)
 
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
@@ -316,24 +319,32 @@ defmodule GenRMQ.Publisher do
     with_confirmations = Keyword.get(config, :enable_confirmations, false)
     :ok = activate_confirmations(channel, with_confirmations)
 
-    emit_publish_setup_stop_event(start_time, exchange)
+    emit_publish_connection_stop_event(start_time, exchange)
 
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
 
-  defp emit_publish_setup_start_event(start_time, exchange) do
+  defp emit_connection_down_event(module, reason) do
+    start_time = System.monotonic_time()
+    measurements = %{time: start_time}
+    metadata = %{module: module, reason: reason}
+
+    :telemetry.execute([:gen_rmq, :publisher, :connection, :down], measurements, metadata)
+  end
+
+  defp emit_publish_connection_start_event(start_time, exchange) do
     measurements = %{time: start_time}
     metadata = %{exchange: exchange}
 
-    :telemetry.execute([:gen_rmq, :publisher, :setup, :start], measurements, metadata)
+    :telemetry.execute([:gen_rmq, :publisher, :connection, :start], measurements, metadata)
   end
 
-  defp emit_publish_setup_stop_event(start_time, exchange) do
+  defp emit_publish_connection_stop_event(start_time, exchange) do
     stop_time = System.monotonic_time()
     measurements = %{time: stop_time, duration: stop_time - start_time}
     metadata = %{exchange: exchange}
 
-    :telemetry.execute([:gen_rmq, :publisher, :setup, :stop], measurements, metadata)
+    :telemetry.execute([:gen_rmq, :publisher, :connection, :stop], measurements, metadata)
   end
 
   defp emit_publish_start_event(start_time, exchange, message) do

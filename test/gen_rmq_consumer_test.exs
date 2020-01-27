@@ -344,14 +344,10 @@ defmodule GenRMQ.ConsumerTest do
       :telemetry.attach_many(
         "#{test}",
         [
-          [:gen_rmq, :consumer, :message, :ack],
-          [:gen_rmq, :consumer, :message, :reject],
           [:gen_rmq, :consumer, :message, :start],
           [:gen_rmq, :consumer, :message, :stop],
           [:gen_rmq, :consumer, :connection, :start],
-          [:gen_rmq, :consumer, :connection, :stop],
-          [:gen_rmq, :consumer, :connection, :error],
-          [:gen_rmq, :consumer, :connection, :down]
+          [:gen_rmq, :consumer, :connection, :stop]
         ],
         fn name, measurements, metadata, _ ->
           send(self, {:telemetry_event, name, measurements, metadata})

@@ -10,24 +10,24 @@ GenRMQ is a set of [behaviours][behaviours] meant to be used to create RabbitMQ 
 Internally it is using [AMQP][amqp] elixir RabbitMQ client. The idea is to reduce boilerplate consumer / publisher
 code, which usually includes:
 
-* creating connection / channel and keeping it in a state
-* creating and binding queue
-* handling reconnections / consumer cancellations
+- creating connection / channel and keeping it in a state
+- creating and binding queue
+- handling reconnections / consumer cancellations
 
 The project currently provides the following functionality:
 
-* `GenRMQ.Consumer` - a behaviour for implementing RabbitMQ consumers
-* `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
-* `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors
-* `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage][rabbit_case_example])
+- `GenRMQ.Consumer` - a behaviour for implementing RabbitMQ consumers
+- `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
+- `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors
+- `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage][rabbit_case_example])
 
 ## Installation
 
-~~~elixir
+```elixir
 def deps do
   [{:gen_rmq, "~> 2.3.0"}]
 end
-~~~
+```
 
 ## Migrations
 
@@ -39,7 +39,7 @@ More thorough examples for using `GenRMQ.Consumer` and `GenRMQ.Publisher` can be
 
 ### Consumer
 
-~~~elixir
+```elixir
 defmodule Consumer do
   @behaviour GenRMQ.Consumer
 
@@ -62,26 +62,26 @@ defmodule Consumer do
     ...
   end
 end
-~~~
+```
 
-~~~elixir
+```elixir
 GenRMQ.Consumer.start_link(Consumer, name: Consumer)
-~~~
+```
 
 This will result in:
 
-* durable `gen_rmq_exchange.deadletter` exchange created or redeclared
-* durable `gen_rmq_in_queue_error` queue created or redeclared. It will be bound to `gen_rmq_exchange.deadletter`
-* durable topic `gen_rmq_exchange` exchange created or redeclared
-* durable `gen_rmq_in_queue` queue created or redeclared. It will be bound to `gen_rmq_exchange` exchange and has a deadletter exchange set to `gen_rmq_exchange.deadletter`
-* every `handle_message` callback will executed in separate process. This can be disabled by setting `concurrency: false` in `init` callback
-* on failed rabbitmq connection it will wait for a bit and then reconnect
+- durable `gen_rmq_exchange.deadletter` exchange created or redeclared
+- durable `gen_rmq_in_queue_error` queue created or redeclared. It will be bound to `gen_rmq_exchange.deadletter`
+- durable topic `gen_rmq_exchange` exchange created or redeclared
+- durable `gen_rmq_in_queue` queue created or redeclared. It will be bound to `gen_rmq_exchange` exchange and has a deadletter exchange set to `gen_rmq_exchange.deadletter`
+- every `handle_message` callback will executed in separate process. This can be disabled by setting `concurrency: false` in `init` callback
+- on failed rabbitmq connection it will wait for a bit and then reconnect
 
 There are many options to control the consumer setup details, please check the `c:GenRMQ.Consumer.init/0` [docs][consumer_doc] for all available settings.
 
 ### Publisher
 
-~~~elixir
+```elixir
 defmodule Publisher do
   @behaviour GenRMQ.Publisher
 
@@ -92,20 +92,95 @@ defmodule Publisher do
     ]
   end
 end
-~~~
+```
 
-~~~elixir
+```elixir
 GenRMQ.Publisher.start_link(Publisher, name: Publisher)
 GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
-~~~
+```
+
+## Telemetry
+
+GenRMQ emits [Telemetry][https://github.com/beam-telemetry/telemetry] events for both consumers and publishers.
+It currently exposes the following events:
+
+- `[:gen_rmq, :publisher, :connection, :start]` - Dispatched by a GenRMQ publisher when a connection to RabbitMQ is started
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :publisher, :connection, :stop]` - Dispatched by a GenRMQ publisher when a connection to RabbitMQ has been established
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :publisher, :connection, :down]` - Dispatched by a GenRMQ publisher when a connection to RabbitMQ has been lost
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :publisher, :message, :start]` - Dispatched by a GenRMQ publisher when a message is about to be published to RabbitMQ
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :publisher, :message, :stop]` - Dispatched by a GenRMQ publisher when a message has been published to RabbitMQ
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :publisher, :message, :error]` - Dispatched by a GenRMQ publisher when a message failed to be published to RabbitMQ
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :consumer, :message, :ack]` - Dispatched by a GenRMQ consumer when a message has been acknowledged
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :consumer, :message, :reject]` - Dispatched by a GenRMQ consumer when a message has been rejected
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :consumer, :message, :start]` - Dispatched by a GenRMQ consumer when the processing of a message has begun
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :consumer, :message, :stop]` - Dispatched by a GenRMQ consumer when the processing of a message has completed
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :consumer, :connection, :start]` - Dispatched by a GenRMQ consumer when a connection to RabbitMQ is started
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :consumer, :connection, :stop]` - Dispatched by a GenRMQ consumer when a connection to RabbitMQ has been established
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :consumer, :connection, :error]` - Dispatched by a GenRMQ consumer when a connection to RabbitMQ could not be made
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
+
+* `[:gen_rmq, :consumer, :connection, :down]` - Dispatched by a GenRMQ consumer when a connection to RabbitMQ has been lost
+
+  - Measurement: `%{}`
+  - Metadata: `%{}`
 
 ## Running tests
 
 You need [docker-compose][docker_compose] installed.
 
-~~~bash
+```bash
 $ make test
-~~~
+```
 
 ## How to contribute
 
