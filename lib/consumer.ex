@@ -497,7 +497,7 @@ defmodule GenRMQ.Consumer do
       routing_key: routing_key
     }
 
-    :telemetry.execute([:gen_rmq, :consumer, :connect, :start], measurements, metadata)
+    :telemetry.execute([:gen_rmq, :consumer, :connection, :start], measurements, metadata)
   end
 
   defp emit_connect_stop_event(start_time, module, attempt, queue, exchange, routing_key) do
@@ -512,7 +512,7 @@ defmodule GenRMQ.Consumer do
       routing_key: routing_key
     }
 
-    :telemetry.execute([:gen_rmq, :consumer, :connect, :stop], measurements, metadata)
+    :telemetry.execute([:gen_rmq, :consumer, :connection, :stop], measurements, metadata)
   end
 
   defp emit_connect_error_event(start_time, module, attempt, queue, exchange, routing_key, error) do
@@ -528,7 +528,7 @@ defmodule GenRMQ.Consumer do
       error: error
     }
 
-    :telemetry.execute([:gen_rmq, :consumer, :connect, :error], measurements, metadata)
+    :telemetry.execute([:gen_rmq, :consumer, :connection, :error], measurements, metadata)
   end
 
   defp strip_key(keyword_list, key) do

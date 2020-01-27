@@ -305,6 +305,61 @@ defmodule GenRMQ.ConsumerTest do
     close_connection_and_channels_after_shutdown_test()
   end
 
+  describe "Telemetry events" do
+    setup :attach_telemetry_handlers
+
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithoutConcurrency)
+      with_test_consumer(WithoutConcurrency)
+    end
+
+    test "should be emitted when the consumer starts and completes setup" do
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :connection, :start], %{time: _},
+                      %{module: _, attempt: _, queue: _, exchange: _, routing_key: _}}
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :connection, :stop], %{time: _, duration: _},
+                      %{module: _, attempt: _, queue: _, exchange: _, routing_key: _}}
+    end
+
+    test "should be emitted when the consumer starts and stops processing the message",
+         %{consumer: consumer_pid} = context do
+      message = %{"msg" => "handled in the same process"}
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Agent.get(WithoutConcurrency, fn set -> {message, consumer_pid} in set end) == true
+      end)
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{time: _}, %{message: _, module: _}}
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _},
+                      %{message: _, module: _}}
+    end
+  end
+
+  defp attach_telemetry_handlers(%{test: test}) do
+    self = self()
+
+    :ok =
+      :telemetry.attach_many(
+        "#{test}",
+        [
+          [:gen_rmq, :consumer, :message, :ack],
+          [:gen_rmq, :consumer, :message, :reject],
+          [:gen_rmq, :consumer, :message, :start],
+          [:gen_rmq, :consumer, :message, :stop],
+          [:gen_rmq, :consumer, :connection, :start],
+          [:gen_rmq, :consumer, :connection, :stop],
+          [:gen_rmq, :consumer, :connection, :error],
+          [:gen_rmq, :consumer, :connection, :down]
+        ],
+        fn name, measurements, metadata, _ ->
+          send(self, {:telemetry_event, name, measurements, metadata})
+        end,
+        nil
+      )
+  end
+
   defp with_test_consumer(module) do
     Process.flag(:trap_exit, true)
     {:ok, consumer_pid} = Consumer.start_link(module)

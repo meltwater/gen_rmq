@@ -321,6 +321,54 @@ defmodule GenRMQ.PublisherTest do
     end
   end
 
+  describe "Telemetry events" do
+    setup :attach_telemetry_handlers
+
+    setup do
+      with_test_publisher(Default)
+    end
+
+    test "should be emitted when the publisher start and completes setup" do
+      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :setup, :start], %{time: _}, %{exchange: _}}
+      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :setup, :stop], %{time: _, duration: _}, %{exchange: _}}
+    end
+
+    test "should be emitted when the publisher starts and completes the publishing of a message",
+         %{publisher: publisher_pid} = context do
+      message = %{"msg" => "msg"}
+      :ok = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message))
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
+      {:ok, _received_message, _meta} = get_message_from_queue(context)
+
+      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :message, :start], %{time: _},
+                      %{exchange: _, message: _}}
+
+      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :message, :stop], %{time: _, duration: _},
+                      %{exchange: _, message: _}}
+    end
+  end
+
+  defp attach_telemetry_handlers(%{test: test}) do
+    self = self()
+
+    :ok =
+      :telemetry.attach_many(
+        "#{test}",
+        [
+          [:gen_rmq, :publisher, :setup, :start],
+          [:gen_rmq, :publisher, :setup, :stop],
+          [:gen_rmq, :publisher, :message, :start],
+          [:gen_rmq, :publisher, :message, :stop],
+          [:gen_rmq, :publisher, :message, :error]
+        ],
+        fn name, measurements, metadata, _ ->
+          send(self, {:telemetry_event, name, measurements, metadata})
+        end,
+        nil
+      )
+  end
+
   defp with_test_publisher(module) do
     Process.flag(:trap_exit, true)
     {:ok, publisher_pid} = Publisher.start_link(module)
