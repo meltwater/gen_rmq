@@ -218,8 +218,20 @@ defmodule GenRMQ.Publisher do
   @impl GenServer
   def handle_call({:publish, msg, key, metadata}, _from, %{channel: channel, config: config} = state) do
     metadata = config |> base_metadata() |> merge_metadata(metadata)
-    publish_result = Basic.publish(channel, GenRMQ.Binding.exchange_name(config[:exchange]), key, msg, metadata)
+    start_time = System.monotonic_time()
+    exchange = config[:exchange]
+
+    emit_publish_start_event(start_time, exchange, msg)
+
+    publish_result = Basic.publish(channel, GenRMQ.Binding.exchange_name(exchange), key, msg, metadata)
+
+    case publish_result do
+      :ok -> emit_publish_stop_event(start_time, exchange, msg)
+      {kind, reason} -> emit_publish_error_event(start_time, exchange, msg, kind, reason)
+    end
+
     confirmation_result = wait_for_confirmation(channel, config)
+
     {:reply, publish_result(publish_result, confirmation_result), state}
   end
 
@@ -275,6 +287,9 @@ defmodule GenRMQ.Publisher do
   @impl GenServer
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config}) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
+
+    emit_connection_down_event(module, reason)
+
     {:ok, state} = setup_publisher(%{module: module, config: config})
     {:noreply, state}
   end
@@ -292,13 +307,67 @@ defmodule GenRMQ.Publisher do
   ##############################################################################
 
   defp setup_publisher(%{module: module, config: config} = state) do
+    start_time = System.monotonic_time()
+    exchange = config[:exchange]
+
+    emit_connection_start_event(start_time, exchange)
+
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
-    GenRMQ.Binding.declare_exchange(channel, config[:exchange])
+    GenRMQ.Binding.declare_exchange(channel, exchange)
 
     with_confirmations = Keyword.get(config, :enable_confirmations, false)
     :ok = activate_confirmations(channel, with_confirmations)
+
+    emit_connection_stop_event(start_time, exchange)
+
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
+  end
+
+  defp emit_connection_down_event(module, reason) do
+    start_time = System.monotonic_time()
+    measurements = %{time: start_time}
+    metadata = %{module: module, reason: reason}
+
+    :telemetry.execute([:gen_rmq, :publisher, :connection, :down], measurements, metadata)
+  end
+
+  defp emit_connection_start_event(start_time, exchange) do
+    measurements = %{time: start_time}
+    metadata = %{exchange: exchange}
+
+    :telemetry.execute([:gen_rmq, :publisher, :connection, :start], measurements, metadata)
+  end
+
+  defp emit_connection_stop_event(start_time, exchange) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: stop_time, duration: stop_time - start_time}
+    metadata = %{exchange: exchange}
+
+    :telemetry.execute([:gen_rmq, :publisher, :connection, :stop], measurements, metadata)
+  end
+
+  defp emit_publish_start_event(start_time, exchange, message) do
+    measurements = %{time: start_time}
+    metadata = %{exchange: exchange, message: message}
+
+    :telemetry.execute([:gen_rmq, :publisher, :message, :start], measurements, metadata)
+  end
+
+  defp emit_publish_stop_event(start_time, exchange, message) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: stop_time, duration: stop_time - start_time}
+    metadata = %{exchange: exchange, message: message}
+
+    :telemetry.execute([:gen_rmq, :publisher, :message, :stop], measurements, metadata)
+  end
+
+  defp emit_publish_error_event(start_time, exchange, message, kind, reason) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: stop_time, duration: stop_time - start_time}
+    metadata = %{exchange: exchange, message: message, kind: kind, reason: reason}
+
+    :telemetry.execute([:gen_rmq, :publisher, :message, :error], measurements, metadata)
   end
 
   defp activate_confirmations(_, false), do: :ok

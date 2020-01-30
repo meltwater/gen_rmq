@@ -42,6 +42,7 @@ defmodule GenRMQ.Mixfile do
   defp deps do
     [
       {:amqp, "~> 1.1"},
+      {:telemetry, "~> 0.4.1"},
       {:credo, "~> 1.0", only: :dev},
       {:excoveralls, "~> 0.12.0", only: :test},
       {:jason, "~> 1.1", only: [:dev, :test]},

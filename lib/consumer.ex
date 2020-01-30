@@ -193,7 +193,9 @@ defmodule GenRMQ.Consumer do
   `message` - `GenRMQ.Message` struct
   """
   @spec ack(message :: %GenRMQ.Message{}) :: :ok
-  def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}) do
+  def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}} = message) do
+    emit_message_ack_event(message)
+
     Basic.ack(channel, tag)
   end
 
@@ -205,7 +207,9 @@ defmodule GenRMQ.Consumer do
   `requeue` - indicates if message should be requeued
   """
   @spec reject(message :: %GenRMQ.Message{}, requeue :: boolean) :: :ok
-  def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}}, requeue \\ false) do
+  def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}} = message, requeue \\ false) do
+    emit_message_reject_event(message, requeue)
+
     Basic.reject(channel, tag, requeue: requeue)
   end
 
@@ -253,6 +257,8 @@ defmodule GenRMQ.Consumer do
   @impl GenServer
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config} = state) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
+
+    emit_connection_down_event(module, reason)
 
     config
     |> Keyword.get(:reconnect, true)
@@ -333,14 +339,26 @@ defmodule GenRMQ.Consumer do
   end
 
   defp handle_message(payload, attributes, %{module: module} = state, false) do
+    start_time = System.monotonic_time()
     message = Message.create(attributes, payload, state)
-    apply(module, :handle_message, [message])
+
+    emit_message_start_event(start_time, message, module)
+    result = apply(module, :handle_message, [message])
+    emit_message_stop_event(start_time, message, module)
+
+    result
   end
 
   defp handle_message(payload, attributes, %{module: module} = state, true) do
     spawn(fn ->
+      start_time = System.monotonic_time()
       message = Message.create(attributes, payload, state)
-      apply(module, :handle_message, [message])
+
+      emit_message_start_event(start_time, message, module)
+      result = apply(module, :handle_message, [message])
+      emit_message_stop_event(start_time, message, module)
+
+      result
     end)
   end
 
@@ -361,8 +379,16 @@ defmodule GenRMQ.Consumer do
   end
 
   defp get_connection(%{config: config, module: module, reconnect_attempt: attempt} = state) do
+    start_time = System.monotonic_time()
+    queue = config[:queue]
+    exchange = config[:exchange]
+    routing_key = config[:routing_key]
+
+    emit_connection_start_event(start_time, module, attempt, queue, exchange, routing_key)
+
     case Connection.open(config[:uri]) do
       {:ok, conn} ->
+        emit_connection_stop_event(start_time, module, attempt, queue, exchange, routing_key)
         Process.monitor(conn.pid)
         Map.put(state, :conn, conn)
 
@@ -371,6 +397,8 @@ defmodule GenRMQ.Consumer do
           "[#{module}]: Failed to connect to RabbitMQ with settings: " <>
             "#{inspect(strip_key(config, :uri))}, reason #{inspect(e)}"
         )
+
+        emit_connection_error_event(start_time, module, attempt, queue, exchange, routing_key, e)
 
         retry_delay_fn = config[:retry_delay_function] || (&linear_delay/1)
         next_attempt = attempt + 1
@@ -439,6 +467,90 @@ defmodule GenRMQ.Consumer do
       false ->
         []
     end
+  end
+
+  defp emit_message_ack_event(message) do
+    start_time = System.monotonic_time()
+    measurements = %{time: start_time}
+    metadata = %{message: message}
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :ack], measurements, metadata)
+  end
+
+  defp emit_message_reject_event(message, requeue) do
+    start_time = System.monotonic_time()
+    measurements = %{time: start_time}
+    metadata = %{message: message, requeue: requeue}
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :reject], measurements, metadata)
+  end
+
+  defp emit_message_start_event(start_time, message, module) do
+    measurements = %{time: start_time}
+    metadata = %{message: message, module: module}
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :start], measurements, metadata)
+  end
+
+  defp emit_message_stop_event(start_time, message, module) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: stop_time, duration: stop_time - start_time}
+    metadata = %{message: message, module: module}
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :stop], measurements, metadata)
+  end
+
+  defp emit_connection_down_event(module, reason) do
+    start_time = System.monotonic_time()
+    measurements = %{time: start_time}
+    metadata = %{module: module, reason: reason}
+
+    :telemetry.execute([:gen_rmq, :consumer, :connection, :down], measurements, metadata)
+  end
+
+  defp emit_connection_start_event(start_time, module, attempt, queue, exchange, routing_key) do
+    measurements = %{time: start_time}
+
+    metadata = %{
+      module: module,
+      attempt: attempt,
+      queue: queue,
+      exchange: exchange,
+      routing_key: routing_key
+    }
+
+    :telemetry.execute([:gen_rmq, :consumer, :connection, :start], measurements, metadata)
+  end
+
+  defp emit_connection_stop_event(start_time, module, attempt, queue, exchange, routing_key) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: stop_time, duration: stop_time - start_time}
+
+    metadata = %{
+      module: module,
+      attempt: attempt,
+      queue: queue,
+      exchange: exchange,
+      routing_key: routing_key
+    }
+
+    :telemetry.execute([:gen_rmq, :consumer, :connection, :stop], measurements, metadata)
+  end
+
+  defp emit_connection_error_event(start_time, module, attempt, queue, exchange, routing_key, error) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: stop_time, duration: stop_time - start_time}
+
+    metadata = %{
+      module: module,
+      attempt: attempt,
+      queue: queue,
+      exchange: exchange,
+      routing_key: routing_key,
+      error: error
+    }
+
+    :telemetry.execute([:gen_rmq, :consumer, :connection, :error], measurements, metadata)
   end
 
   defp strip_key(keyword_list, key) do
