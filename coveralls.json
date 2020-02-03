@@ -3,6 +3,6 @@
     "test",
     "examples",
     "lib/processor.ex",
-    "lib/rabbit_case.ex "
+    "lib/rabbit_case.ex"
   ]
 }
