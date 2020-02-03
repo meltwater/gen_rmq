@@ -1,6 +1,8 @@
 {
   "skip_files": [
     "test",
-    "examples"
+    "examples",
+    "lib/processor.ex",
+    "lib/rabbit_case.ex"
   ]
 }
