@@ -25,7 +25,7 @@ The project currently provides the following functionality:
 
 ```elixir
 def deps do
-  [{:gen_rmq, "~> 2.3.0"}]
+  [{:gen_rmq, "~> 2.4.0"}]
 end
 ```
 
@@ -101,7 +101,7 @@ GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 
 ## Telemetry
 
-GenRMQ emits [Telemetry][https://github.com/beam-telemetry/telemetry] events for both consumers and publishers.
+GenRMQ emits [Telemetry][telemetry] events for both consumers and publishers.
 It currently exposes the following events:
 
 - `[:gen_rmq, :publisher, :connection, :start]` - Dispatched by a GenRMQ publisher when a connection to RabbitMQ is started
@@ -205,6 +205,7 @@ Copyright (c) 2018 - 2019 Meltwater Inc. [http://underthehood.meltwater.com/][un
 [migrating_to_100]: https://github.com/meltwater/gen_rmq/wiki/Migrations#0---100
 [examples]: https://github.com/meltwater/gen_rmq/tree/master/examples
 [consumer_doc]: https://github.com/meltwater/gen_rmq/blob/master/lib/consumer.ex
+[telemetry]: https://github.com/beam-telemetry/telemetry
 [docker_compose]: https://docs.docker.com/compose/
 [github_prs]: https://help.github.com/articles/about-pull-requests/
 [gen_rmq_issues]: https://github.com/meltwater/gen_rmq/issues
