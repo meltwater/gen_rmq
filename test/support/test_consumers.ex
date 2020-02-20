@@ -280,4 +280,26 @@ defmodule TestConsumer do
       GenRMQ.Consumer.ack(message)
     end
   end
+
+  defmodule RedeclaringExistingExchange do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def existing_exchange, do: "existing_direct_exchange"
+    def init() do
+      [
+        queue: "gen_rmq_in_queue_" <> existing_exchange(),
+        exchange: existing_exchange(),
+        prefetch_count: "10",
+        uri: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.RedeclaringExistingExchange"
+    end
+
+    def handle_message(_), do: :ok
+  end
 end

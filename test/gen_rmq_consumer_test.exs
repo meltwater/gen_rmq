@@ -16,6 +16,7 @@ defmodule GenRMQ.ConsumerTest do
   alias TestConsumer.WithDirectExchange
   alias TestConsumer.WithFanoutExchange
   alias TestConsumer.WithMultiBindingExchange
+  alias TestConsumer.RedeclaringExistingExchange
 
   @uri "amqp://guest:guest@localhost:5672"
 
@@ -35,6 +36,16 @@ defmodule GenRMQ.ConsumerTest do
       {:ok, pid} = Consumer.start_link(Default, name: Default)
       assert pid == Process.whereis(Default)
       assert Consumer.stop(pid, :normal) == :ok
+    end
+
+    test "should fail when try to redeclare an exchange with different type", %{rabbit_conn: conn} do
+      Process.flag(:trap_exit, true)
+      {:ok, chan} = open_channel(conn)
+
+      GenRMQ.Binding.declare_exchange(chan, {:direct, RedeclaringExistingExchange.existing_exchange()})
+      {:ok, pid} = Consumer.start_link(RedeclaringExistingExchange, name: RedeclaringExistingExchange)
+
+      assert_receive {:EXIT, ^pid, {{:shutdown, {:server_initiated_close, _, _}}, _}}
     end
   end
 
