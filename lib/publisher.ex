@@ -302,6 +302,18 @@ defmodule GenRMQ.Publisher do
     Connection.close(conn)
   end
 
+  @doc false
+  @impl GenServer
+  def terminate({{:shutdown, {:server_initiated_close, error_code, reason}}, _}, %{module: module}) do
+    Logger.error("[#{module}]: Terminating publisher, error_code: #{inspect(error_code)}, reason: #{inspect(reason)}")
+  end
+
+  @doc false
+  @impl GenServer
+  def terminate(reason, %{module: module}) do
+    Logger.error("[#{module}]: Terminating publisher, unexpected reason: #{inspect(reason)}")
+  end
+
   ##############################################################################
   # Helpers
   ##############################################################################

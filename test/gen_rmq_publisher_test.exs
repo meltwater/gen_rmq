@@ -7,6 +7,7 @@ defmodule GenRMQ.PublisherTest do
 
   alias TestPublisher.Default
   alias TestPublisher.WithConfirmations
+  alias TestPublisher.RedeclaringExistingExchange
 
   @uri "amqp://guest:guest@localhost:5672"
   @exchange "gen_rmq_out_exchange"
@@ -32,6 +33,16 @@ defmodule GenRMQ.PublisherTest do
     test "should start a new publisher registered by name" do
       {:ok, pid} = GenRMQ.Publisher.start_link(Default, name: Default)
       assert Process.whereis(Default) == pid
+    end
+
+    test "should fail when try to redeclare an exchange with different type", %{rabbit_conn: conn} do
+      Process.flag(:trap_exit, true)
+      {:ok, chan} = open_channel(conn)
+
+      GenRMQ.Binding.declare_exchange(chan, {:direct, RedeclaringExistingExchange.existing_exchange()})
+      {:ok, pid} = GenRMQ.Publisher.start_link(RedeclaringExistingExchange, name: RedeclaringExistingExchange)
+
+      assert_receive {:EXIT, ^pid, {{:shutdown, {:server_initiated_close, _, _}}, _}}
     end
   end
 
