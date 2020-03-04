@@ -18,7 +18,7 @@ The project currently provides the following functionality:
 
 - `GenRMQ.Consumer` - a behaviour for implementing RabbitMQ consumers
 - `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
-- `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors
+- `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors, this is useful to separate out business logic from your consumer
 - `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage][rabbit_case_example])
 
 ## Installation
@@ -35,7 +35,7 @@ Please check [how to migrate to gen_rmq `1.0.0`][migrating_to_100] from previous
 
 ## Examples
 
-More thorough examples for using `GenRMQ.Consumer` and `GenRMQ.Publisher` can be found in the [examples][examples] directory.
+More thorough examples for using `GenRMQ.Consumer`, `GenRMQ.Publisher`, and `GenRMQ.Processor` can be found in the [examples][examples] directory.
 
 ### Consumer
 
@@ -197,7 +197,7 @@ Are you using `gen_rmq` in production? Please let us know, we are curious!
 
 The MIT License (MIT)
 
-Copyright (c) 2018 - 2019 Meltwater Inc. [http://underthehood.meltwater.com/][underthehood]
+Copyright (c) 2018 - 2020 Meltwater Inc. [http://underthehood.meltwater.com/][underthehood]
 
 [behaviours]: https://hexdocs.pm/elixir/behaviours.html
 [amqp]: https://github.com/pma/amqp
