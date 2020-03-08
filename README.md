@@ -49,7 +49,7 @@ defmodule Consumer do
       exchange: "gen_rmq_exchange",
       routing_key: "#",
       prefetch_count: "10",
-      uri: "amqp://guest:guest@localhost:5672",
+      connection: "amqp://guest:guest@localhost:5672",
       retry_delay_function: fn attempt -> :timer.sleep(2000 * attempt) end
     ]
   end
@@ -88,7 +88,7 @@ defmodule Publisher do
   def init() do
     [
       exchange: "gen_rmq_exchange",
-      uri: "amqp://guest:guest@localhost:5672"
+      connection: "amqp://guest:guest@localhost:5672"
     ]
   end
 end

@@ -26,7 +26,7 @@ defmodule ExamplePublisher do
   def init() do
     [
       exchange: "example_exchange",
-      uri: "amqp://guest:guest@localhost:5672"
+      connection: "amqp://guest:guest@localhost:5672"
     ]
   end
 end

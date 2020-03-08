@@ -6,7 +6,7 @@ defmodule TestPublisher do
     def init() do
       [
         exchange: "gen_rmq_out_exchange",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         app_id: :my_app_id
       ]
     end
@@ -34,7 +34,7 @@ defmodule TestPublisher do
     def init() do
       [
         exchange: "gen_rmq_out_exchange",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         app_id: :my_app_id,
         enable_confirmations: true
       ]

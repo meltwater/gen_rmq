@@ -27,7 +27,7 @@ defmodule GenRMQ.Consumer do
   ## Return values
   ### Mandatory:
 
-  `uri` - RabbitMQ uri
+  `connection` - RabbitMQ connection options. Accepts same options as AMQP-library's Connection.open().
 
   `queue` - the name of the queue to consume. If it does not exist, it will be created.
 
@@ -39,6 +39,8 @@ defmodule GenRMQ.Consumer do
   `prefetch_count` - limit the number of unacknowledged messages.
 
   ### Optional:
+
+  `uri` - RabbitMQ uri. Deprecated. Please use `connection`.
 
   `queue_ttl` - controls for how long a queue can be unused before it is
   automatically deleted. Unused means the queue has no consumers,
@@ -75,6 +77,7 @@ defmodule GenRMQ.Consumer do
   ```
   def init() do
     [
+      connection: "amqp://guest:guest@localhost:5672",
       queue: "gen_rmq_in_queue",
       exchange: "gen_rmq_exchange",
       routing_key: "#",
@@ -95,6 +98,7 @@ defmodule GenRMQ.Consumer do
 
   """
   @callback init() :: [
+              connection: list,
               queue: String.t(),
               exchange: GenRMQ.Binding.exchange(),
               routing_key: [String.t()] | String.t(),
@@ -348,6 +352,7 @@ defmodule GenRMQ.Consumer do
 
     config_no_q_mp
     |> Keyword.put(:queue, queue_settings)
+    |> Keyword.put(:connection, Keyword.get(config, :connection, config[:uri]))
   end
 
   defp handle_message(payload, attributes, %{module: module} = state, false) do
@@ -398,7 +403,7 @@ defmodule GenRMQ.Consumer do
 
     emit_connection_start_event(start_time, module, attempt, queue, exchange, routing_key)
 
-    case Connection.open(config[:uri]) do
+    case Connection.open(config[:connection]) do
       {:ok, conn} ->
         emit_connection_stop_event(start_time, module, attempt, queue, exchange, routing_key)
         Process.monitor(conn.pid)
@@ -407,7 +412,7 @@ defmodule GenRMQ.Consumer do
       {:error, e} ->
         Logger.error(
           "[#{module}]: Failed to connect to RabbitMQ with settings: " <>
-            "#{inspect(strip_key(config, :uri))}, reason #{inspect(e)}"
+            "#{inspect(strip_key(config, :connection))}, reason #{inspect(e)}"
         )
 
         emit_connection_error_event(start_time, module, attempt, queue, exchange, routing_key, e)

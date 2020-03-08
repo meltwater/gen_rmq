@@ -18,10 +18,10 @@ defmodule GenRMQ.ConsumerTest do
   alias TestConsumer.WithMultiBindingExchange
   alias TestConsumer.RedeclaringExistingExchange
 
-  @uri "amqp://guest:guest@localhost:5672"
+  @connection "amqp://guest:guest@localhost:5672"
 
   setup_all do
-    {:ok, conn} = rmq_open(@uri)
+    {:ok, conn} = rmq_open(@connection)
     {:ok, rabbit_conn: conn}
   end
 

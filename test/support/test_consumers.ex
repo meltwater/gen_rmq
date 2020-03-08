@@ -9,7 +9,7 @@ defmodule TestConsumer do
         exchange: "gen_rmq_in_exchange",
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1000
       ]
     end
@@ -39,7 +39,7 @@ defmodule TestConsumer do
         exchange: "gen_rmq_in_exchange",
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         concurrency: false,
         queue_ttl: 1000
       ]
@@ -68,7 +68,7 @@ defmodule TestConsumer do
         exchange: "does_not_matter_exchange",
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         reconnect: false,
         queue_ttl: 1000
       ]
@@ -92,7 +92,7 @@ defmodule TestConsumer do
         exchange: "gen_rmq_in_exchange_no_deadletter",
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1000,
         deadletter: false
       ]
@@ -117,7 +117,7 @@ defmodule TestConsumer do
         exchange: "gen_rmq_in_exchange_custom_deadletter",
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1000,
         deadletter_queue: "dl_queue",
         deadletter_exchange: "dl_exchange",
@@ -144,7 +144,7 @@ defmodule TestConsumer do
         exchange: "gen_rmq_in_exchange_with_prio",
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1000,
         queue_max_priority: 100
       ]
@@ -171,7 +171,7 @@ defmodule TestConsumer do
         exchange: {:topic, "gen_rmq_in_wt_exchange"},
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1000
       ]
     end
@@ -201,7 +201,7 @@ defmodule TestConsumer do
         exchange: {:direct, "gen_rmq_in_wd_exchange"},
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1000
       ]
     end
@@ -231,7 +231,7 @@ defmodule TestConsumer do
         exchange: {:fanout, "gen_rmq_in_wf_exchange"},
         routing_key: "#",
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1000
       ]
     end
@@ -261,7 +261,7 @@ defmodule TestConsumer do
         exchange: {:direct, "gen_rmq_in_mb_exchange"},
         routing_key: ["routing_key_1", "routing_key_2"],
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1000
       ]
     end
