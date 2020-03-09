@@ -39,12 +39,14 @@ defmodule GenRMQ.Publisher do
   ## Return values
   ### Mandatory:
 
-  `uri` - RabbitMQ uri
+  `connection` - RabbitMQ connection options. Accepts same arguments as AMQP-library's [Connection.open/2](https://hexdocs.pm/amqp/AMQP.Connection.html#open/2).
 
   `exchange` - name or `{type, name}` of the target exchange. If it does not exist, it will be created.
   For valid exchange types see `GenRMQ.Binding`.
 
   ### Optional:
+
+  `uri` - RabbitMQ uri. Deprecated. Please use `connection`.
 
   `app_id` - publishing application ID. By default it is `:gen_rmq`.
 
@@ -57,7 +59,8 @@ defmodule GenRMQ.Publisher do
   def init() do
     [
       exchange: "gen_rmq_exchange",
-      uri: "amqp://guest:guest@localhost:5672"
+      connection: "amqp://guest:guest@localhost:5672",
+      uri: "amqp://guest:guest@localhost:5672",
       app_id: :my_app_id,
       enable_confirmations: true,
       max_confirmation_wait_time: 5_000
@@ -67,6 +70,7 @@ defmodule GenRMQ.Publisher do
 
   """
   @callback init() :: [
+              connection: keyword | {String.t(), String.t()} | :undefined | keyword,
               exchange: GenRMQ.Binding.exchange(),
               uri: String.t(),
               app_id: atom,
@@ -319,6 +323,7 @@ defmodule GenRMQ.Publisher do
   ##############################################################################
 
   defp setup_publisher(%{module: module, config: config} = state) do
+    state = Map.put(state, :config, parse_config(config))
     start_time = System.monotonic_time()
     exchange = config[:exchange]
 
@@ -334,6 +339,12 @@ defmodule GenRMQ.Publisher do
     emit_connection_stop_event(start_time, exchange)
 
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
+  end
+
+  defp parse_config(config) do
+    # Backwards compatibility support
+    # Use connection-keyword if it's set, otherwise use uri-keyword
+    Keyword.put(config, :connection, Keyword.get(config, :connection, config[:uri]))
   end
 
   defp emit_connection_down_event(module, reason) do
@@ -400,7 +411,7 @@ defmodule GenRMQ.Publisher do
   defp publish_result(error, _), do: error
 
   defp connect(%{module: module, config: config} = state) do
-    case Connection.open(config[:uri]) do
+    case Connection.open(config[:connection]) do
       {:ok, conn} ->
         Process.monitor(conn.pid)
         {:ok, conn}

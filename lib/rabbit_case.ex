@@ -8,8 +8,8 @@ defmodule GenRMQ.RabbitCase do
     quote do
       use AMQP
 
-      def rmq_open(uri) do
-        AMQP.Connection.open(uri)
+      def rmq_open(connection) do
+        AMQP.Connection.open(connection)
       end
 
       def open_channel(connection), do: AMQP.Channel.open(connection)
@@ -39,14 +39,14 @@ defmodule GenRMQ.RabbitCase do
         {:ok, Jason.decode!(payload), meta}
       end
 
-      def purge_queues(uri, queues) do
-        {:ok, conn} = rmq_open(uri)
+      def purge_queues(connection, queues) do
+        {:ok, conn} = rmq_open(connection)
         Enum.each(queues, &purge_queue(conn, &1))
         AMQP.Connection.close(conn)
       end
 
-      def purge_queues!(uri, queues) do
-        {:ok, conn} = rmq_open(uri)
+      def purge_queues!(connection, queues) do
+        {:ok, conn} = rmq_open(connection)
         Enum.each(queues, &purge_queue!(conn, &1))
         AMQP.Connection.close(conn)
       end
