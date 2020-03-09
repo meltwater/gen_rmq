@@ -27,7 +27,7 @@ defmodule GenRMQ.Consumer do
   ## Return values
   ### Mandatory:
 
-  `connection` - RabbitMQ connection options. Accepts same options as AMQP-library's Connection.open().
+  `connection` - RabbitMQ connection options. Accepts same arguments as AMQP-library's [Connection.open/2](https://hexdocs.pm/amqp/AMQP.Connection.html#open/2).
 
   `queue` - the name of the queue to consume. If it does not exist, it will be created.
 
@@ -98,7 +98,7 @@ defmodule GenRMQ.Consumer do
 
   """
   @callback init() :: [
-              connection: list,
+              connection: keyword | {String.t(), String.t()} | :undefined | keyword,
               queue: String.t(),
               exchange: GenRMQ.Binding.exchange(),
               routing_key: [String.t()] | String.t(),

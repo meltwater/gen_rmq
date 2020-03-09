@@ -39,7 +39,7 @@ defmodule GenRMQ.Publisher do
   ## Return values
   ### Mandatory:
 
-  `connection` - RabbitMQ connection options. Accepts same options as AMQP-library's Connection.open().
+  `connection` - RabbitMQ connection options. Accepts same arguments as AMQP-library's [Connection.open/2](https://hexdocs.pm/amqp/AMQP.Connection.html#open/2).
 
   `exchange` - name or `{type, name}` of the target exchange. If it does not exist, it will be created.
   For valid exchange types see `GenRMQ.Binding`.
@@ -70,7 +70,7 @@ defmodule GenRMQ.Publisher do
 
   """
   @callback init() :: [
-              connection: list,
+              connection: keyword | {String.t(), String.t()} | :undefined | keyword,
               exchange: GenRMQ.Binding.exchange(),
               uri: String.t(),
               app_id: atom,
@@ -342,8 +342,9 @@ defmodule GenRMQ.Publisher do
   end
 
   defp parse_config(config) do
-    config
-    |> Keyword.put(:connection, Keyword.get(config, :connection, config[:uri]))
+    # Backwards compatibility support
+    # Use connection-keyword if it's set, otherwise use uri-keyword
+    Keyword.put(config, :connection, Keyword.get(config, :connection, config[:uri]))
   end
 
   defp emit_connection_down_event(module, reason) do
