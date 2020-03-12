@@ -140,8 +140,8 @@ defmodule GenRMQ.ConsumerTest do
 
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == true
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}") == {:ok, 0}
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}_error") == {:error, :not_found}
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+        assert queue_count(context[:rabbit_conn], state.config[:queue][:dead_letter][:name]) == {:error, :not_found}
       end)
     end
   end
@@ -153,7 +153,7 @@ defmodule GenRMQ.ConsumerTest do
 
     test "should deadletter a message to a custom queue", %{consumer: consumer_pid, state: state} = context do
       message = %{"msg" => "some message"}
-      dl_queue = state[:config][:deadletter_queue]
+      dl_queue = state.config[:queue][:dead_letter][:name]
 
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
@@ -292,7 +292,7 @@ defmodule GenRMQ.ConsumerTest do
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "routing_key_1")
 
       Assert.repeatedly(fn ->
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}_error") == {:ok, 1}
+        assert queue_count(context[:rabbit_conn], state.config[:queue][:dead_letter][:name]) == {:ok, 1}
       end)
     end
 

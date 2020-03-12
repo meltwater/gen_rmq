@@ -42,6 +42,15 @@ defmodule GenRMQ.Consumer do
 
   `uri` - RabbitMQ uri. Deprecated. Please use `connection`.
 
+  `queue_options` - Queue options as declared in
+  [AMQP.Queue.declare/3](https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3).
+
+  If argument 'x-expires' is given to arguments, then it will be used instead
+  of `queue_ttl`.
+
+  If argument 'x-max-priority' is given to arguments, then it will be used
+  instead of `queue_max_priority`.
+
   `queue_ttl` - controls for how long a queue can be unused before it is
   automatically deleted. Unused means the queue has no consumers,
   the queue has not been redeclared, and basic.get has not been invoked
@@ -66,8 +75,15 @@ defmodule GenRMQ.Consumer do
   By default reconnection is enabled.
 
   `deadletter` - defines if consumer should setup deadletter exchange and queue.
+  (**Default:** `true`).
 
   `deadletter_queue` - defines name of the deadletter queue (**Default:** Same as queue name suffixed by `_error`).
+
+  `deadletter_queue_options` - Queue options for the deadletter queue as declared in [AMQP.Queue.declare/3](https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3).
+
+  If argument 'x-expires' is given to arguments, then it will be used instead of `queue_ttl`.
+
+  If argument 'x-max-priority' is given to arguments, then it will be used instead of `queue_max_priority`.
 
   `deadletter_exchange` - defines name of the deadletter exchange (**Default:** Same as exchange name suffixed by `.deadletter`).
 
@@ -79,6 +95,12 @@ defmodule GenRMQ.Consumer do
     [
       connection: "amqp://guest:guest@localhost:5672",
       queue: "gen_rmq_in_queue",
+      queue_options: [
+        durable: true,
+        passive: true,
+        arguments: [
+          {"x-queue-type", :longstr ,"quorum"},
+      ]
       exchange: "gen_rmq_exchange",
       routing_key: "#",
       prefetch_count: "10",
@@ -89,6 +111,10 @@ defmodule GenRMQ.Consumer do
       reconnect: true,
       deadletter: true,
       deadletter_queue: "gen_rmq_in_queue_error",
+      deadletter_queue_options: [
+        arguments: [
+          {"x-queue-type", :longstr ,"quorum"},
+      ]
       deadletter_exchange: "gen_rmq_exchange.deadletter",
       deadletter_routing_key: "#",
       queue_max_priority: 10
@@ -100,6 +126,7 @@ defmodule GenRMQ.Consumer do
   @callback init() :: [
               connection: keyword | {String.t(), String.t()} | :undefined | keyword,
               queue: String.t(),
+              queue_options: list,
               exchange: GenRMQ.Binding.exchange(),
               routing_key: [String.t()] | String.t(),
               prefetch_count: String.t(),
@@ -110,6 +137,7 @@ defmodule GenRMQ.Consumer do
               reconnect: boolean,
               deadletter: boolean,
               deadletter_queue: String.t(),
+              deadletter_queue_options: list,
               deadletter_exchange: String.t(),
               deadletter_routing_key: String.t(),
               queue_max_priority: integer
@@ -226,7 +254,6 @@ defmodule GenRMQ.Consumer do
   def init(%{module: module} = initial_state) do
     Process.flag(:trap_exit, true)
     config = apply(module, :init, [])
-
     parsed_config = parse_config(config)
 
     state =
@@ -338,20 +365,12 @@ defmodule GenRMQ.Consumer do
   ##############################################################################
 
   defp parse_config(config) do
-    q_name = Keyword.fetch!(config, :queue)
-    {ttl_val, config_no_q_ttl} = Keyword.pop(config, :queue_ttl, nil)
-    {mp_val, config_no_q_mp} = Keyword.pop(config_no_q_ttl, :queue_max_priority, nil)
+    queue_name = Keyword.fetch!(config, :queue)
 
     queue_settings =
-      QueueConfiguration.new(
-        q_name,
-        true,
-        ttl_val,
-        mp_val
-      )
+      QueueConfiguration.setup(queue_name, config)
 
-    config_no_q_mp
-    |> Keyword.put(:queue, queue_settings)
+    Keyword.put(config, :queue, queue_settings)
     |> Keyword.put(:connection, Keyword.get(config, :connection, config[:uri]))
   end
 
@@ -435,55 +454,26 @@ defmodule GenRMQ.Consumer do
 
   defp setup_consumer(%{in: chan, config: config, module: module} = state) do
     queue_config = config[:queue]
-    queue = QueueConfiguration.name(queue_config)
-    exchange = config[:exchange]
-    routing_key = config[:routing_key]
     prefetch_count = String.to_integer(config[:prefetch_count])
 
-    deadletter_args = setup_deadletter(chan, config)
-
-    arguments = QueueConfiguration.build_queue_arguments(queue_config, deadletter_args)
+    if queue_config.dead_letter[:create] do
+      setup_deadletter(chan, queue_config.dead_letter)
+    end
 
     Basic.qos(chan, prefetch_count: prefetch_count)
-    Queue.declare(chan, queue, durable: QueueConfiguration.durable(queue_config), arguments: arguments)
-    GenRMQ.Binding.bind_exchange_and_queue(chan, exchange, queue, routing_key)
-
+    setup_queue(queue_config.name, queue_config.options, chan, config[:exchange], config[:routing_key])
     consumer_tag = apply(module, :consumer_tag, [])
-    {:ok, _consumer_tag} = Basic.consume(chan, queue, nil, consumer_tag: consumer_tag)
+    {:ok, _consumer_tag} = Basic.consume(chan, queue_config.name, nil, consumer_tag: consumer_tag)
     state
   end
 
   defp setup_deadletter(chan, config) do
-    case Keyword.get(config, :deadletter, true) do
-      true ->
-        queue_config = config[:queue]
-        queue = QueueConfiguration.name(queue_config)
-        exchange = GenRMQ.Binding.exchange_name(config[:exchange])
-        dl_queue = config[:deadletter_queue] || "#{queue}_error"
-        dl_exchange = config[:deadletter_exchange] || "#{exchange}.deadletter"
-        dl_routing_key = config[:deadletter_routing_key] || "#"
+    setup_queue(config[:name], config[:options], chan, config[:exchange], config[:routing_key])
+  end
 
-        Queue.declare(
-          chan,
-          dl_queue,
-          durable: true,
-          arguments: QueueConfiguration.build_ttl_arguments(queue_config, [])
-        )
-
-        GenRMQ.Binding.bind_exchange_and_queue(chan, dl_exchange, dl_queue, dl_routing_key)
-
-        [{"x-dead-letter-exchange", :longstr, dl_exchange}] ++
-          case dl_routing_key do
-            "#" ->
-              []
-
-            _ ->
-              [{"x-dead-letter-routing-key", :longstr, dl_routing_key}]
-          end
-
-      false ->
-        []
-    end
+  defp setup_queue(name, options, chan, exchange, routing_key) do
+    Queue.declare(chan, name, options)
+    GenRMQ.Binding.bind_exchange_and_queue(chan, exchange, name, routing_key)
   end
 
   defp emit_message_ack_event(message) do
