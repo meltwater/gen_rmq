@@ -367,10 +367,8 @@ defmodule GenRMQ.Consumer do
   defp parse_config(config) do
     queue_name = Keyword.fetch!(config, :queue)
 
-    queue_settings =
-      QueueConfiguration.setup(queue_name, config)
-
-    Keyword.put(config, :queue, queue_settings)
+    config
+    |> Keyword.put(:queue, QueueConfiguration.setup(queue_name, config))
     |> Keyword.put(:connection, Keyword.get(config, :connection, config[:uri]))
   end
 

@@ -120,7 +120,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         passive: true,
         no_wait: true,
         arguments: [
-          {"x-queue-type", :longstr ,"quorum"},
+          {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
           {"x-max-priority", :long, 1234},
         ]
@@ -149,7 +149,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
       options: [
         arguments: [
           {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"},
-          {"x-queue-type", :longstr ,"quorum"},
+          {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
           {"x-max-priority", :long, 1234},
         ],
@@ -241,7 +241,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         passive: true,
         no_wait: true,
         arguments: [
-          {"x-queue-type", :longstr ,"quorum"},
+          {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
           {"x-max-priority", :long, 1234},
         ]
@@ -252,7 +252,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         passive: false,
         no_wait: false,
         arguments: [
-          {"x-queue-type", :longstr ,"quorum"},
+          {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42}
         ]
       ],
@@ -268,7 +268,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         options: [
           arguments: [
             {"x-max-priority", :long, 64},
-            {"x-queue-type", :longstr ,"quorum"},
+            {"x-queue-type", :longstr, "quorum"},
             {"x-expires", :long, 42},
           ],
           durable: false,
@@ -286,7 +286,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         arguments: [
           {"x-dead-letter-routing-key", :longstr, config[:deadletter_routing_key]},
           {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"},
-          {"x-queue-type", :longstr ,"quorum"},
+          {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
           {"x-max-priority", :long, 1234},
         ],
