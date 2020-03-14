@@ -7,6 +7,7 @@ defmodule GenRMQ.ConsumerTest do
 
   alias GenRMQ.Consumer
   alias TestConsumer.Default
+  alias TestConsumer.WithQueueOptions
   alias TestConsumer.WithCustomDeadletter
   alias TestConsumer.WithoutConcurrency
   alias TestConsumer.WithoutDeadletter
@@ -144,6 +145,27 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state.config[:queue][:dead_letter][:name]) == {:error, :not_found}
       end)
     end
+  end
+
+  describe "TestConsumer.WithQueueOptions" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithQueueOptions)
+      with_test_consumer(WithQueueOptions)
+    end
+
+    receive_message_test(WithQueueOptions)
+
+    reject_message_test()
+
+    reconnect_after_connection_failure_test(WithQueueOptions)
+
+    terminate_after_queue_deletion_test()
+
+    exit_signal_after_queue_deletion_test()
+
+    close_connection_and_channels_after_deletion_test()
+
+    close_connection_and_channels_after_shutdown_test()
   end
 
   describe "TestConsumer.WithCustomDeadletter" do

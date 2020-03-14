@@ -107,6 +107,50 @@ defmodule TestConsumer do
     end
   end
 
+  defmodule WithQueueOptions do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_in_queue_options",
+        queue_options: [
+          durable: false,
+          arguments: [
+            {"x-expires", :long, 1000},
+          ]
+        ],
+        exchange: "gen_rmq_in_exchange_queue_options",
+        routing_key: "#",
+        prefetch_count: "10",
+        connection: "amqp://guest:guest@localhost:5672",
+        deadletter_queue: "dl_queue_options",
+        deadletter_queue_options: [
+          durable: false,
+          arguments: [
+            {"x-expires", :long, 1000},
+          ]
+        ],
+        deadletter_exchange: "dl_exchange_options",
+        deadletter_routing_key: "dl_routing_key_options",
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithQueueOptions"
+    end
+
+    def handle_message(%GenRMQ.Message{payload: "\"reject\""} = message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_message(message) do
+      payload = Jason.decode!(message.payload)
+      Agent.update(__MODULE__, &MapSet.put(&1, payload))
+      GenRMQ.Consumer.ack(message)
+    end
+  end
+
   defmodule WithCustomDeadletter do
     @moduledoc false
     @behaviour GenRMQ.Consumer
