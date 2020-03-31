@@ -126,7 +126,7 @@ defmodule GenRMQ.Consumer do
   @callback init() :: [
               connection: keyword | {String.t(), String.t()} | :undefined | keyword,
               queue: String.t(),
-              queue_options: list,
+              queue_options: keyword,
               exchange: GenRMQ.Binding.exchange(),
               routing_key: [String.t()] | String.t(),
               prefetch_count: String.t(),
@@ -137,7 +137,7 @@ defmodule GenRMQ.Consumer do
               reconnect: boolean,
               deadletter: boolean,
               deadletter_queue: String.t(),
-              deadletter_queue_options: list,
+              deadletter_queue_options: keyword,
               deadletter_exchange: String.t(),
               deadletter_routing_key: String.t(),
               queue_max_priority: integer
