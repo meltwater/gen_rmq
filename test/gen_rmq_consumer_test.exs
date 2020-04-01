@@ -7,6 +7,7 @@ defmodule GenRMQ.ConsumerTest do
 
   alias GenRMQ.Consumer
   alias TestConsumer.Default
+  alias TestConsumer.WithQueueOptions
   alias TestConsumer.WithCustomDeadletter
   alias TestConsumer.WithoutConcurrency
   alias TestConsumer.WithoutDeadletter
@@ -140,10 +141,31 @@ defmodule GenRMQ.ConsumerTest do
 
       Assert.repeatedly(fn ->
         assert Process.alive?(consumer_pid) == true
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}") == {:ok, 0}
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}_error") == {:error, :not_found}
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+        assert queue_count(context[:rabbit_conn], state.config[:queue][:dead_letter][:name]) == {:error, :not_found}
       end)
     end
+  end
+
+  describe "TestConsumer.WithQueueOptions" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithQueueOptions)
+      with_test_consumer(WithQueueOptions)
+    end
+
+    receive_message_test(WithQueueOptions)
+
+    reject_message_test()
+
+    reconnect_after_connection_failure_test(WithQueueOptions)
+
+    terminate_after_queue_deletion_test()
+
+    exit_signal_after_queue_deletion_test()
+
+    close_connection_and_channels_after_deletion_test()
+
+    close_connection_and_channels_after_shutdown_test()
   end
 
   describe "TestConsumer.WithCustomDeadletter" do
@@ -153,7 +175,7 @@ defmodule GenRMQ.ConsumerTest do
 
     test "should deadletter a message to a custom queue", %{consumer: consumer_pid, state: state} = context do
       message = %{"msg" => "some message"}
-      dl_queue = state[:config][:deadletter_queue]
+      dl_queue = state.config[:queue][:dead_letter][:name]
 
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
@@ -292,7 +314,7 @@ defmodule GenRMQ.ConsumerTest do
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), "routing_key_1")
 
       Assert.repeatedly(fn ->
-        assert queue_count(context[:rabbit_conn], "#{state.config[:queue].name}_error") == {:ok, 1}
+        assert queue_count(context[:rabbit_conn], state.config[:queue][:dead_letter][:name]) == {:ok, 1}
       end)
     end
 

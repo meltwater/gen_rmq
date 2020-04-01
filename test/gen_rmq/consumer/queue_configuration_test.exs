@@ -2,58 +2,304 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
   use ExUnit.Case, async: true
   alias GenRMQ.Consumer.QueueConfiguration
 
-  test "may be built with just a queue name" do
-    qc = QueueConfiguration.new("some_queue_name")
-    assert "some_queue_name" == QueueConfiguration.name(qc)
-  end
-
-  test "durable should default to true" do
-    qc = QueueConfiguration.new("some_queue_name")
-    assert QueueConfiguration.durable(qc)
-  end
-
-  test "may be built with all options" do
+  test "queue setup without arguments returns default configuration" do
     name = "some_queue_name"
-    ttl = 5000
-    durable = false
-    max_priority = 200
 
-    qc =
-      QueueConfiguration.new(
-        name,
-        durable,
-        ttl,
-        max_priority
-      )
+    expected_conf = %{
+      dead_letter: [
+        options: [
+          durable: true
+        ],
+        create: true,
+        name: "#{name}_error",
+        exchange: ".deadletter",
+        routing_key: "#",
+      ],
+      name: name,
+      options: [
+        arguments: [
+          {"x-dead-letter-exchange", :longstr, ".deadletter"}
+        ],
+        durable: true
+      ]
+    }
 
-    assert name == QueueConfiguration.name(qc)
-    assert durable == QueueConfiguration.durable(qc)
-    assert ttl == QueueConfiguration.ttl(qc)
-    assert max_priority == QueueConfiguration.max_priority(qc)
+    qc = QueueConfiguration.setup(name, [])
+
+    assert expected_conf == qc
   end
 
-  test "sets max_priority values that are too large to the max" do
-    qc = QueueConfiguration.new("some_queue_name", max_priority: 500)
-    assert 255 == QueueConfiguration.max_priority(qc)
+  test "queue setup with basic arguments returns correct configuration" do
+    name = "some_queue_name"
+
+    config = [
+      queue: name,
+      exchange: "example_exchange",
+      routing_key: "routing_key.#",
+      prefetch_count: "10",
+      uri: "amqp://guest:guest@localhost:5672"
+    ]
+
+    expected_conf = %{
+      dead_letter: [
+        options: [
+          durable: true
+        ],
+        create: true,
+        name: "#{name}_error",
+        exchange: "#{config[:exchange]}.deadletter",
+        routing_key: "#",
+      ],
+      name: name,
+      options: [
+        arguments: [
+          {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"}
+        ],
+        durable: true
+      ]
+    }
+
+    qc = QueueConfiguration.setup(name, config)
+
+    assert expected_conf == qc
   end
 
-  test "builds empty arguments when neither ttl or max_priority are provided" do
-    qc = QueueConfiguration.new("some_queue_name")
-    assert [] == QueueConfiguration.build_queue_arguments(qc, [])
+  test "queue setup with ttl and priority returns correct configuration" do
+    name = "some_queue_name"
+
+    config = [
+      queue: name,
+      queue_ttl: 300,
+      queue_max_priority: 64,
+      exchange: "example_exchange",
+      routing_key: "routing_key.#",
+      prefetch_count: "10",
+      uri: "amqp://guest:guest@localhost:5672"
+    ]
+
+    expected_conf = %{
+      dead_letter: [
+        options: [
+          arguments: [
+            {"x-max-priority", :long, config[:queue_max_priority]},
+            {"x-expires", :long, config[:queue_ttl]}
+          ],
+          durable: true
+        ],
+        create: true,
+        name: "#{name}_error",
+        exchange: "#{config[:exchange]}.deadletter",
+        routing_key: "#",
+      ],
+      name: name,
+      options: [
+        arguments: [
+          {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"},
+          {"x-max-priority", :long, config[:queue_max_priority]},
+          {"x-expires", :long, config[:queue_ttl]}
+        ],
+        durable: true
+      ]
+    }
+
+    qc = QueueConfiguration.setup(name, config)
+
+    assert expected_conf == qc
   end
 
-  test "builds correct arguments when ttl and max_priority are provided" do
-    ttl = 5000
-    max_priority = 5
+  test "queue setup with queue_options returns correct configuration" do
+    name = "some_queue_name"
 
-    qc =
-      QueueConfiguration.new(
-        "some_queue_name",
-        ttl: ttl,
-        max_priority: max_priority
-      )
+    config = [
+      queue: name,
+      queue_ttl: 300,
+      queue_max_priority: 64,
+      queue_options: [
+        durable: false,
+        auto_delete: true,
+        passive: true,
+        no_wait: true,
+        arguments: [
+          {"x-queue-type", :longstr, "quorum"},
+          {"x-expires", :long, 42},
+          {"x-max-priority", :long, 1234},
+        ]
+      ],
+      exchange: "example_exchange",
+      routing_key: "routing_key.#",
+      prefetch_count: "10",
+      uri: "amqp://guest:guest@localhost:5672"
+    ]
 
-    assert [{"x-expires", :long, ttl}, {"x-max-priority", :long, max_priority}] ==
-             QueueConfiguration.build_queue_arguments(qc, [])
+    expected_conf = %{
+      dead_letter: [
+        options: [
+          arguments: [
+            {"x-max-priority", :long, 64},
+            {"x-expires", :long, 300},
+          ],
+          durable: true
+        ],
+        create: true,
+        name: "#{name}_error",
+        exchange: "#{config[:exchange]}.deadletter",
+        routing_key: "#",
+      ],
+      name: name,
+      options: [
+        arguments: [
+          {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"},
+          {"x-queue-type", :longstr, "quorum"},
+          {"x-expires", :long, 42},
+          {"x-max-priority", :long, 1234},
+        ],
+        durable: false,
+        auto_delete: true,
+        passive: true,
+        no_wait: true,
+      ]
+    }
+
+    qc = QueueConfiguration.setup(name, config)
+
+    assert expected_conf == qc
   end
+
+  test "should not create dead letter queue configuration" do
+    name = "some_queue_name"
+
+    config = [
+      deadletter: false,
+    ]
+
+    expected_conf = %{
+      dead_letter: [
+        options: [
+          durable: true
+        ],
+        create: false,
+        name: "#{name}_error",
+        exchange: ".deadletter",
+        routing_key: "#",
+      ],
+      name: name,
+      options: [
+        durable: true
+      ]
+    }
+
+    qc = QueueConfiguration.setup(name, config)
+
+    assert expected_conf == qc
+  end
+
+  test "queue setup with defined dead letter keywords returns correct configuration " do
+    name = "some_queue_name"
+
+    config = [
+      deadletter: true,
+      deadletter_queue: "deadletter",
+      deadletter_exchange: "deadletter_exchange",
+      deadletter_routing_key: "rk",
+    ]
+
+    expected_conf = %{
+      dead_letter: [
+        options: [
+          durable: true
+        ],
+        create: true,
+        name: config[:deadletter_queue],
+        exchange: config[:deadletter_exchange],
+        routing_key: config[:deadletter_routing_key],
+      ],
+      name: name,
+      options: [
+        arguments: [
+          {"x-dead-letter-routing-key", :longstr, config[:deadletter_routing_key]},
+          {"x-dead-letter-exchange", :longstr, config[:deadletter_exchange]}
+        ],
+        durable: true
+      ]
+    }
+
+    qc = QueueConfiguration.setup(name, config)
+
+    assert expected_conf == qc
+  end
+
+  test "queue setup with deal_letter_queue_options returns correct configuration" do
+    name = "some_queue_name"
+
+    config = [
+      queue: name,
+      queue_ttl: 300,
+      queue_max_priority: 64,
+      queue_options: [
+        durable: true,
+        auto_delete: true,
+        passive: true,
+        no_wait: true,
+        arguments: [
+          {"x-queue-type", :longstr, "quorum"},
+          {"x-expires", :long, 42},
+          {"x-max-priority", :long, 1234},
+        ]
+      ],
+      deadletter_queue_options: [
+        durable: false,
+        auto_delete: true,
+        passive: false,
+        no_wait: false,
+        arguments: [
+          {"x-queue-type", :longstr, "quorum"},
+          {"x-expires", :long, 42}
+        ]
+      ],
+      deadletter_routing_key: "rk",
+      exchange: "example_exchange",
+      routing_key: "routing_key.#",
+      prefetch_count: "10",
+      uri: "amqp://guest:guest@localhost:5672"
+    ]
+
+    expected_conf = %{
+      dead_letter: [
+        options: [
+          arguments: [
+            {"x-max-priority", :long, 64},
+            {"x-queue-type", :longstr, "quorum"},
+            {"x-expires", :long, 42},
+          ],
+          durable: false,
+          auto_delete: true,
+          passive: false,
+          no_wait: false,
+        ],
+        create: true,
+        name: "#{name}_error",
+        exchange: "#{config[:exchange]}.deadletter",
+        routing_key: config[:deadletter_routing_key],
+      ],
+      name: name,
+      options: [
+        arguments: [
+          {"x-dead-letter-routing-key", :longstr, config[:deadletter_routing_key]},
+          {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"},
+          {"x-queue-type", :longstr, "quorum"},
+          {"x-expires", :long, 42},
+          {"x-max-priority", :long, 1234},
+        ],
+        durable: true,
+        auto_delete: true,
+        passive: true,
+        no_wait: true,
+      ]
+    }
+
+    qc = QueueConfiguration.setup(name, config)
+
+    assert expected_conf == qc
+  end
+
 end
