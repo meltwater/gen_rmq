@@ -7,18 +7,18 @@
 # GenRMQ
 
 GenRMQ is a set of [behaviours][behaviours] meant to be used to create RabbitMQ consumers and publishers.
-Internally it is using [AMQP][amqp] elixir RabbitMQ client. The idea is to reduce boilerplate consumer / publisher
-code, which usually includes:
+
+Internally it is using the [AMQP][amqp] elixir RabbitMQ client. The idea is to reduce boilerplate consumer / publisher code, which usually includes:
 
 - creating connection / channel and keeping it in a state
 - creating and binding queue
 - handling reconnections / consumer cancellations
 
-The project currently provides the following functionality:
+GenRMQ provides the following functionality:
 
 - `GenRMQ.Consumer` - a behaviour for implementing RabbitMQ consumers
 - `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
-- `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors, this is useful to separate out business logic from your consumer
+- `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors (this is useful to separate out business logic from your consumer)
 - `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage][rabbit_case_example])
 
 ## Installation
@@ -31,7 +31,7 @@ end
 
 ## Migrations
 
-Please check [how to migrate to gen_rmq `1.0.0`][migrating_to_100] from previous versions.
+If you were a very early adopter of gen_rmq (before `v1.0.0`), please check [how to migrate to gen_rmq `1.0.0`][migrating_to_100].
 
 ## Examples
 
@@ -184,20 +184,20 @@ $ make test
 
 ## How to contribute
 
-We happily accept contributions in the form of [Github PRs][github_prs]
-or in the form of bug reports, comments/suggestions or usage questions by creating a [github issue][gen_rmq_issues].
+We happily accept contributions as [GitHub PRs][github_prs] or bug reports, comments/suggestions or usage questions by creating a [GitHub issue][gen_rmq_issues].
 
 ## Notes on project maturity
 
 This library was developed as a Meltwater internal project starting in January 2018.
 Over the next two months it has been used in at least three Meltwater production services.
-Are you using `gen_rmq` in production? Please let us know, we are curious!
+
+Are you using `gen_rmq` in production? Please let us know, we are curious to learn about your experiences!
 
 ## License
 
-The MIT License (MIT)
+The [MIT License](LICENSE).
 
-Copyright (c) 2018 - 2020 Meltwater Inc. [http://underthehood.meltwater.com/][underthehood]
+Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][underthehood]
 
 [behaviours]: https://hexdocs.pm/elixir/behaviours.html
 [amqp]: https://github.com/pma/amqp
