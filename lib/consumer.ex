@@ -99,7 +99,8 @@ defmodule GenRMQ.Consumer do
         durable: true,
         passive: true,
         arguments: [
-          {"x-queue-type", :longstr ,"quorum"},
+          {"x-queue-type", :longstr ,"quorum"}
+        ]
       ]
       exchange: "gen_rmq_exchange",
       routing_key: "#",
@@ -113,7 +114,8 @@ defmodule GenRMQ.Consumer do
       deadletter_queue: "gen_rmq_in_queue_error",
       deadletter_queue_options: [
         arguments: [
-          {"x-queue-type", :longstr ,"quorum"},
+          {"x-queue-type", :longstr ,"quorum"}
+        ]
       ]
       deadletter_exchange: "gen_rmq_exchange.deadletter",
       deadletter_routing_key: "#",
