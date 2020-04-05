@@ -42,7 +42,7 @@ defmodule ExampleConsumerOptions do
       queue_options: [
         durable: true,
         arguments: [
-          {"x-queue-type", :longstr ,"quorum"},
+          {"x-queue-type", :longstr, "quorum"}
         ]
       ],
       exchange: "example_exchange",
@@ -52,11 +52,11 @@ defmodule ExampleConsumerOptions do
       deadletter_queue_options: [
         durable: true,
         arguments: [
-          {"x-queue-type", :longstr ,"quorum"},
+          {"x-queue-type", :longstr, "quorum"}
         ]
       ],
       deadletter_exchange: "deadletter_exchange",
-      deadletter_routing_key: "rk",
+      deadletter_routing_key: "rk"
     ]
   end
 

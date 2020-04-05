@@ -14,11 +14,11 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
     options = options(:queue_options, config)
 
     dead_letter = [
-        create: Keyword.get(config, :deadletter, true),
-        name: Keyword.get(config, :deadletter_queue, "#{queue_name}_error"),
-        exchange: Keyword.get(config, :deadletter_exchange, "#{exchange}.deadletter"),
-        routing_key: Keyword.get(config, :deadletter_routing_key, "#"),
-        options: options(:deadletter_queue_options, config)
+      create: Keyword.get(config, :deadletter, true),
+      name: Keyword.get(config, :deadletter_queue, "#{queue_name}_error"),
+      exchange: Keyword.get(config, :deadletter_exchange, "#{exchange}.deadletter"),
+      routing_key: Keyword.get(config, :deadletter_routing_key, "#"),
+      options: options(:deadletter_queue_options, config)
     ]
 
     return(queue_name, options, dead_letter)
@@ -36,6 +36,7 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
   defp combine_options(word_list, []) do
     word_list
   end
+
   defp combine_options(word_list, option_list) do
     # Combine two keyword lists together.
     #
@@ -77,6 +78,7 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
       |> build_arguments()
       |> Keyword.delete(:ttl)
       |> Keyword.delete(:max_priority)
+
     dead_letter = Keyword.put(dead_letter, :options, dead_letter_options)
 
     options =
@@ -104,7 +106,9 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
 
   defp setup_ttl(options) do
     case options[:ttl] do
-      nil -> options
+      nil ->
+        options
+
       value ->
         args = Keyword.get(options, :arguments, [])
         Keyword.put(options, :arguments, [{"x-expires", :long, value} | args])
@@ -115,6 +119,7 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
     case options[:max_priority] do
       nil ->
         options
+
       value ->
         value = set_max_priority_to_highest_value(value)
         args = Keyword.get(options, :arguments, [])
@@ -124,24 +129,31 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
 
   defp setup_dead_letter_exchange(options, _dead_letter, nil), do: options
   defp setup_dead_letter_exchange(options, _dead_letter, false), do: options
+
   defp setup_dead_letter_exchange(options, dead_letter, true) do
     args = Keyword.get(options, :arguments, [])
+
     Keyword.put(
       options,
       :arguments,
-      [{"x-dead-letter-exchange", :longstr, dead_letter[:exchange]} | args])
+      [{"x-dead-letter-exchange", :longstr, dead_letter[:exchange]} | args]
+    )
   end
 
   defp setup_dead_letter_routing_key(options, _dead_letter, nil), do: options
   defp setup_dead_letter_routing_key(options, _dead_letter, false), do: options
+
   defp setup_dead_letter_routing_key(options, dead_letter, true) do
     case dead_letter[:routing_key] != "#" do
       true ->
         args = Keyword.get(options, :arguments, [])
+
         Keyword.put(
           options,
           :arguments,
-          [{"x-dead-letter-routing-key", :longstr, dead_letter[:routing_key]} | args])
+          [{"x-dead-letter-routing-key", :longstr, dead_letter[:routing_key]} | args]
+        )
+
       false ->
         options
     end
@@ -151,5 +163,6 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
        when is_integer(mp) and mp > @max_priority do
     255
   end
+
   defp set_max_priority_to_highest_value(mp) when is_integer(mp), do: mp
 end
