@@ -182,18 +182,13 @@ You need [docker-compose][docker_compose] installed.
 $ make test
 ```
 
-## How to contribute
+## How to Contribute
 
 We happily accept contributions as [GitHub PRs][github_prs] or bug reports, comments/suggestions or usage questions by creating a [GitHub issue][gen_rmq_issues].
 
-## Notes on project maturity
-
-This library was developed as a Meltwater internal project starting in January 2018.
-Over the next two months it has been used in at least three Meltwater production services.
-
 Are you using `gen_rmq` in production? Please let us know, we are curious to learn about your experiences!
 
-## Maintainer
+## Maintainers
 
 * Mateusz ([@mkorszun](https://github.com/mkorszun))
 
@@ -206,7 +201,7 @@ The maintainers are the ones that create new releases of gen_rmq.
 * Joel [@vorce](https://github.com/vorce)
 * Sebastian [@spier](https://github.com/spier)
 
-**Trusted Committers** (TC's) are members of our community who we have explicitly added to our GitHub repository. 
+**Trusted Committers** are members of our community who we have explicitly added to our GitHub repository. 
 
 Trusted Committers have elevated rights, allowing them to send in changes directly to branches and to approve Pull Requests.
 
