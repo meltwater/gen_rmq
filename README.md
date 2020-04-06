@@ -207,6 +207,8 @@ Trusted Committers have elevated rights, allowing them to send in changes direct
 
 For details see [TRUSTED-COMMITTERS.md](TRUSTED-COMMITTERS.md).
 
+*Note:* Maintainers as well as Trusted Committers are listed in [.github/CODEOWNERS](.github/CODEOWNERS), in order to automatically assign PR reviews to them.
+
 ## License
 
 The [MIT License](LICENSE).
