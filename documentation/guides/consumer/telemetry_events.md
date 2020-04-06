@@ -41,3 +41,5 @@ GenRMQ emits [Telemetry][telemetry] events for consumers. It currently exposes t
 
   - Measurement: `%{time: System.monotonic_time}`
   - Metadata: `%{module: atom, reason: atom}`
+
+[telemetry]: https://github.com/beam-telemetry/telemetry

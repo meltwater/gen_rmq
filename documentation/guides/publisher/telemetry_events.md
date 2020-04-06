@@ -31,3 +31,5 @@ GenRMQ emits [Telemetry][telemetry] events for publishers. It currently exposes 
 
   - Measurement: `%{time: System.monotonic_time, duration: native_time}`
   - Metadata: `%{exchange: String.t, message: String.t, kind: atom, reason: atom}`
+
+[telemetry]: https://github.com/beam-telemetry/telemetry

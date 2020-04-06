@@ -168,7 +168,6 @@ Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][undertheho
 [rabbit_case_example]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
 [migrating_to_100]: https://github.com/meltwater/gen_rmq/wiki/Migrations#0---100
 [consumer_doc]: https://github.com/meltwater/gen_rmq/blob/master/lib/consumer.ex
-[telemetry]: https://github.com/beam-telemetry/telemetry
 [docker_compose]: https://docs.docker.com/compose/
 [github_prs]: https://help.github.com/articles/about-pull-requests/
 [gen_rmq_issues]: https://github.com/meltwater/gen_rmq/issues
