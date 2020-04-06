@@ -36,7 +36,7 @@ If you were a very early adopter of gen_rmq (before `v1.0.0`), please check [how
 ## Examples
 
 More thorough examples for using `GenRMQ.Consumer`, `GenRMQ.Publisher`, and `GenRMQ.Processor`
-can be found under documentation.
+can be found under [documentation](./documentation).
 
 ### Consumer
 
@@ -104,23 +104,23 @@ GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 
 ### Examples
 
-1. [Consumer](./examples/consumer.ex)
-2. [Publisher](./examples/publisher.ex)
-3. [Processor](./examples/processor.ex)
+1. [Consumer](./documentation/examples/consumer.ex)
+2. [Publisher](./documentation/examples/publisher.ex)
+3. [Processor](./documentation/examples/processor.ex)
 
 ### Guides
 
-1. [Basic consumer setup](./guides/consumer/basic_setup.md)
-2. [Consumer with custom deadletter configuration](./guides/consumer/with_custom_deadletter_configuration.md)
-3. [Consumer with custom exchange type](./guides/consumer/with_custom_exchange_type.md)
-4. [Consumer with custom queue configuration](./guides/consumer/with_custom_queue_configuration.md)
-5. [Consumer without deadletter configuration](./guides/consumer/without_deadletter_configuration.md)
-6. [Consumer with quorum queues](./guides/consumer/with_quorum_queue_type.md)
+1. [Basic consumer setup](./documentation/guides/consumer/basic_setup.md)
+2. [Consumer with custom deadletter configuration](./documentation/guides/consumer/with_custom_deadletter_configuration.md)
+3. [Consumer with custom exchange type](./documentation/guides/consumer/with_custom_exchange_type.md)
+4. [Consumer with custom queue configuration](./documentation/guides/consumer/with_custom_queue_configuration.md)
+5. [Consumer without deadletter configuration](./documentation/guides/consumer/without_deadletter_configuration.md)
+6. [Consumer with quorum queues](./documentation/guides/consumer/with_quorum_queue_type.md)
 
 ### Metrics
 
-1. [Consumer Telemetry events](./guides/consumer/telemetry_events.md)
-2. [Publisher Telemetry events](./guides/publisher/telemetry_events.md)
+1. [Consumer Telemetry events](./documentation/guides/consumer/telemetry_events.md)
+2. [Publisher Telemetry events](./documentation/guides/publisher/telemetry_events.md)
 
 ## Running tests
 
