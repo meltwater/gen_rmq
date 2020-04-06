@@ -104,23 +104,23 @@ GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 
 ### Examples
 
-1. [Consumer][example_consumer]
-2. [Publisher][example_publisher]
-3. [Processor][example_processor]
+- [Consumer][example_consumer]
+- [Publisher][example_publisher]
+- [Processor][example_processor]
 
 ### Guides
 
-1. [Basic consumer setup][guide_consumer_basic_setup]
-2. [Consumer with custom deadletter configuration][guide_consumer_with_custom_deadletter_configuration]
-3. [Consumer with custom exchange type][guide_consumer_with_custom_exchange_type]
-4. [Consumer with custom queue configuration][guide_consumer_with_custom_queue_configuration]
-5. [Consumer without deadletter configuration][without_deadletter_configuration]
-6. [Consumer with quorum queues][with_quorum_queue_type]
+- [Basic consumer setup][guide_consumer_basic_setup]
+- [Consumer with custom deadletter configuration][guide_consumer_with_custom_deadletter_configuration]
+- [Consumer with custom exchange type][guide_consumer_with_custom_exchange_type]
+- [Consumer with custom queue configuration][guide_consumer_with_custom_queue_configuration]
+- [Consumer without deadletter configuration][without_deadletter_configuration]
+- [Consumer with quorum queues][with_quorum_queue_type]
 
 ### Metrics
 
-1. [Consumer Telemetry events][consumer_telemetry_events]
-2. [Publisher Telemetry events][publisher_telemetry_events]
+- [Consumer Telemetry events][consumer_telemetry_events]
+- [Publisher Telemetry events][publisher_telemetry_events]
 
 ## Running Tests
 
