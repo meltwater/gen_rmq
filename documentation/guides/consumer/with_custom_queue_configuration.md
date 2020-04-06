@@ -1,5 +1,5 @@
-Consumer with custom queue options
-==================================
+Consumer with custom queue configuration
+========================================
 
 `queue_options` - Queue options as declared in
 [AMQP.Queue.declare/3](https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3).

@@ -1,5 +1,5 @@
-Consumer without deadletter setup
-=================================
+Consumer without deadletter configuration
+=========================================
 
 # Example
 

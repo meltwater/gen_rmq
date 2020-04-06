@@ -36,7 +36,7 @@ If you were a very early adopter of gen_rmq (before `v1.0.0`), please check [how
 ## Examples
 
 More thorough examples for using `GenRMQ.Consumer`, `GenRMQ.Publisher`, and `GenRMQ.Processor`
-can be found under [documentation](./documentation/examples).
+can be found under [documentation][examples].
 
 ### Consumer
 
@@ -104,23 +104,23 @@ GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 
 ### Examples
 
-1. [Consumer][example_consumer]
-2. [Publisher][example_publisher]
-3. [Processor][example_processor]
+- [Consumer][example_consumer]
+- [Publisher][example_publisher]
+- [Processor][example_processor]
 
 ### Guides
 
-1. [Basic consumer setup](./documentation/guides/consumer/basic_setup.md)
-2. [Consumer with custom deadletter configuration](./documentation/guides/consumer/with_custom_deadletter_configuration.md)
-3. [Consumer with custom exchange type](./documentation/guides/consumer/with_custom_exchange_type.md)
-4. [Consumer with custom queue configuration](./documentation/guides/consumer/with_custom_queue_configuration.md)
-5. [Consumer without deadletter configuration](./documentation/guides/consumer/without_deadletter_configuration.md)
-6. [Consumer with quorum queues](./documentation/guides/consumer/with_quorum_queue_type.md)
+- [Basic consumer setup][guide_consumer_basic_setup]
+- [Consumer with custom deadletter configuration][guide_consumer_with_custom_deadletter_configuration]
+- [Consumer with custom exchange type][guide_consumer_with_custom_exchange_type]
+- [Consumer with custom queue configuration][guide_consumer_with_custom_queue_configuration]
+- [Consumer without deadletter configuration][without_deadletter_configuration]
+- [Consumer with quorum queues][with_quorum_queue_type]
 
 ### Metrics
 
-1. [Consumer Telemetry events](./documentation/guides/consumer/telemetry_events.md)
-2. [Publisher Telemetry events](./documentation/guides/publisher/telemetry_events.md)
+- [Consumer Telemetry events][consumer_telemetry_events]
+- [Publisher Telemetry events][publisher_telemetry_events]
 
 ## Running Tests
 
@@ -153,13 +153,13 @@ The maintainers are the ones that create new releases of gen_rmq.
 
 Trusted Committers have elevated rights, allowing them to send in changes directly to branches and to approve Pull Requests.
 
-For details see [TRUSTED-COMMITTERS.md](TRUSTED-COMMITTERS.md).
+For details see [TRUSTED-COMMITTERS.md][trusted_commiters].
 
-*Note:* Maintainers as well as Trusted Committers are listed in [.github/CODEOWNERS](.github/CODEOWNERS), in order to automatically assign PR reviews to them.
+*Note:* Maintainers as well as Trusted Committers are listed in [.github/CODEOWNERS][code_owners] in order to automatically assign PR reviews to them.
 
 ## License
 
-The [MIT License](LICENSE).
+The [MIT License][license].
 
 Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][underthehood]
 
@@ -172,7 +172,23 @@ Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][undertheho
 [gen_rmq_issues]: https://github.com/meltwater/gen_rmq/issues
 [priority_queues]: https://www.rabbitmq.com/priority.html
 [underthehood]: http://underthehood.meltwater.com/
-[example_consumer]: ./documentation/examples/consumer.ex
-[example_publisher]: ./documentation/examples/publisher.ex
-[example_processor]: ./documentation/examples/processor.ex
+
+[examples]: https://github.com/meltwater/gen_rmq/blob/master/documentation/examples
+[example_consumer]: https://github.com/meltwater/gen_rmq/blob/master/documentation/examples/consumer.ex
+[example_publisher]: https://github.com/meltwater/gen_rmq/blob/master/documentation/examples/publisher.ex
+[example_processor]: https://github.com/meltwater/gen_rmq/blob/master/documentation/examples/processor.ex
 [example_rabbit_case]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
+
+[guide_consumer_basic_setup]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/basic_setup.md
+[guide_consumer_with_custom_deadletter_configuration]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_custom_deadletter_configuration.md
+[guide_consumer_with_custom_exchange_type]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_custom_exchange_type.md
+[guide_consumer_with_custom_queue_configuration]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_custom_queue_configuration.md
+[without_deadletter_configuration]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/without_deadletter_configuration.md
+[with_quorum_queue_type]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_quorum_queue_type.md
+
+[consumer_telemetry_events]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/telemetry_events.md
+[publisher_telemetry_events]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/publisher/telemetry_events.md
+
+[trusted_commiters]: https://github.com/meltwater/gen_rmq/blob/master/TRUSTED-COMMITTERS.md
+[code_owners]: https://github.com/meltwater/gen_rmq/blob/master/.github/CODEOWNERS
+[license]: https://github.com/meltwater/gen_rmq/blob/master/LICENSE
