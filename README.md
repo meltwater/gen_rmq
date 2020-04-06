@@ -198,8 +198,8 @@ The maintainers are the ones that create new releases of gen_rmq.
 
 ## Trusted Committers
 
-* Joel [@vorce](https://github.com/vorce)
-* Sebastian [@spier](https://github.com/spier)
+* Joel ([@vorce](https://github.com/vorce))
+* Sebastian ([@spier](https://github.com/spier))
 
 **Trusted Committers** are members of our community who we have explicitly added to our GitHub repository. 
 
