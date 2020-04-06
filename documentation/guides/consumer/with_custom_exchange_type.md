@@ -1,5 +1,5 @@
-Consumer with custom exchange
-=============================
+Consumer with custom exchange type
+==================================
 
 By default consumer creates `topic` exchanges. This can be modified by
 specyfying exchange type: `exchange: {:fanout, "custom_exchange"}`.
