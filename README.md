@@ -25,7 +25,7 @@ GenRMQ provides the following functionality:
 
 ```elixir
 def deps do
-  [{:gen_rmq, "~> 2.5.0"}]
+  [{:gen_rmq, "~> 2.6.0"}]
 end
 ```
 
