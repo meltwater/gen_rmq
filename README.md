@@ -159,7 +159,7 @@ For details see [TRUSTED-COMMITTERS.md][trusted_commiters].
 
 ## License
 
-The [MIT License](LICENSE).
+The [MIT License][license].
 
 Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][underthehood]
 
@@ -191,3 +191,4 @@ Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][undertheho
 
 [trusted_commiters]: https://github.com/meltwater/gen_rmq/blob/master/TRUSTED-COMMITTERS.md
 [code_owners]: https://github.com/meltwater/gen_rmq/blob/master/.github/CODEOWNERS
+[license]: https://github.com/meltwater/gen_rmq/blob/master/LICENSE
