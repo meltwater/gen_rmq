@@ -193,6 +193,25 @@ Over the next two months it has been used in at least three Meltwater production
 
 Are you using `gen_rmq` in production? Please let us know, we are curious to learn about your experiences!
 
+## Maintainer
+
+* Mateusz ([@mkorszun](https://github.com/mkorszun))
+
+The maintainers are responsible for the general project oversight, and empowering further trusted committers (see below).
+
+The maintainers are the ones that create new releases of gen_rmq.
+
+## Trusted Committers
+
+* Joel [@vorce](https://github.com/vorce)
+* Sebastian [@spier](https://github.com/spier)
+
+**Trusted Committers** (TC's) are members of our community who we have explicitly added to our GitHub repository. 
+
+Trusted Committers have elevated rights, allowing them to send in changes directly to branches and to approve Pull Requests.
+
+For details see [TRUSTED-COMMITTERS.md](TRUSTED-COMMITTERS.md).
+
 ## License
 
 The [MIT License](LICENSE).
