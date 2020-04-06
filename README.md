@@ -16,10 +16,10 @@ Internally it is using the [AMQP][amqp] elixir RabbitMQ client. The idea is to r
 
 GenRMQ provides the following functionality:
 
-- `GenRMQ.Consumer` - a behaviour for implementing RabbitMQ consumers
-- `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers
-- `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors (this is useful to separate out business logic from your consumer)
-- `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example usage][rabbit_case_example])
+- `GenRMQ.Consumer` - a behaviour for implementing RabbitMQ consumers ([example][example_consumer])
+- `GenRMQ.Publisher` - a behaviour for implementing RabbitMQ publishers ([example][example_publisher])
+- `GenRMQ.Processor` - a behaviour for implementing RabbitMQ message processors (this is useful to separate out business logic from your consumer) ([example][example_processor])
+- `GenRMQ.RabbitCase` - test utilities for RabbitMQ ([example][example_rabbit_case])
 
 ## Installation
 
@@ -36,7 +36,7 @@ If you were a very early adopter of gen_rmq (before `v1.0.0`), please check [how
 ## Examples
 
 More thorough examples for using `GenRMQ.Consumer`, `GenRMQ.Publisher`, and `GenRMQ.Processor`
-can be found under [documentation](./documentation).
+can be found under [documentation](./documentation/examples).
 
 ### Consumer
 
@@ -104,9 +104,9 @@ GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 
 ### Examples
 
-1. [Consumer](./documentation/examples/consumer.ex)
-2. [Publisher](./documentation/examples/publisher.ex)
-3. [Processor](./documentation/examples/processor.ex)
+1. [Consumer][example_consumer]
+2. [Publisher][example_publisher]
+3. [Processor][example_processor]
 
 ### Guides
 
@@ -122,7 +122,7 @@ GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 1. [Consumer Telemetry events](./documentation/guides/consumer/telemetry_events.md)
 2. [Publisher Telemetry events](./documentation/guides/publisher/telemetry_events.md)
 
-## Running tests
+## Running Tests
 
 You need [docker-compose][docker_compose] installed.
 
@@ -165,7 +165,6 @@ Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][undertheho
 
 [behaviours]: https://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours
 [amqp]: https://github.com/pma/amqp
-[rabbit_case_example]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
 [migrating_to_100]: https://github.com/meltwater/gen_rmq/wiki/Migrations#0---100
 [consumer_doc]: https://github.com/meltwater/gen_rmq/blob/master/lib/consumer.ex
 [docker_compose]: https://docs.docker.com/compose/
@@ -173,3 +172,7 @@ Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][undertheho
 [gen_rmq_issues]: https://github.com/meltwater/gen_rmq/issues
 [priority_queues]: https://www.rabbitmq.com/priority.html
 [underthehood]: http://underthehood.meltwater.com/
+[example_consumer]: ./documentation/examples/consumer.ex
+[example_publisher]: ./documentation/examples/publisher.ex
+[example_processor]: ./documentation/examples/processor.ex
+[example_rabbit_case]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
