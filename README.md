@@ -149,7 +149,7 @@ The maintainers are the ones that create new releases of gen_rmq.
 * Joel ([@vorce](https://github.com/vorce))
 * Sebastian ([@spier](https://github.com/spier))
 
-**Trusted Committers** are members of our community who we have explicitly added to our GitHub repository. 
+**Trusted Committers** are members of our community who we have explicitly added to our GitHub repository.
 
 Trusted Committers have elevated rights, allowing them to send in changes directly to branches and to approve Pull Requests.
 
@@ -163,7 +163,7 @@ The [MIT License](LICENSE).
 
 Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][underthehood]
 
-[behaviours]: https://hexdocs.pm/elixir/behaviours.html
+[behaviours]: https://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours
 [amqp]: https://github.com/pma/amqp
 [rabbit_case_example]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
 [migrating_to_100]: https://github.com/meltwater/gen_rmq/wiki/Migrations#0---100

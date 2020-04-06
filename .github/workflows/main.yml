@@ -1,0 +1,17 @@
+# GitHub Action: https://github.com/marketplace/actions/link-checker
+# Link Checker: https://github.com/raviqqe/liche
+name: Link Check
+
+on: push
+jobs:
+  linkChecker:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Link Checker
+      id: lc
+      uses: peter-evans/link-checker@v1
+      with:
+        args: -v -r .
+    - name: Fail if there were link errors
+      run: exit ${{ steps.lc.outputs.exit_code }}
