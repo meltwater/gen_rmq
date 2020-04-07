@@ -31,7 +31,7 @@ end
 
 ## Migrations
 
-If you were a very early adopter of gen_rmq (before `v1.0.0`), please check [how to migrate to gen_rmq `1.0.0`][migrating_to_100].
+If you were a very early adopter of GenRMQ (before `v1.0.0`), please check [how to migrate to gen_rmq `1.0.0`][migrating_to_100].
 
 ## Examples
 
@@ -134,7 +134,7 @@ $ make test
 
 We happily accept contributions as [GitHub PRs][github_prs] or bug reports, comments/suggestions or usage questions by creating a [GitHub issue][gen_rmq_issues].
 
-Are you using `gen_rmq` in production? Please let us know, we are curious to learn about your experiences!
+Are you using GenRMQ in Production? Please let us know, we are curious to learn about your experiences!
 
 ## Maintainers
 
@@ -142,20 +142,16 @@ Are you using `gen_rmq` in production? Please let us know, we are curious to lea
 
 The maintainers are responsible for the general project oversight, and empowering further trusted committers (see below).
 
-The maintainers are the ones that create new releases of gen_rmq.
+The maintainers are the ones that create new releases of GenRMQ.
 
 ## Trusted Committers
 
 * Joel ([@vorce](https://github.com/vorce))
 * Sebastian ([@spier](https://github.com/spier))
 
-**Trusted Committers** are members of our community who we have explicitly added to our GitHub repository.
+Trusted Committers are members of our community who we have explicitly added to our GitHub repository. Trusted Committers have elevated rights, allowing them to send in changes directly to branches and to approve Pull Requests. For details see [TRUSTED-COMMITTERS.md][trusted_commiters].
 
-Trusted Committers have elevated rights, allowing them to send in changes directly to branches and to approve Pull Requests.
-
-For details see [TRUSTED-COMMITTERS.md][trusted_commiters].
-
-*Note:* Maintainers as well as Trusted Committers are listed in [.github/CODEOWNERS][code_owners] in order to automatically assign PR reviews to them.
+*Note:* Maintainers and Trusted Committers are listed in [.github/CODEOWNERS][code_owners] in order to automatically assign PR reviews to them.
 
 ## License
 
