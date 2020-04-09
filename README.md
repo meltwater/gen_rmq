@@ -148,6 +148,7 @@ The maintainers are the ones that create new releases of GenRMQ.
 
 * Joel ([@vorce](https://github.com/vorce))
 * Sebastian ([@spier](https://github.com/spier))
+* [@Shemeikka](https://github.com/Shemeikka)
 
 Trusted Committers are members of our community who we have explicitly added to our GitHub repository. Trusted Committers have elevated rights, allowing them to send in changes directly to branches and to approve Pull Requests. For details see [TRUSTED-COMMITTERS.md][trusted_commiters].
 
