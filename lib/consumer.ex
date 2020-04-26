@@ -263,27 +263,26 @@ defmodule GenRMQ.Consumer do
       |> Map.put(:config, parsed_config)
       |> Map.put(:reconnect_attempt, 0)
 
-    send(self(), :init)
+    {:ok, state, {:continue, :init}}
+  end
 
-    {:ok, state}
+  @doc false
+  @impl GenServer
+  def handle_continue(:init, state) do
+    state =
+      state
+      |> get_connection()
+      |> open_channels()
+      |> setup_consumer()
+      |> setup_task_supervisor()
+
+    {:noreply, state}
   end
 
   @doc false
   @impl GenServer
   def handle_call({:recover, requeue}, _from, %{in: channel} = state) do
     {:reply, Basic.recover(channel, requeue: requeue), state}
-  end
-
-  @doc false
-  @impl GenServer
-  def handle_info(:init, state) do
-    state =
-      state
-      |> get_connection()
-      |> open_channels()
-      |> setup_consumer()
-
-    {:noreply, state}
   end
 
   @doc false
@@ -296,6 +295,20 @@ defmodule GenRMQ.Consumer do
     config
     |> Keyword.get(:reconnect, true)
     |> handle_reconnect(state)
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
+    {:noreply, state}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_info({ref, _task_result}, state) when is_reference(ref) do
+    Process.demonitor(ref, [:flush])
+
+    {:noreply, state}
   end
 
   @doc false
@@ -321,7 +334,7 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   @impl GenServer
-  def handle_info({:basic_deliver, payload, attributes}, %{module: module, config: config} = state) do
+  def handle_info({:basic_deliver, payload, attributes}, %{module: module} = state) do
     %{delivery_tag: tag, routing_key: routing_key, redelivered: redelivered} = attributes
     Logger.debug("[#{module}]: Received message. Tag: #{tag}, routing key: #{routing_key}, redelivered: #{redelivered}")
 
@@ -329,7 +342,7 @@ defmodule GenRMQ.Consumer do
       Logger.debug("[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}")
     end
 
-    handle_message(payload, attributes, state, Keyword.get(config, :concurrency, true))
+    handle_message(payload, attributes, state)
 
     {:noreply, state}
   end
@@ -374,19 +387,9 @@ defmodule GenRMQ.Consumer do
     |> Keyword.put(:connection, Keyword.get(config, :connection, config[:uri]))
   end
 
-  defp handle_message(payload, attributes, %{module: module} = state, false) do
-    start_time = System.monotonic_time()
-    message = Message.create(attributes, payload, state)
-
-    emit_message_start_event(start_time, message, module)
-    result = apply(module, :handle_message, [message])
-    emit_message_stop_event(start_time, message, module)
-
-    result
-  end
-
-  defp handle_message(payload, attributes, %{module: module} = state, true) do
-    spawn(fn ->
+  defp handle_message(payload, attributes, %{module: module, task_supervisor: task_supervisor_pid} = state)
+       when is_pid(task_supervisor_pid) do
+    Task.Supervisor.async_nolink(task_supervisor_pid, fn ->
       start_time = System.monotonic_time()
       message = Message.create(attributes, payload, state)
 
@@ -396,6 +399,17 @@ defmodule GenRMQ.Consumer do
 
       result
     end)
+  end
+
+  defp handle_message(payload, attributes, %{module: module} = state) do
+    start_time = System.monotonic_time()
+    message = Message.create(attributes, payload, state)
+
+    emit_message_start_event(start_time, message, module)
+    result = apply(module, :handle_message, [message])
+    emit_message_stop_event(start_time, message, module)
+
+    result
   end
 
   defp handle_reconnect(false, %{module: module} = state) do
@@ -410,6 +424,7 @@ defmodule GenRMQ.Consumer do
       |> get_connection()
       |> open_channels()
       |> setup_consumer()
+      |> setup_task_supervisor()
 
     {:noreply, new_state}
   end
@@ -450,6 +465,16 @@ defmodule GenRMQ.Consumer do
     {:ok, chan} = Channel.open(conn)
     {:ok, out_chan} = Channel.open(conn)
     Map.merge(state, %{in: chan, out: out_chan})
+  end
+
+  defp setup_task_supervisor(%{config: config} = state) do
+    if Keyword.get(config, :concurrency, true) do
+      {:ok, pid} = Task.Supervisor.start_link()
+
+      Map.put(state, :task_supervisor, pid)
+    else
+      Map.put(state, :task_supervisor, nil)
+    end
   end
 
   defp setup_consumer(%{in: chan, config: config, module: module} = state) do
