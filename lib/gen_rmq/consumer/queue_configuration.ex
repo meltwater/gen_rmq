@@ -64,6 +64,8 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
     |> Keyword.merge(option_list)
   end
 
+  defp remove_keyword(word_list, [], _argument), do: word_list
+
   defp remove_keyword(word_list, option_arguments, argument) do
     case Enum.find(option_arguments, fn arg -> elem(arg, 0) == argument.name end) do
       nil -> word_list
