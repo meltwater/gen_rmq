@@ -56,9 +56,11 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
     # This is done in order to be backwards compatible.
     # If one day those two keywords are removed from the
     # init, then this function can be removed as well.
+    queue_option_arguments = Keyword.get(option_list, :arguments, [])
+
     word_list
-    |> remove_keyword(option_list[:arguments], %{name: "x-expires", word: :ttl})
-    |> remove_keyword(option_list[:arguments], %{name: "x-max-priority", word: :max_priority})
+    |> remove_keyword(queue_option_arguments, %{name: "x-expires", word: :ttl})
+    |> remove_keyword(queue_option_arguments, %{name: "x-max-priority", word: :max_priority})
     |> Keyword.merge(option_list)
   end
 
