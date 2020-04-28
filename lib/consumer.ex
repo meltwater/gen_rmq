@@ -424,7 +424,6 @@ defmodule GenRMQ.Consumer do
       |> get_connection()
       |> open_channels()
       |> setup_consumer()
-      |> setup_task_supervisor()
 
     {:noreply, new_state}
   end
