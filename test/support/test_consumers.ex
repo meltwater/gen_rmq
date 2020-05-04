@@ -117,7 +117,7 @@ defmodule TestConsumer do
         queue_options: [
           durable: false,
           arguments: [
-            {"x-expires", :long, 1000},
+            {"x-expires", :long, 1000}
           ]
         ],
         exchange: "gen_rmq_in_exchange_queue_options",
@@ -128,11 +128,11 @@ defmodule TestConsumer do
         deadletter_queue_options: [
           durable: false,
           arguments: [
-            {"x-expires", :long, 1000},
+            {"x-expires", :long, 1000}
           ]
         ],
         deadletter_exchange: "dl_exchange_options",
-        deadletter_routing_key: "dl_routing_key_options",
+        deadletter_routing_key: "dl_routing_key_options"
       ]
     end
 
@@ -165,7 +165,7 @@ defmodule TestConsumer do
         queue_ttl: 1000,
         deadletter_queue: "dl_queue",
         deadletter_exchange: "dl_exchange",
-        deadletter_routing_key: "dl_routing_key",
+        deadletter_routing_key: "dl_routing_key"
       ]
     end
 
@@ -330,6 +330,7 @@ defmodule TestConsumer do
     @behaviour GenRMQ.Consumer
 
     def existing_exchange, do: "existing_direct_exchange"
+
     def init() do
       [
         queue: "gen_rmq_in_queue_" <> existing_exchange(),
@@ -345,5 +346,34 @@ defmodule TestConsumer do
     end
 
     def handle_message(_), do: :ok
+  end
+
+  defmodule ErrorInConsumer do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_in_queue",
+        exchange: "gen_rmq_in_exchange",
+        routing_key: "#",
+        prefetch_count: "10",
+        connection: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.ErrorInConsumer"
+    end
+
+    def handle_message(message) do
+      %{"value" => value} = Jason.decode!(message.payload)
+
+      result = Float.to_string(1 / value)
+      updated_message = Map.put(message, :payload, result)
+
+      GenRMQ.Consumer.ack(updated_message)
+    end
   end
 end

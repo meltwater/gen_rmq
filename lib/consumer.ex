@@ -262,6 +262,7 @@ defmodule GenRMQ.Consumer do
       initial_state
       |> Map.put(:config, parsed_config)
       |> Map.put(:reconnect_attempt, 0)
+      |> Map.put(:running_tasks, MapSet.new())
 
     {:ok, state, {:continue, :init}}
   end
@@ -287,28 +288,42 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   @impl GenServer
-  def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config} = state) do
-    Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
+  def handle_info(
+        {:DOWN, ref, :process, _pid, reason},
+        %{module: module, config: config, running_tasks: running_tasks} = state
+      ) do
+    if MapSet.member?(running_tasks, ref) do
+      Logger.info("[#{module}]: Task failed to handle message. Reason: #{inspect(reason)}")
 
-    emit_connection_down_event(module, reason)
+      emit_task_down_event(module, reason)
 
-    config
-    |> Keyword.get(:reconnect, true)
-    |> handle_reconnect(state)
+      updated_state = %{state | running_tasks: MapSet.delete(running_tasks, ref)}
+
+      {:noreply, updated_state}
+    else
+      Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
+
+      emit_connection_down_event(module, reason)
+
+      config
+      |> Keyword.get(:reconnect, true)
+      |> handle_reconnect(state)
+    end
   end
 
   @doc false
   @impl GenServer
-  def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
-    {:noreply, state}
-  end
-
-  @doc false
-  @impl GenServer
-  def handle_info({ref, _task_result}, state) when is_reference(ref) do
+  def handle_info({ref, _task_result}, %{running_tasks: running_tasks} = state) when is_reference(ref) do
     Process.demonitor(ref, [:flush])
 
-    {:noreply, state}
+    updated_state =
+      if MapSet.member?(running_tasks, ref) do
+        %{state | running_tasks: MapSet.delete(running_tasks, ref)}
+      else
+        state
+      end
+
+    {:noreply, updated_state}
   end
 
   @doc false
@@ -334,7 +349,7 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   @impl GenServer
-  def handle_info({:basic_deliver, payload, attributes}, %{module: module} = state) do
+  def handle_info({:basic_deliver, payload, attributes}, %{module: module, running_tasks: running_tasks} = state) do
     %{delivery_tag: tag, routing_key: routing_key, redelivered: redelivered} = attributes
     Logger.debug("[#{module}]: Received message. Tag: #{tag}, routing key: #{routing_key}, redelivered: #{redelivered}")
 
@@ -342,9 +357,13 @@ defmodule GenRMQ.Consumer do
       Logger.debug("[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}")
     end
 
-    handle_message(payload, attributes, state)
+    updated_state =
+      case handle_message(payload, attributes, state) do
+        %Task{ref: ref} -> %{state | running_tasks: MapSet.put(running_tasks, ref)}
+        _ -> state
+      end
 
-    {:noreply, state}
+    {:noreply, updated_state}
   end
 
   @doc false
@@ -529,6 +548,14 @@ defmodule GenRMQ.Consumer do
     metadata = %{message: message, module: module}
 
     :telemetry.execute([:gen_rmq, :consumer, :message, :stop], measurements, metadata)
+  end
+
+  defp emit_task_down_event(module, reason) do
+    start_time = System.monotonic_time()
+    measurements = %{time: start_time}
+    metadata = %{module: module, reason: reason}
+
+    :telemetry.execute([:gen_rmq, :consumer, :task, :down], measurements, metadata)
   end
 
   defp emit_connection_down_event(module, reason) do

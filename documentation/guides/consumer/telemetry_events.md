@@ -42,4 +42,9 @@ GenRMQ emits [Telemetry][telemetry] events for consumers. It currently exposes t
   - Measurement: `%{time: System.monotonic_time}`
   - Metadata: `%{module: atom, reason: atom}`
 
+- `[:gen_rmq, :consumer, :task, :down]` - Dispatched by a GenRMQ consumer when a supervised Task fails to process a message
+
+  - Measurement: `%{time: System.monotonic_time}`
+  - Metadata: `%{module: atom, reason: tuple}`
+
 [telemetry]: https://github.com/beam-telemetry/telemetry
