@@ -376,4 +376,35 @@ defmodule TestConsumer do
       GenRMQ.Consumer.ack(updated_message)
     end
   end
+
+  defmodule SlowConsumer do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_in_queue",
+        exchange: "gen_rmq_in_exchange",
+        routing_key: "#",
+        prefetch_count: "10",
+        connection: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.SlowConsumer"
+    end
+
+    def handle_message(message) do
+      %{"value" => value} = Jason.decode!(message.payload)
+
+      Process.sleep(500)
+
+      result = Float.to_string(1 / value)
+      updated_message = Map.put(message, :payload, result)
+
+      GenRMQ.Consumer.ack(updated_message)
+    end
+  end
 end

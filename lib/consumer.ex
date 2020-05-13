@@ -369,33 +369,37 @@ defmodule GenRMQ.Consumer do
   @doc false
   @impl GenServer
   def terminate(:connection_closed = reason, %{module: module} = state) do
+    await_running_tasks(state)
+
     # Since connection has been closed no need to clean it up
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
-    await_running_tasks(state)
   end
 
   @doc false
   @impl GenServer
   def terminate(reason, %{module: module, conn: conn, in: in_chan, out: out_chan} = state) do
+    await_running_tasks(state)
+
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
     Channel.close(in_chan)
     Channel.close(out_chan)
     Connection.close(conn)
-    await_running_tasks(state)
   end
 
   @doc false
   @impl GenServer
   def terminate({{:shutdown, {:server_initiated_close, error_code, reason}}, _}, %{module: module} = state) do
-    Logger.error("[#{module}]: Terminating consumer, error_code: #{inspect(error_code)}, reason: #{inspect(reason)}")
     await_running_tasks(state)
+
+    Logger.error("[#{module}]: Terminating consumer, error_code: #{inspect(error_code)}, reason: #{inspect(reason)}")
   end
 
   @doc false
   @impl GenServer
   def terminate(reason, %{module: module} = state) do
-    Logger.error("[#{module}]: Terminating consumer, unexpected reason: #{inspect(reason)}")
     await_running_tasks(state)
+
+    Logger.error("[#{module}]: Terminating consumer, unexpected reason: #{inspect(reason)}")
   end
 
   ##############################################################################

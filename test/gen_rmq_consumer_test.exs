@@ -7,19 +7,22 @@ defmodule GenRMQ.ConsumerTest do
   alias GenRMQ.Test.Assert
   alias GenRMQ.Consumer
 
-  alias TestConsumer.Default
-  alias TestConsumer.WithQueueOptions
-  alias TestConsumer.WithCustomDeadletter
-  alias TestConsumer.WithoutConcurrency
-  alias TestConsumer.WithoutDeadletter
-  alias TestConsumer.WithoutReconnection
-  alias TestConsumer.WithPriority
-  alias TestConsumer.WithTopicExchange
-  alias TestConsumer.WithDirectExchange
-  alias TestConsumer.WithFanoutExchange
-  alias TestConsumer.WithMultiBindingExchange
-  alias TestConsumer.RedeclaringExistingExchange
-  alias TestConsumer.ErrorInConsumer
+  alias TestConsumer.{
+    Default,
+    ErrorInConsumer,
+    RedeclaringExistingExchange,
+    SlowConsumer,
+    WithCustomDeadletter,
+    WithDirectExchange,
+    WithFanoutExchange,
+    WithMultiBindingExchange,
+    WithPriority,
+    WithQueueOptions,
+    WithTopicExchange,
+    WithoutConcurrency,
+    WithoutDeadletter,
+    WithoutReconnection
+  }
 
   @connection "amqp://guest:guest@localhost:5672"
 
@@ -112,7 +115,7 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :down], %{time: _}, %{reason: _, module: _}}
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :error], %{time: _}, %{reason: _, module: _}}
     end
 
     test "should not invoke the consumer's handle_info callback if error does not exist",
@@ -126,7 +129,42 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :down], %{time: _}, %{reason: _, module: _}}
+      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :error], %{time: _}, %{reason: _, module: _}}
+    end
+  end
+
+  describe "TestConsumer.SlowConsumer" do
+    setup :attach_telemetry_handlers
+
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: SlowConsumer)
+      with_test_consumer(SlowConsumer)
+    end
+
+    test "should wait for the in progress tasks to complete processing before terminating consumer",
+         %{consumer: consumer_pid, state: state} = context do
+      message = %{"value" => 1}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+      end)
+
+      GenServer.stop(consumer_pid)
+
+      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :error], %{time: _}, %{reason: _, module: _}}
+
+      assert_receive(
+        {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{time: _}, %{message: _, module: _}},
+        1_000
+      )
+
+      assert_receive(
+        {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _}, %{message: _, module: _}},
+        1_000
+      )
     end
   end
 
@@ -420,7 +458,7 @@ defmodule GenRMQ.ConsumerTest do
           [:gen_rmq, :consumer, :message, :stop],
           [:gen_rmq, :consumer, :connection, :start],
           [:gen_rmq, :consumer, :connection, :stop],
-          [:gen_rmq, :consumer, :task, :down]
+          [:gen_rmq, :consumer, :task, :error]
         ],
         fn name, measurements, metadata, _ ->
           send(self, {:telemetry_event, name, measurements, metadata})
