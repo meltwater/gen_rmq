@@ -262,7 +262,7 @@ defmodule GenRMQ.Consumer do
       initial_state
       |> Map.put(:config, parsed_config)
       |> Map.put(:reconnect_attempt, 0)
-      |> Map.put(:running_tasks, MapSet.new())
+      |> Map.put(:running_tasks, %{})
 
     {:ok, state, {:continue, :init}}
   end
@@ -292,12 +292,12 @@ defmodule GenRMQ.Consumer do
         {:DOWN, ref, :process, _pid, reason},
         %{module: module, config: config, running_tasks: running_tasks} = state
       ) do
-    if MapSet.member?(running_tasks, ref) do
+    if Map.has_key?(running_tasks, ref) do
       Logger.info("[#{module}]: Task failed to handle message. Reason: #{inspect(reason)}")
 
-      emit_task_down_event(module, reason)
+      emit_task_error_event(module, reason)
 
-      updated_state = %{state | running_tasks: MapSet.delete(running_tasks, ref)}
+      updated_state = %{state | running_tasks: Map.delete(running_tasks, ref)}
 
       {:noreply, updated_state}
     else
@@ -317,8 +317,8 @@ defmodule GenRMQ.Consumer do
     Process.demonitor(ref, [:flush])
 
     updated_state =
-      if MapSet.member?(running_tasks, ref) do
-        %{state | running_tasks: MapSet.delete(running_tasks, ref)}
+      if Map.has_key?(running_tasks, ref) do
+        %{state | running_tasks: Map.delete(running_tasks, ref)}
       else
         state
       end
@@ -359,7 +359,7 @@ defmodule GenRMQ.Consumer do
 
     updated_state =
       case handle_message(payload, attributes, state) do
-        %Task{ref: ref} -> %{state | running_tasks: MapSet.put(running_tasks, ref)}
+        %Task{ref: ref} = task -> %{state | running_tasks: Map.put(running_tasks, ref, task)}
         _ -> state
       end
 
@@ -368,35 +368,45 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   @impl GenServer
-  def terminate(:connection_closed = reason, %{module: module}) do
+  def terminate(:connection_closed = reason, %{module: module} = state) do
     # Since connection has been closed no need to clean it up
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
+    await_running_tasks(state)
   end
 
   @doc false
   @impl GenServer
-  def terminate(reason, %{module: module, conn: conn, in: in_chan, out: out_chan}) do
+  def terminate(reason, %{module: module, conn: conn, in: in_chan, out: out_chan} = state) do
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
     Channel.close(in_chan)
     Channel.close(out_chan)
     Connection.close(conn)
+    await_running_tasks(state)
   end
 
   @doc false
   @impl GenServer
-  def terminate({{:shutdown, {:server_initiated_close, error_code, reason}}, _}, %{module: module}) do
+  def terminate({{:shutdown, {:server_initiated_close, error_code, reason}}, _}, %{module: module} = state) do
     Logger.error("[#{module}]: Terminating consumer, error_code: #{inspect(error_code)}, reason: #{inspect(reason)}")
+    await_running_tasks(state)
   end
 
   @doc false
   @impl GenServer
-  def terminate(reason, %{module: module}) do
+  def terminate(reason, %{module: module} = state) do
     Logger.error("[#{module}]: Terminating consumer, unexpected reason: #{inspect(reason)}")
+    await_running_tasks(state)
   end
 
   ##############################################################################
   # Helpers
   ##############################################################################
+
+  defp await_running_tasks(%{running_tasks: running_tasks}) do
+    running_tasks
+    |> Map.values()
+    |> Task.yield_many()
+  end
 
   defp parse_config(config) do
     queue_name = Keyword.fetch!(config, :queue)
@@ -550,12 +560,12 @@ defmodule GenRMQ.Consumer do
     :telemetry.execute([:gen_rmq, :consumer, :message, :stop], measurements, metadata)
   end
 
-  defp emit_task_down_event(module, reason) do
+  defp emit_task_error_event(module, reason) do
     start_time = System.monotonic_time()
     measurements = %{time: start_time}
     metadata = %{module: module, reason: reason}
 
-    :telemetry.execute([:gen_rmq, :consumer, :task, :down], measurements, metadata)
+    :telemetry.execute([:gen_rmq, :consumer, :task, :error], measurements, metadata)
   end
 
   defp emit_connection_down_event(module, reason) do
