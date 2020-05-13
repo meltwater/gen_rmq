@@ -106,6 +106,7 @@ defmodule GenRMQ.ConsumerTest do
 
     test "should invoke the consumer's handle_info callback if error exists",
          %{consumer: consumer_pid, state: state} = context do
+      clear_mailbox()
       message = %{"value" => 0}
 
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
@@ -120,6 +121,7 @@ defmodule GenRMQ.ConsumerTest do
 
     test "should not invoke the consumer's handle_info callback if error does not exist",
          %{consumer: consumer_pid, state: state} = context do
+      clear_mailbox()
       message = %{"value" => 1}
 
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
@@ -476,5 +478,13 @@ defmodule GenRMQ.ConsumerTest do
 
     on_exit(fn -> Process.exit(consumer_pid, :normal) end)
     {:ok, %{consumer: consumer_pid, exchange: exchange, state: state}}
+  end
+
+  defp clear_mailbox do
+    receive do
+      _lingering_message -> clear_mailbox()
+    after
+      100 -> :ok
+    end
   end
 end
