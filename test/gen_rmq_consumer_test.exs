@@ -18,6 +18,7 @@ defmodule GenRMQ.ConsumerTest do
     WithMultiBindingExchange,
     WithPriority,
     WithQueueOptions,
+    WithQueueOptionsWithoutArguments,
     WithTopicExchange,
     WithoutConcurrency,
     WithoutDeadletter,
@@ -407,6 +408,25 @@ defmodule GenRMQ.ConsumerTest do
         assert Agent.get(WithMultiBindingExchange, fn set -> message in set end) == true
       end)
     end
+
+    terminate_after_queue_deletion_test()
+
+    exit_signal_after_queue_deletion_test()
+
+    close_connection_and_channels_after_deletion_test()
+
+    close_connection_and_channels_after_shutdown_test()
+  end
+
+  describe "TestConsumer.WithQueueOptionsWithoutArguments" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithQueueOptionsWithoutArguments)
+      with_test_consumer(WithQueueOptionsWithoutArguments)
+    end
+
+    receive_message_test(WithQueueOptionsWithoutArguments)
+
+    reconnect_after_connection_failure_test(WithQueueOptionsWithoutArguments)
 
     terminate_after_queue_deletion_test()
 
