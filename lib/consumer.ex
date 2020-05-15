@@ -111,6 +111,7 @@ defmodule GenRMQ.Consumer do
       prefetch_count: "10",
       uri: "amqp://guest:guest@localhost:5672",
       concurrency: true,
+      terminate_timeout: 5_000,
       queue_ttl: 5_000,
       retry_delay_function: fn attempt -> :timer.sleep(1000 * attempt) end,
       reconnect: true,

@@ -75,7 +75,7 @@ This will result in:
 - durable `gen_rmq_in_queue_error` queue created or redeclared. It will be bound to `gen_rmq_exchange.deadletter`
 - durable topic `gen_rmq_exchange` exchange created or redeclared
 - durable `gen_rmq_in_queue` queue created or redeclared. It will be bound to `gen_rmq_exchange` exchange and has a deadletter exchange set to `gen_rmq_exchange.deadletter`
-- every `handle_message` callback will executed in separate process. This can be disabled by setting `concurrency: false` in `init` callback
+- every `handle_message` callback will executed in separate supervised Task. This can be disabled by setting `concurrency: false` in `init` callback
 - on failed rabbitmq connection it will wait for a bit and then reconnect
 
 There are many options to control the consumer setup details, please check the `c:GenRMQ.Consumer.init/0` [docs][consumer_doc] for all available settings.
@@ -138,7 +138,7 @@ Are you using GenRMQ in Production? Please let us know, we are curious to learn 
 
 ## Maintainers
 
-* Mateusz ([@mkorszun](https://github.com/mkorszun))
+- Mateusz ([@mkorszun](https://github.com/mkorszun))
 
 The maintainers are responsible for the general project oversight, and empowering further trusted committers (see below).
 
@@ -146,14 +146,14 @@ The maintainers are the ones that create new releases of GenRMQ.
 
 ## Trusted Committers
 
-* Joel ([@vorce](https://github.com/vorce))
-* Sebastian ([@spier](https://github.com/spier))
-* [@Shemeikka](https://github.com/Shemeikka)
-* Alexander ([@akoutmos](https://github.com/akoutmos))
+- Joel ([@vorce](https://github.com/vorce))
+- Sebastian ([@spier](https://github.com/spier))
+- [@Shemeikka](https://github.com/Shemeikka)
+- Alexander ([@akoutmos](https://github.com/akoutmos))
 
 Trusted Committers are members of our community who we have explicitly added to our GitHub repository. Trusted Committers have elevated rights, allowing them to send in changes directly to branches and to approve Pull Requests. For details see [TRUSTED-COMMITTERS.md][trusted_commiters].
 
-*Note:* Maintainers and Trusted Committers are listed in [.github/CODEOWNERS][code_owners] in order to automatically assign PR reviews to them.
+_Note:_ Maintainers and Trusted Committers are listed in [.github/CODEOWNERS][code_owners] in order to automatically assign PR reviews to them.
 
 ## License
 
@@ -170,23 +170,19 @@ Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][undertheho
 [gen_rmq_issues]: https://github.com/meltwater/gen_rmq/issues
 [priority_queues]: https://www.rabbitmq.com/priority.html
 [underthehood]: http://underthehood.meltwater.com/
-
 [examples]: https://github.com/meltwater/gen_rmq/blob/master/documentation/examples
 [example_consumer]: https://github.com/meltwater/gen_rmq/blob/master/documentation/examples/consumer.ex
 [example_publisher]: https://github.com/meltwater/gen_rmq/blob/master/documentation/examples/publisher.ex
 [example_processor]: https://github.com/meltwater/gen_rmq/blob/master/documentation/examples/processor.ex
 [example_rabbit_case]: https://github.com/meltwater/gen_rmq/blob/master/test/gen_rmq_publisher_test.exs
-
 [guide_consumer_basic_setup]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/basic_setup.md
 [guide_consumer_with_custom_deadletter_configuration]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_custom_deadletter_configuration.md
 [guide_consumer_with_custom_exchange_type]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_custom_exchange_type.md
 [guide_consumer_with_custom_queue_configuration]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_custom_queue_configuration.md
 [without_deadletter_configuration]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/without_deadletter_configuration.md
 [with_quorum_queue_type]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_quorum_queue_type.md
-
 [consumer_telemetry_events]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/telemetry_events.md
 [publisher_telemetry_events]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/publisher/telemetry_events.md
-
 [trusted_commiters]: https://github.com/meltwater/gen_rmq/blob/master/TRUSTED-COMMITTERS.md
 [code_owners]: https://github.com/meltwater/gen_rmq/blob/master/.github/CODEOWNERS
 [license]: https://github.com/meltwater/gen_rmq/blob/master/LICENSE
