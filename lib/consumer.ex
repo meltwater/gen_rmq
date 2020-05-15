@@ -59,11 +59,15 @@ defmodule GenRMQ.Consumer do
   `queue_max_priority` - defines if a declared queue should be a priority queue.
   Should be set to a value from `1..255` range. If it is greater than `255`, queue
   max priority will be set to `255`. Values between `1` and `10` are
-  [recommened](https://www.rabbitmq.com/priority.html#resource-usage).
+  [recommended](https://www.rabbitmq.com/priority.html#resource-usage).
 
   `concurrency` - defines if `handle_message` callback is called
-  in seperate process using [spawn](https://hexdocs.pm/elixir/Process.html#spawn/2)
+  in separate process using [spawn](https://hexdocs.pm/elixir/Process.html#spawn/2)
   function. By default concurrency is enabled. To disable, set it to `false`
+
+  `terminate_timeout` - defines how long the consumer will wait for in-flight Tasks to
+  complete before terminating the process. The value is in milliseconds and the default
+  is 5_000 milliseconds.
 
   `retry_delay_function` - custom retry delay function. Called when the connection to
   the broker cannot be established. Receives the connection attempt as an argument (>= 1)
@@ -107,7 +111,7 @@ defmodule GenRMQ.Consumer do
       prefetch_count: "10",
       uri: "amqp://guest:guest@localhost:5672",
       concurrency: true,
-      queue_ttl: 5000,
+      queue_ttl: 5_000,
       retry_delay_function: fn attempt -> :timer.sleep(1000 * attempt) end,
       reconnect: true,
       deadletter: true,
@@ -134,6 +138,7 @@ defmodule GenRMQ.Consumer do
               prefetch_count: String.t(),
               uri: String.t(),
               concurrency: boolean,
+              terminate_timeout: integer,
               queue_ttl: integer,
               retry_delay_function: function,
               reconnect: boolean,
@@ -257,12 +262,14 @@ defmodule GenRMQ.Consumer do
     Process.flag(:trap_exit, true)
     config = apply(module, :init, [])
     parsed_config = parse_config(config)
+    terminate_timeout = Keyword.get(parsed_config, :terminate_timeout, 5_000)
 
     state =
       initial_state
       |> Map.put(:config, parsed_config)
       |> Map.put(:reconnect_attempt, 0)
       |> Map.put(:running_tasks, %{})
+      |> Map.put(:terminate_timeout, terminate_timeout)
 
     {:ok, state, {:continue, :init}}
   end
@@ -406,10 +413,10 @@ defmodule GenRMQ.Consumer do
   # Helpers
   ##############################################################################
 
-  defp await_running_tasks(%{running_tasks: running_tasks}) do
+  defp await_running_tasks(%{running_tasks: running_tasks, terminate_timeout: terminate_timeout}) do
     running_tasks
     |> Map.values()
-    |> Task.yield_many()
+    |> Task.yield_many(terminate_timeout)
   end
 
   defp parse_config(config) do
