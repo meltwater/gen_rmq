@@ -401,6 +401,8 @@ defmodule TestConsumer do
     def handle_message(message) do
       %{"value" => value} = Jason.decode!(message.payload)
 
+      if value == 0, do: raise("Can't divide by zero!")
+
       result = Float.to_string(1 / value)
       updated_message = Map.put(message, :payload, result)
 
