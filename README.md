@@ -75,7 +75,7 @@ This will result in:
 - durable `gen_rmq_in_queue_error` queue created or redeclared. It will be bound to `gen_rmq_exchange.deadletter`
 - durable topic `gen_rmq_exchange` exchange created or redeclared
 - durable `gen_rmq_in_queue` queue created or redeclared. It will be bound to `gen_rmq_exchange` exchange and has a deadletter exchange set to `gen_rmq_exchange.deadletter`
-- every `handle_message` callback will executed in separate supervised Task. This can be disabled by setting `concurrency: false` in `init` callback
+- every `handle_message` callback will be executed in a separate supervised Task. This can be disabled by setting `concurrency: false` in `init` callback
 - on failed rabbitmq connection it will wait for a bit and then reconnect
 
 There are many options to control the consumer setup details, please check the `c:GenRMQ.Consumer.init/0` [docs][consumer_doc] for all available settings.
