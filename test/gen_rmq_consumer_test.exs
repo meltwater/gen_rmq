@@ -150,7 +150,8 @@ defmodule GenRMQ.ConsumerTest do
 
     test "should wait for the in progress tasks to complete processing before terminating consumer",
          %{consumer: consumer_pid, state: state} = context do
-      message = %{"value" => 1}
+      # Time to sleep consumer
+      message = %{"value" => 500}
 
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
@@ -172,6 +173,28 @@ defmodule GenRMQ.ConsumerTest do
         {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _}, %{message: _, module: _}},
         1_000
       )
+    end
+
+    test "should error out the task if it takes too long",
+         %{consumer: consumer_pid, state: state} = context do
+      # Time to sleep consumer
+      message = %{"value" => 1_250}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+      end)
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{time: _}, %{message: _, module: _}}
+
+      refute_receive(
+        {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _}, %{message: _, module: _}},
+        2_000
+      )
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :error], %{time: _}, %{reason: :killed, module: _}}
     end
   end
 

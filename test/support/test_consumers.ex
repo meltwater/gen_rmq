@@ -421,7 +421,8 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1000,
+        handle_message_timeout: 1_000
       ]
     end
 
@@ -432,10 +433,10 @@ defmodule TestConsumer do
     def handle_message(message) do
       %{"value" => value} = Jason.decode!(message.payload)
 
-      Process.sleep(500)
-
       result = Float.to_string(1 / value)
       updated_message = Map.put(message, :payload, result)
+
+      Process.sleep(value)
 
       GenRMQ.Consumer.ack(updated_message)
     end
