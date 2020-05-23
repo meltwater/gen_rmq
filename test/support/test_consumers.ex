@@ -27,6 +27,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithoutConcurrency do
@@ -56,6 +60,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, {payload, consuming_process}))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithoutReconnection do
@@ -80,6 +88,10 @@ defmodule TestConsumer do
 
     def handle_message(_message) do
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithoutDeadletter do
@@ -103,6 +115,10 @@ defmodule TestConsumer do
     end
 
     def handle_message(message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_error(message, _reason) do
       GenRMQ.Consumer.reject(message)
     end
   end
@@ -149,6 +165,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithCustomDeadletter do
@@ -174,6 +194,10 @@ defmodule TestConsumer do
     end
 
     def handle_message(message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_error(message, _reason) do
       GenRMQ.Consumer.reject(message)
     end
   end
@@ -202,6 +226,10 @@ defmodule TestConsumer do
       payload = Jason.decode!(message.payload)
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
     end
   end
 
@@ -233,6 +261,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithDirectExchange do
@@ -262,6 +294,10 @@ defmodule TestConsumer do
       payload = Jason.decode!(message.payload)
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
     end
   end
 
@@ -293,6 +329,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithMultiBindingExchange do
@@ -323,6 +363,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule RedeclaringExistingExchange do
@@ -346,6 +390,10 @@ defmodule TestConsumer do
     end
 
     def handle_message(_), do: :ok
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithQueueOptionsWithoutArguments do
@@ -377,11 +425,21 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule ErrorInConsumer do
+    use Agent
+
     @moduledoc false
     @behaviour GenRMQ.Consumer
+
+    def start_link(test_pid) do
+      Agent.start_link(fn -> test_pid end, name: __MODULE__)
+    end
 
     def init() do
       [
@@ -408,11 +466,24 @@ defmodule TestConsumer do
 
       GenRMQ.Consumer.ack(updated_message)
     end
+
+    def handle_error(message, reason) do
+      __MODULE__
+      |> Agent.get(& &1)
+      |> send({:task_error, reason})
+
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule SlowConsumer do
+    use Agent
+
     @moduledoc false
     @behaviour GenRMQ.Consumer
+    def start_link(test_pid) do
+      Agent.start_link(fn -> test_pid end, name: __MODULE__)
+    end
 
     def init() do
       [
@@ -439,6 +510,14 @@ defmodule TestConsumer do
       Process.sleep(value)
 
       GenRMQ.Consumer.ack(updated_message)
+    end
+
+    def handle_error(message, reason) do
+      __MODULE__
+      |> Agent.get(& &1)
+      |> send({:task_error, reason})
+
+      GenRMQ.Consumer.reject(message)
     end
   end
 end

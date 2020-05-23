@@ -8,13 +8,14 @@ defmodule GenRMQ.Consumer do
   * create deadletter queue and exchange
   * handle reconnections
   * call `handle_message` callback on every message delivery
+  * call `handle_error` callback whenever `handle_message` fails to process or times out
   """
 
   use GenServer
   use AMQP
 
   require Logger
-  alias GenRMQ.Message
+  alias GenRMQ.{Message, MessageTask}
   alias GenRMQ.Consumer.QueueConfiguration
 
   ##############################################################################
@@ -186,6 +187,28 @@ defmodule GenRMQ.Consumer do
   """
   @callback handle_message(message :: %GenRMQ.Message{}) :: :ok
 
+  @doc """
+  Invoked when an error or timeout is encountered while executing `handle_message` callback
+
+  `message` - `GenRMQ.Message` struct
+  `reason` - atom denoting the type of error
+
+  ## Examples:
+  To reject the message message that caused the Task to fail you can do something like so:
+  ```
+  def handle_error(message, reason) do
+    # Do something with message and reject it
+    Logger.warn("Failed to process message: #\{inspect(message)}")
+
+    GenRMQ.Consumer.reject(message)
+  end
+
+  The `reason` argument will either be `:timeout` or `:error` if the message processing task
+  timed out or encountered and error respectively.
+  ```
+  """
+  @callback handle_error(message :: %GenRMQ.Message{}, reason :: atom()) :: :ok
+
   ##############################################################################
   # GenRMQ.Consumer API
   ##############################################################################
@@ -309,12 +332,15 @@ defmodule GenRMQ.Consumer do
         %{module: module, config: config, running_tasks: running_tasks} = state
       ) do
     case Map.get(running_tasks, ref) do
-      {%Task{}, timeout_reference} ->
-        Logger.info("[#{module}]: Task failed to handle message. Reason: #{inspect(reason)}")
+      %MessageTask{exit_status: exit_status, message: message, timeout_reference: timeout_reference} ->
+        exit_status = exit_status || :error
+        Logger.info("[#{module}]: Task failed to handle message. Reason: #{inspect(exit_status)}")
 
+        # Cancel timeout timer, emit telemetry event, and invoke user's `handle_error` callback
         Process.cancel_timer(timeout_reference)
         updated_state = %{state | running_tasks: Map.delete(running_tasks, ref)}
-        emit_task_error_event(module, reason)
+        emit_task_error_event(module, exit_status)
+        apply(module, :handle_error, [message, exit_status])
 
         {:noreply, updated_state}
 
@@ -332,13 +358,13 @@ defmodule GenRMQ.Consumer do
   @doc false
   @impl GenServer
   def handle_info({ref, _task_result}, %{running_tasks: running_tasks} = state) when is_reference(ref) do
-    # Task completed sucessfully, update the running task map and state
+    # Task completed successfully, update the running task map and state
     Process.demonitor(ref, [:flush])
 
     updated_state =
       case Map.get(running_tasks, ref) do
-        {%Task{}, timeout_reference} ->
-          Process.cancel_timer(timeout_reference)
+        %MessageTask{} = message_task ->
+          Process.cancel_timer(message_task.timeout_reference)
           %{state | running_tasks: Map.delete(running_tasks, ref)}
 
         _ ->
@@ -353,10 +379,13 @@ defmodule GenRMQ.Consumer do
   def handle_info({:kill, task_reference}, %{running_tasks: running_tasks} = state) when is_reference(task_reference) do
     # The task has timed out, kill the Task process which will trigger a :DOWN event that
     # is handled by a previous `handle_info/2` callback
-    {%Task{pid: pid}, _timeout_reference} = Map.get(running_tasks, task_reference)
+    message_task = Map.get(running_tasks, task_reference)
+    %MessageTask{task: %Task{pid: pid}} = message_task
+    updated_state = put_in(state, [:running_tasks, task_reference], %{message_task | exit_status: :timeout})
+
     Process.exit(pid, :kill)
 
-    {:noreply, state}
+    {:noreply, updated_state}
   end
 
   @doc false
@@ -393,11 +422,14 @@ defmodule GenRMQ.Consumer do
       Logger.debug("[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}")
     end
 
+    message = Message.create(attributes, payload, state)
+
     updated_state =
-      case handle_message(payload, attributes, state) do
+      case handle_message(message, state) do
         %Task{ref: task_reference} = task ->
           timeout_reference = Process.send_after(self(), {:kill, task_reference}, handle_message_timeout)
-          %{state | running_tasks: Map.put(running_tasks, task_reference, {task, timeout_reference})}
+          message_task = MessageTask.create(task, timeout_reference, message)
+          %{state | running_tasks: Map.put(running_tasks, task_reference, message_task)}
 
         _ ->
           state
@@ -451,9 +483,9 @@ defmodule GenRMQ.Consumer do
     # their individual timeout timers
     running_tasks
     |> Map.values()
-    |> Enum.map(fn {%Task{} = task, timeout_reference} ->
-      Process.cancel_timer(timeout_reference)
-      task
+    |> Enum.map(fn %MessageTask{} = message_task ->
+      Process.cancel_timer(message_task.timeout_reference)
+      message_task.task
     end)
     |> Task.yield_many(terminate_timeout)
   end
@@ -466,13 +498,12 @@ defmodule GenRMQ.Consumer do
     |> Keyword.put(:connection, Keyword.get(config, :connection, config[:uri]))
   end
 
-  defp handle_message(payload, attributes, %{module: module, task_supervisor: task_supervisor_pid} = state)
+  defp handle_message(message, %{module: module, task_supervisor: task_supervisor_pid})
        when is_pid(task_supervisor_pid) do
     Task.Supervisor.async_nolink(
       task_supervisor_pid,
       fn ->
         start_time = System.monotonic_time()
-        message = Message.create(attributes, payload, state)
 
         emit_message_start_event(start_time, message, module)
         result = apply(module, :handle_message, [message])
@@ -484,9 +515,8 @@ defmodule GenRMQ.Consumer do
     )
   end
 
-  defp handle_message(payload, attributes, %{module: module} = state) do
+  defp handle_message(message, %{module: module}) do
     start_time = System.monotonic_time()
-    message = Message.create(attributes, payload, state)
 
     emit_message_start_event(start_time, message, module)
     result = apply(module, :handle_message, [message])

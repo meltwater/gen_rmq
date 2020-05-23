@@ -101,11 +101,11 @@ defmodule GenRMQ.ConsumerTest do
     setup :attach_telemetry_handlers
 
     setup do
-      Agent.start_link(fn -> MapSet.new() end, name: ErrorInConsumer)
+      ErrorInConsumer.start_link(self())
       with_test_consumer(ErrorInConsumer)
     end
 
-    test "should invoke the consumer's handle_info callback if error exists",
+    test "should invoke the user's handle_error callback if an error occurs",
          %{consumer: consumer_pid, state: state} = context do
       clear_mailbox()
 
@@ -119,10 +119,11 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :error], %{time: _}, %{reason: _, module: _}}
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :error], %{time: _}, %{reason: :error, module: _}}
+      assert_receive {:task_error, :error}
     end
 
-    test "should not invoke the consumer's handle_info callback if error does not exist",
+    test "should not invoke the user's handle_error callback if an error does not occur",
          %{consumer: consumer_pid, state: state} = context do
       clear_mailbox()
 
@@ -137,6 +138,7 @@ defmodule GenRMQ.ConsumerTest do
       end)
 
       refute_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :error], %{time: _}, %{reason: _, module: _}}
+      refute_receive {:task_error, :error}
     end
   end
 
@@ -144,7 +146,7 @@ defmodule GenRMQ.ConsumerTest do
     setup :attach_telemetry_handlers
 
     setup do
-      Agent.start_link(fn -> MapSet.new() end, name: SlowConsumer)
+      SlowConsumer.start_link(self())
       with_test_consumer(SlowConsumer)
     end
 
@@ -173,6 +175,8 @@ defmodule GenRMQ.ConsumerTest do
         {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _}, %{message: _, module: _}},
         1_000
       )
+
+      refute_receive {:task_error, :error}
     end
 
     test "should error out the task if it takes too long",
@@ -194,7 +198,10 @@ defmodule GenRMQ.ConsumerTest do
         2_000
       )
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :error], %{time: _}, %{reason: :killed, module: _}}
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :task, :error], %{time: _},
+                      %{reason: :timeout, module: _}}
+
+      assert_receive {:task_error, :timeout}
     end
   end
 
