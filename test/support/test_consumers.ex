@@ -10,7 +10,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -45,7 +45,7 @@ defmodule TestConsumer do
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
         concurrency: false,
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -78,7 +78,7 @@ defmodule TestConsumer do
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
         reconnect: false,
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -105,7 +105,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000,
+        queue_ttl: 1_000,
         deadletter: false
       ]
     end
@@ -133,7 +133,7 @@ defmodule TestConsumer do
         queue_options: [
           durable: false,
           arguments: [
-            {"x-expires", :long, 1000}
+            {"x-expires", :long, 1_000}
           ]
         ],
         exchange: "gen_rmq_in_exchange_queue_options",
@@ -144,7 +144,7 @@ defmodule TestConsumer do
         deadletter_queue_options: [
           durable: false,
           arguments: [
-            {"x-expires", :long, 1000}
+            {"x-expires", :long, 1_000}
           ]
         ],
         deadletter_exchange: "dl_exchange_options",
@@ -182,7 +182,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000,
+        queue_ttl: 1_000,
         deadletter_queue: "dl_queue",
         deadletter_exchange: "dl_exchange",
         deadletter_routing_key: "dl_routing_key"
@@ -213,7 +213,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000,
+        queue_ttl: 1_000,
         queue_max_priority: 100
       ]
     end
@@ -244,7 +244,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -278,7 +278,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -312,7 +312,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -346,7 +346,7 @@ defmodule TestConsumer do
         routing_key: ["routing_key_1", "routing_key_2"],
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -381,7 +381,7 @@ defmodule TestConsumer do
         exchange: existing_exchange(),
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -443,12 +443,12 @@ defmodule TestConsumer do
 
     def init() do
       [
-        queue: "gen_rmq_in_queue",
-        exchange: "gen_rmq_in_exchange",
+        queue: "gen_rmq_error_in_consume_queue",
+        exchange: "gen_rmq_error_in_consume_exchange",
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -487,13 +487,13 @@ defmodule TestConsumer do
 
     def init() do
       [
-        queue: "gen_rmq_in_queue",
-        exchange: "gen_rmq_in_exchange",
+        queue: "slow_consumer_queue",
+        exchange: "slow_consumer_exchange",
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000,
-        handle_message_timeout: 1_000
+        queue_ttl: 1_000,
+        handle_message_timeout: 250
       ]
     end
 

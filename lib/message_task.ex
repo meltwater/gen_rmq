@@ -7,19 +7,21 @@ defmodule GenRMQ.MessageTask do
   * `:task` - the Task struct executing the user's `handle_message` callback
   * `:timeout_reference` - the reference to the timeout timer
   * `:message` - the GenRMQ.Message struct that is being processed
-  * `:exit_status` - the exist status of the Task
+  * `:start_time` - the monotonic time that the task was started
   """
 
-  @enforce_keys [:task, :timeout_reference, :message, :exit_status]
-  defstruct [:task, :timeout_reference, :message, :exit_status]
+  alias __MODULE__
+
+  @enforce_keys [:task, :timeout_reference, :message, :start_time]
+  defstruct [:task, :timeout_reference, :message, :start_time]
 
   @doc false
   def create(task, timeout_reference, message) do
-    %__MODULE__{
+    %MessageTask{
       task: task,
       timeout_reference: timeout_reference,
       message: message,
-      exit_status: nil
+      start_time: System.monotonic_time()
     }
   end
 end

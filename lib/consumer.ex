@@ -194,7 +194,7 @@ defmodule GenRMQ.Consumer do
   `reason` - atom denoting the type of error
 
   ## Examples:
-  To reject the message message that caused the Task to fail you can do something like so:
+  To reject the message that caused the Task to fail you can do something like so:
   ```
   def handle_error(message, reason) do
     # Do something with message and reject it
@@ -332,15 +332,14 @@ defmodule GenRMQ.Consumer do
         %{module: module, config: config, running_tasks: running_tasks} = state
       ) do
     case Map.get(running_tasks, ref) do
-      %MessageTask{exit_status: exit_status, message: message, timeout_reference: timeout_reference} ->
-        exit_status = exit_status || :error
-        Logger.info("[#{module}]: Task failed to handle message. Reason: #{inspect(exit_status)}")
+      %MessageTask{message: message, timeout_reference: timeout_reference, start_time: start_time} ->
+        Logger.info("[#{module}]: Task failed to handle message. Reason: #{inspect(reason)}")
 
         # Cancel timeout timer, emit telemetry event, and invoke user's `handle_error` callback
         Process.cancel_timer(timeout_reference)
         updated_state = %{state | running_tasks: Map.delete(running_tasks, ref)}
-        emit_task_error_event(module, exit_status)
-        apply(module, :handle_error, [message, exit_status])
+        emit_message_error_event(module, reason, message, start_time)
+        apply(module, :handle_error, [message, reason])
 
         {:noreply, updated_state}
 
@@ -379,13 +378,10 @@ defmodule GenRMQ.Consumer do
   def handle_info({:kill, task_reference}, %{running_tasks: running_tasks} = state) when is_reference(task_reference) do
     # The task has timed out, kill the Task process which will trigger a :DOWN event that
     # is handled by a previous `handle_info/2` callback
-    message_task = Map.get(running_tasks, task_reference)
-    %MessageTask{task: %Task{pid: pid}} = message_task
-    updated_state = put_in(state, [:running_tasks, task_reference], %{message_task | exit_status: :timeout})
-
+    %MessageTask{task: %Task{pid: pid}} = Map.get(running_tasks, task_reference)
     Process.exit(pid, :kill)
 
-    {:noreply, updated_state}
+    {:noreply, state}
   end
 
   @doc false
@@ -517,12 +513,18 @@ defmodule GenRMQ.Consumer do
 
   defp handle_message(message, %{module: module}) do
     start_time = System.monotonic_time()
-
     emit_message_start_event(start_time, message, module)
-    result = apply(module, :handle_message, [message])
-    emit_message_stop_event(start_time, message, module)
 
-    result
+    try do
+      result = apply(module, :handle_message, [message])
+      emit_message_stop_event(start_time, message, module)
+
+      result
+    rescue
+      reason ->
+        emit_message_error_event(message, reason, message, start_time)
+        :error
+    end
   end
 
   defp handle_reconnect(false, %{module: module} = state) do
@@ -644,12 +646,12 @@ defmodule GenRMQ.Consumer do
     :telemetry.execute([:gen_rmq, :consumer, :message, :stop], measurements, metadata)
   end
 
-  defp emit_task_error_event(module, reason) do
-    start_time = System.monotonic_time()
-    measurements = %{time: start_time}
-    metadata = %{module: module, reason: reason}
+  defp emit_message_error_event(module, reason, message, start_time) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: stop_time, duration: stop_time - start_time}
+    metadata = %{module: module, reason: reason, message: message}
 
-    :telemetry.execute([:gen_rmq, :consumer, :task, :error], measurements, metadata)
+    :telemetry.execute([:gen_rmq, :consumer, :message, :error], measurements, metadata)
   end
 
   defp emit_connection_down_event(module, reason) do
