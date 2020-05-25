@@ -66,6 +66,52 @@ defmodule TestConsumer do
     end
   end
 
+  defmodule ErrorWithoutConcurrency do
+    use Agent
+
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def start_link(test_pid) do
+      Agent.start_link(fn -> test_pid end, name: __MODULE__)
+    end
+
+    def init() do
+      [
+        queue: "error_no_concurrency_queue",
+        exchange: "error_no_concurrency_exchange",
+        routing_key: "#",
+        prefetch_count: "10",
+        connection: "amqp://guest:guest@localhost:5672",
+        concurrency: false,
+        queue_ttl: 1_000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.ErrorWithoutConcurrency"
+    end
+
+    def handle_message(message) do
+      %{"value" => value} = Jason.decode!(message.payload)
+
+      if value == 0, do: raise("Can't divide by zero!")
+
+      result = Float.to_string(1 / value)
+      updated_message = Map.put(message, :payload, result)
+
+      GenRMQ.Consumer.ack(updated_message)
+    end
+
+    def handle_error(message, reason) do
+      __MODULE__
+      |> Agent.get(& &1)
+      |> send({:synchronous_error, reason})
+
+      GenRMQ.Consumer.reject(message)
+    end
+  end
+
   defmodule WithoutReconnection do
     @moduledoc false
     @behaviour GenRMQ.Consumer

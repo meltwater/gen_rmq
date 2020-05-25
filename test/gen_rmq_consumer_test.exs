@@ -10,6 +10,7 @@ defmodule GenRMQ.ConsumerTest do
   alias TestConsumer.{
     Default,
     ErrorInConsumer,
+    ErrorWithoutConcurrency,
     RedeclaringExistingExchange,
     SlowConsumer,
     WithCustomDeadletter,
@@ -120,7 +121,11 @@ defmodule GenRMQ.ConsumerTest do
       end)
 
       assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
-                      %{reason: {%RuntimeError{message: "Can't divide by zero!"}, _}, module: _, message: _}}
+                      %{
+                        reason: {%RuntimeError{message: "Can't divide by zero!"}, _},
+                        module: ErrorInConsumer,
+                        message: _
+                      }}
 
       assert_receive {:task_error, {%RuntimeError{message: "Can't divide by zero!"}, _}}
 
@@ -210,7 +215,7 @@ defmodule GenRMQ.ConsumerTest do
       )
 
       assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
-                      %{reason: :killed, module: _, message: _}}
+                      %{reason: :killed, module: SlowConsumer, message: _}}
 
       assert_receive {:task_error, :killed}
 
@@ -238,6 +243,48 @@ defmodule GenRMQ.ConsumerTest do
 
       Assert.repeatedly(fn ->
         assert Agent.get(WithoutConcurrency, fn set -> {message, consumer_pid} in set end) == true
+      end)
+    end
+  end
+
+  describe "TestConsumer.ErrorWithoutConcurrency" do
+    setup :attach_telemetry_handlers
+
+    setup do
+      ErrorWithoutConcurrency.start_link(self())
+      with_test_consumer(ErrorWithoutConcurrency)
+    end
+
+    test "should receive invoke the handle_error callback if an error is encountered with no concurrency",
+         %{consumer: consumer_pid, state: state} = context do
+      clear_mailbox()
+
+      # Pass in a value that will raise
+      message = %{"value" => 0}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+      end)
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
+                      %{
+                        reason: %RuntimeError{message: "Can't divide by zero!"},
+                        module: ErrorWithoutConcurrency,
+                        message: _
+                      }}
+
+      assert_receive {:synchronous_error, %RuntimeError{message: "Can't divide by zero!"}}
+
+      # Check that the message made it to the deadletter queue
+      dl_queue = state.config[:queue][:dead_letter][:name]
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], dl_queue) == {:ok, 1}
+        {:ok, _, _} = get_message_from_queue(context[:rabbit_conn], dl_queue)
       end)
     end
   end
@@ -532,9 +579,9 @@ defmodule GenRMQ.ConsumerTest do
         [
           [:gen_rmq, :consumer, :message, :start],
           [:gen_rmq, :consumer, :message, :stop],
+          [:gen_rmq, :consumer, :message, :error],
           [:gen_rmq, :consumer, :connection, :start],
-          [:gen_rmq, :consumer, :connection, :stop],
-          [:gen_rmq, :consumer, :message, :error]
+          [:gen_rmq, :consumer, :connection, :stop]
         ],
         fn name, measurements, metadata, _ ->
           send(self, {:telemetry_event, name, measurements, metadata})

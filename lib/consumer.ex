@@ -522,7 +522,8 @@ defmodule GenRMQ.Consumer do
       result
     rescue
       reason ->
-        emit_message_error_event(message, reason, message, start_time)
+        emit_message_error_event(module, reason, message, start_time)
+        apply(module, :handle_error, [message, reason])
         :error
     end
   end
