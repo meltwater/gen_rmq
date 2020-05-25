@@ -122,12 +122,12 @@ defmodule GenRMQ.ConsumerTest do
 
       assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
                       %{
-                        reason: {%RuntimeError{message: "Can't divide by zero!"}, _},
+                        reason: {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace},
                         module: ErrorInConsumer,
                         message: _
                       }}
 
-      assert_receive {:task_error, {%RuntimeError{message: "Can't divide by zero!"}, _}}
+      assert_receive {:task_error, {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace}}
 
       # Check that the message made it to the deadletter queue
       dl_queue = state.config[:queue][:dead_letter][:name]
@@ -271,12 +271,12 @@ defmodule GenRMQ.ConsumerTest do
 
       assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
                       %{
-                        reason: %RuntimeError{message: "Can't divide by zero!"},
+                        reason: {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace},
                         module: ErrorWithoutConcurrency,
                         message: _
                       }}
 
-      assert_receive {:synchronous_error, %RuntimeError{message: "Can't divide by zero!"}}
+      assert_receive {:synchronous_error, {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace}}
 
       # Check that the message made it to the deadletter queue
       dl_queue = state.config[:queue][:dead_letter][:name]

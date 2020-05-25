@@ -24,8 +24,8 @@ GenRMQ emits [Telemetry][telemetry] events for consumers. It currently exposes t
 
 - `[:gen_rmq, :consumer, :message, :error]` - Dispatched by a GenRMQ consumer when a message fails to be processed
 
-  - Measurement: `%{time: System.monotonic_time}`
-  - Metadata: `%{module: atom, reason: tuple}`
+  - Measurement: `%{time: System.monotonic_time, duration: native_time}`
+  - Metadata: `%{module: atom, reason: tuple, message: GenRMQ.Message.t}`
 
 - `[:gen_rmq, :consumer, :connection, :start]` - Dispatched by a GenRMQ consumer when a connection to RabbitMQ is started
 

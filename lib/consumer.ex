@@ -191,7 +191,7 @@ defmodule GenRMQ.Consumer do
   Invoked when an error or timeout is encountered while executing `handle_message` callback
 
   `message` - `GenRMQ.Message` struct
-  `reason` - atom denoting the type of error
+  `reason` - the information regarding the error
 
   ## Examples:
   To reject the message that caused the Task to fail you can do something like so:
@@ -202,9 +202,24 @@ defmodule GenRMQ.Consumer do
 
     GenRMQ.Consumer.reject(message)
   end
+  ```
 
-  The `reason` argument will either be `:timeout` or `:error` if the message processing task
-  timed out or encountered and error respectively.
+  The `reason` argument will either be the atom `:killed` if the Task timed out and needed
+  to be stopped. Or it will be a 2 elementr tuple where the first element is the error stuct
+  and the second element is the stacktrace:
+
+  ```
+  {
+    %RuntimeError{message: "Can't divide by zero!"},
+    [
+      {TestConsumer.ErrorWithoutConcurrency, :handle_message, 1, [file: 'test/support/test_consumers.ex', line: 98]},
+      {GenRMQ.Consumer, :handle_message, 2, [file: 'lib/consumer.ex', line: 519]},
+      {GenRMQ.Consumer, :handle_info, 2, [file: 'lib/consumer.ex', line: 424]},
+      {:gen_server, :try_dispatch, 4, [file: 'gen_server.erl', line: 637]},
+      {:gen_server, :handle_msg, 6, [file: 'gen_server.erl', line: 711]},
+      {:proc_lib, :init_p_do_apply, 3, [file: 'proc_lib.erl', line: 249]}
+    ]
+  }
   ```
   """
   @callback handle_error(message :: %GenRMQ.Message{}, reason :: atom()) :: :ok
@@ -522,8 +537,9 @@ defmodule GenRMQ.Consumer do
       result
     rescue
       reason ->
-        emit_message_error_event(module, reason, message, start_time)
-        apply(module, :handle_error, [message, reason])
+        full_error = {reason, __STACKTRACE__}
+        emit_message_error_event(module, full_error, message, start_time)
+        apply(module, :handle_error, [message, full_error])
         :error
     end
   end
