@@ -1,24 +1,30 @@
 defmodule GenRMQ.ConsumerTest do
   use ExUnit.Case, async: false
   use GenRMQ.RabbitCase
+
   import ConsumerSharedTests
 
   alias GenRMQ.Test.Assert
-
   alias GenRMQ.Consumer
-  alias TestConsumer.Default
-  alias TestConsumer.WithQueueOptions
-  alias TestConsumer.WithCustomDeadletter
-  alias TestConsumer.WithoutConcurrency
-  alias TestConsumer.WithoutDeadletter
-  alias TestConsumer.WithoutReconnection
-  alias TestConsumer.WithPriority
-  alias TestConsumer.WithTopicExchange
-  alias TestConsumer.WithDirectExchange
-  alias TestConsumer.WithFanoutExchange
-  alias TestConsumer.WithMultiBindingExchange
-  alias TestConsumer.RedeclaringExistingExchange
-  alias TestConsumer.WithQueueOptionsWithoutArguments
+
+  alias TestConsumer.{
+    Default,
+    ErrorInConsumer,
+    ErrorWithoutConcurrency,
+    RedeclaringExistingExchange,
+    SlowConsumer,
+    WithCustomDeadletter,
+    WithDirectExchange,
+    WithFanoutExchange,
+    WithMultiBindingExchange,
+    WithPriority,
+    WithQueueOptions,
+    WithQueueOptionsWithoutArguments,
+    WithTopicExchange,
+    WithoutConcurrency,
+    WithoutDeadletter,
+    WithoutReconnection
+  }
 
   @connection "amqp://guest:guest@localhost:5672"
 
@@ -92,6 +98,138 @@ defmodule GenRMQ.ConsumerTest do
     close_connection_and_channels_after_shutdown_test()
   end
 
+  describe "TestConsumer.ErrorInConsumer" do
+    setup :attach_telemetry_handlers
+
+    setup do
+      ErrorInConsumer.start_link(self())
+      with_test_consumer(ErrorInConsumer)
+    end
+
+    test "should invoke the user's handle_error callback if an error occurs",
+         %{consumer: consumer_pid, state: state} = context do
+      clear_mailbox()
+
+      # Pass in a value that will raise
+      message = %{"value" => 0}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+      end)
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
+                      %{
+                        reason: {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace},
+                        module: ErrorInConsumer,
+                        message: _
+                      }}
+
+      assert_receive {:task_error, {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace}}
+
+      # Check that the message made it to the deadletter queue
+      dl_queue = state.config[:queue][:dead_letter][:name]
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], dl_queue) == {:ok, 1}
+        {:ok, _, _} = get_message_from_queue(context[:rabbit_conn], dl_queue)
+      end)
+    end
+
+    test "should not invoke the user's handle_error callback if an error does not occur",
+         %{consumer: consumer_pid, state: state} = context do
+      clear_mailbox()
+
+      # Pass in a value that will not raise
+      message = %{"value" => 1}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+      end)
+
+      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _}, %{reason: _, module: _}}
+      refute_receive {:task_error, :error}
+    end
+  end
+
+  describe "TestConsumer.SlowConsumer" do
+    setup :attach_telemetry_handlers
+
+    setup do
+      SlowConsumer.start_link(self())
+      with_test_consumer(SlowConsumer)
+    end
+
+    test "should wait for the in progress tasks to complete processing before terminating consumer",
+         %{consumer: consumer_pid, state: state} = context do
+      # Time to sleep consumer
+      message = %{"value" => 500}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+      end)
+
+      GenServer.stop(consumer_pid)
+
+      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _}, %{reason: _, module: _}}
+
+      assert_receive(
+        {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{time: _}, %{message: _, module: _}},
+        1_000
+      )
+
+      assert_receive(
+        {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _}, %{message: _, module: _}},
+        1_000
+      )
+
+      refute_receive {:task_error, :error}
+    end
+
+    test "should error out the task if it takes too long",
+         %{consumer: consumer_pid, state: state} = context do
+      # Time to sleep consumer
+      message = %{"value" => 500}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+      end)
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{time: _}, %{message: _, module: _}}
+
+      refute_receive(
+        {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _}, %{message: _, module: _}},
+        500
+      )
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
+                      %{reason: :killed, module: SlowConsumer, message: _}}
+
+      assert_receive {:task_error, :killed}
+
+      # Check that the message made it to the deadletter queue
+      dl_queue = state.config[:queue][:dead_letter][:name]
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], dl_queue) == {:ok, 1}
+        {:ok, _, _} = get_message_from_queue(context[:rabbit_conn], dl_queue)
+      end)
+    end
+  end
+
   describe "TestConsumer.WithoutConcurrency" do
     setup do
       Agent.start_link(fn -> MapSet.new() end, name: WithoutConcurrency)
@@ -105,6 +243,48 @@ defmodule GenRMQ.ConsumerTest do
 
       Assert.repeatedly(fn ->
         assert Agent.get(WithoutConcurrency, fn set -> {message, consumer_pid} in set end) == true
+      end)
+    end
+  end
+
+  describe "TestConsumer.ErrorWithoutConcurrency" do
+    setup :attach_telemetry_handlers
+
+    setup do
+      ErrorWithoutConcurrency.start_link(self())
+      with_test_consumer(ErrorWithoutConcurrency)
+    end
+
+    test "should receive invoke the handle_error callback if an error is encountered with no concurrency",
+         %{consumer: consumer_pid, state: state} = context do
+      clear_mailbox()
+
+      # Pass in a value that will raise
+      message = %{"value" => 0}
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+      end)
+
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
+                      %{
+                        reason: {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace},
+                        module: ErrorWithoutConcurrency,
+                        message: _
+                      }}
+
+      assert_receive {:synchronous_error, {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace}}
+
+      # Check that the message made it to the deadletter queue
+      dl_queue = state.config[:queue][:dead_letter][:name]
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], dl_queue) == {:ok, 1}
+        {:ok, _, _} = get_message_from_queue(context[:rabbit_conn], dl_queue)
       end)
     end
   end
@@ -399,6 +579,7 @@ defmodule GenRMQ.ConsumerTest do
         [
           [:gen_rmq, :consumer, :message, :start],
           [:gen_rmq, :consumer, :message, :stop],
+          [:gen_rmq, :consumer, :message, :error],
           [:gen_rmq, :consumer, :connection, :start],
           [:gen_rmq, :consumer, :connection, :stop]
         ],
@@ -418,5 +599,13 @@ defmodule GenRMQ.ConsumerTest do
 
     on_exit(fn -> Process.exit(consumer_pid, :normal) end)
     {:ok, %{consumer: consumer_pid, exchange: exchange, state: state}}
+  end
+
+  defp clear_mailbox do
+    receive do
+      _lingering_message -> clear_mailbox()
+    after
+      100 -> :ok
+    end
   end
 end

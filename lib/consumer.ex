@@ -8,13 +8,14 @@ defmodule GenRMQ.Consumer do
   * create deadletter queue and exchange
   * handle reconnections
   * call `handle_message` callback on every message delivery
+  * call `handle_error` callback whenever `handle_message` fails to process or times out
   """
 
   use GenServer
   use AMQP
 
   require Logger
-  alias GenRMQ.Message
+  alias GenRMQ.{Message, MessageTask}
   alias GenRMQ.Consumer.QueueConfiguration
 
   ##############################################################################
@@ -59,11 +60,19 @@ defmodule GenRMQ.Consumer do
   `queue_max_priority` - defines if a declared queue should be a priority queue.
   Should be set to a value from `1..255` range. If it is greater than `255`, queue
   max priority will be set to `255`. Values between `1` and `10` are
-  [recommened](https://www.rabbitmq.com/priority.html#resource-usage).
+  [recommended](https://www.rabbitmq.com/priority.html#resource-usage).
 
   `concurrency` - defines if `handle_message` callback is called
-  in seperate process using [spawn](https://hexdocs.pm/elixir/Process.html#spawn/2)
+  in separate process using [spawn](https://hexdocs.pm/elixir/Process.html#spawn/2)
   function. By default concurrency is enabled. To disable, set it to `false`
+
+  `terminate_timeout` - defines how long the consumer will wait for in-flight Tasks to
+  complete before terminating the process. The value is in milliseconds and the default
+  is 5_000 milliseconds.
+
+  `handle_message_timeout` - defines how long the `handle_message` callback will execute
+  within a supervised task. The value is in milliseconds and the default is 5_000
+  milliseconds.
 
   `retry_delay_function` - custom retry delay function. Called when the connection to
   the broker cannot be established. Receives the connection attempt as an argument (>= 1)
@@ -107,7 +116,9 @@ defmodule GenRMQ.Consumer do
       prefetch_count: "10",
       uri: "amqp://guest:guest@localhost:5672",
       concurrency: true,
-      queue_ttl: 5000,
+      terminate_timeout: 5_000,
+      handle_message_timeout: 5_000,
+      queue_ttl: 5_000,
       retry_delay_function: fn attempt -> :timer.sleep(1000 * attempt) end,
       reconnect: true,
       deadletter: true,
@@ -134,6 +145,8 @@ defmodule GenRMQ.Consumer do
               prefetch_count: String.t(),
               uri: String.t(),
               concurrency: boolean,
+              terminate_timeout: integer,
+              handle_message_timeout: integer,
               queue_ttl: integer,
               retry_delay_function: function,
               reconnect: boolean,
@@ -173,6 +186,43 @@ defmodule GenRMQ.Consumer do
 
   """
   @callback handle_message(message :: %GenRMQ.Message{}) :: :ok
+
+  @doc """
+  Invoked when an error or timeout is encountered while executing `handle_message` callback
+
+  `message` - `GenRMQ.Message` struct
+  `reason` - the information regarding the error
+
+  ## Examples:
+  To reject the message that caused the Task to fail you can do something like so:
+  ```
+  def handle_error(message, reason) do
+    # Do something with message and reject it
+    Logger.warn("Failed to process message: #\{inspect(message)}")
+
+    GenRMQ.Consumer.reject(message)
+  end
+  ```
+
+  The `reason` argument will either be the atom `:killed` if the Task timed out and needed
+  to be stopped. Or it will be a 2 elementr tuple where the first element is the error stuct
+  and the second element is the stacktrace:
+
+  ```
+  {
+    %RuntimeError{message: "Can't divide by zero!"},
+    [
+      {TestConsumer.ErrorWithoutConcurrency, :handle_message, 1, [file: 'test/support/test_consumers.ex', line: 98]},
+      {GenRMQ.Consumer, :handle_message, 2, [file: 'lib/consumer.ex', line: 519]},
+      {GenRMQ.Consumer, :handle_info, 2, [file: 'lib/consumer.ex', line: 424]},
+      {:gen_server, :try_dispatch, 4, [file: 'gen_server.erl', line: 637]},
+      {:gen_server, :handle_msg, 6, [file: 'gen_server.erl', line: 711]},
+      {:proc_lib, :init_p_do_apply, 3, [file: 'proc_lib.erl', line: 249]}
+    ]
+  }
+  ```
+  """
+  @callback handle_error(message :: %GenRMQ.Message{}, reason :: atom()) :: :ok
 
   ##############################################################################
   # GenRMQ.Consumer API
@@ -257,15 +307,31 @@ defmodule GenRMQ.Consumer do
     Process.flag(:trap_exit, true)
     config = apply(module, :init, [])
     parsed_config = parse_config(config)
+    terminate_timeout = Keyword.get(parsed_config, :terminate_timeout, 5_000)
+    handle_message_timeout = Keyword.get(parsed_config, :handle_message_timeout, 5_000)
 
     state =
       initial_state
       |> Map.put(:config, parsed_config)
       |> Map.put(:reconnect_attempt, 0)
+      |> Map.put(:running_tasks, %{})
+      |> Map.put(:terminate_timeout, terminate_timeout)
+      |> Map.put(:handle_message_timeout, handle_message_timeout)
 
-    send(self(), :init)
+    {:ok, state, {:continue, :init}}
+  end
 
-    {:ok, state}
+  @doc false
+  @impl GenServer
+  def handle_continue(:init, state) do
+    state =
+      state
+      |> get_connection()
+      |> open_channels()
+      |> setup_consumer()
+      |> setup_task_supervisor()
+
+    {:noreply, state}
   end
 
   @doc false
@@ -276,26 +342,61 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   @impl GenServer
-  def handle_info(:init, state) do
-    state =
-      state
-      |> get_connection()
-      |> open_channels()
-      |> setup_consumer()
+  def handle_info(
+        {:DOWN, ref, :process, _pid, reason},
+        %{module: module, config: config, running_tasks: running_tasks} = state
+      ) do
+    case Map.get(running_tasks, ref) do
+      %MessageTask{message: message, timeout_reference: timeout_reference, start_time: start_time} ->
+        Logger.info("[#{module}]: Task failed to handle message. Reason: #{inspect(reason)}")
 
-    {:noreply, state}
+        # Cancel timeout timer, emit telemetry event, and invoke user's `handle_error` callback
+        Process.cancel_timer(timeout_reference)
+        updated_state = %{state | running_tasks: Map.delete(running_tasks, ref)}
+        emit_message_error_event(module, reason, message, start_time)
+        apply(module, :handle_error, [message, reason])
+
+        {:noreply, updated_state}
+
+      _ ->
+        Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
+
+        emit_connection_down_event(module, reason)
+
+        config
+        |> Keyword.get(:reconnect, true)
+        |> handle_reconnect(state)
+    end
   end
 
   @doc false
   @impl GenServer
-  def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config} = state) do
-    Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
+  def handle_info({ref, _task_result}, %{running_tasks: running_tasks} = state) when is_reference(ref) do
+    # Task completed successfully, update the running task map and state
+    Process.demonitor(ref, [:flush])
 
-    emit_connection_down_event(module, reason)
+    updated_state =
+      case Map.get(running_tasks, ref) do
+        %MessageTask{} = message_task ->
+          Process.cancel_timer(message_task.timeout_reference)
+          %{state | running_tasks: Map.delete(running_tasks, ref)}
 
-    config
-    |> Keyword.get(:reconnect, true)
-    |> handle_reconnect(state)
+        _ ->
+          state
+      end
+
+    {:noreply, updated_state}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_info({:kill, task_reference}, %{running_tasks: running_tasks} = state) when is_reference(task_reference) do
+    # The task has timed out, kill the Task process which will trigger a :DOWN event that
+    # is handled by a previous `handle_info/2` callback
+    %MessageTask{task: %Task{pid: pid}} = Map.get(running_tasks, task_reference)
+    Process.exit(pid, :kill)
+
+    {:noreply, state}
   end
 
   @doc false
@@ -321,7 +422,10 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   @impl GenServer
-  def handle_info({:basic_deliver, payload, attributes}, %{module: module, config: config} = state) do
+  def handle_info(
+        {:basic_deliver, payload, attributes},
+        %{module: module, running_tasks: running_tasks, handle_message_timeout: handle_message_timeout} = state
+      ) do
     %{delivery_tag: tag, routing_key: routing_key, redelivered: redelivered} = attributes
     Logger.debug("[#{module}]: Received message. Tag: #{tag}, routing key: #{routing_key}, redelivered: #{redelivered}")
 
@@ -329,21 +433,36 @@ defmodule GenRMQ.Consumer do
       Logger.debug("[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}")
     end
 
-    handle_message(payload, attributes, state, Keyword.get(config, :concurrency, true))
+    message = Message.create(attributes, payload, state)
 
-    {:noreply, state}
+    updated_state =
+      case handle_message(message, state) do
+        %Task{ref: task_reference} = task ->
+          timeout_reference = Process.send_after(self(), {:kill, task_reference}, handle_message_timeout)
+          message_task = MessageTask.create(task, timeout_reference, message)
+          %{state | running_tasks: Map.put(running_tasks, task_reference, message_task)}
+
+        _ ->
+          state
+      end
+
+    {:noreply, updated_state}
   end
 
   @doc false
   @impl GenServer
-  def terminate(:connection_closed = reason, %{module: module}) do
+  def terminate(:connection_closed = reason, %{module: module} = state) do
+    await_running_tasks(state)
+
     # Since connection has been closed no need to clean it up
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
   end
 
   @doc false
   @impl GenServer
-  def terminate(reason, %{module: module, conn: conn, in: in_chan, out: out_chan}) do
+  def terminate(reason, %{module: module, conn: conn, in: in_chan, out: out_chan} = state) do
+    await_running_tasks(state)
+
     Logger.debug("[#{module}]: Terminating consumer, reason: #{inspect(reason)}")
     Channel.close(in_chan)
     Channel.close(out_chan)
@@ -352,19 +471,35 @@ defmodule GenRMQ.Consumer do
 
   @doc false
   @impl GenServer
-  def terminate({{:shutdown, {:server_initiated_close, error_code, reason}}, _}, %{module: module}) do
+  def terminate({{:shutdown, {:server_initiated_close, error_code, reason}}, _}, %{module: module} = state) do
+    await_running_tasks(state)
+
     Logger.error("[#{module}]: Terminating consumer, error_code: #{inspect(error_code)}, reason: #{inspect(reason)}")
   end
 
   @doc false
   @impl GenServer
-  def terminate(reason, %{module: module}) do
+  def terminate(reason, %{module: module} = state) do
+    await_running_tasks(state)
+
     Logger.error("[#{module}]: Terminating consumer, unexpected reason: #{inspect(reason)}")
   end
 
   ##############################################################################
   # Helpers
   ##############################################################################
+
+  defp await_running_tasks(%{running_tasks: running_tasks, terminate_timeout: terminate_timeout}) do
+    # Await for all in-flight tasks for the configured amount of time and cancel
+    # their individual timeout timers
+    running_tasks
+    |> Map.values()
+    |> Enum.map(fn %MessageTask{} = message_task ->
+      Process.cancel_timer(message_task.timeout_reference)
+      message_task.task
+    end)
+    |> Task.yield_many(terminate_timeout)
+  end
 
   defp parse_config(config) do
     queue_name = Keyword.fetch!(config, :queue)
@@ -374,28 +509,39 @@ defmodule GenRMQ.Consumer do
     |> Keyword.put(:connection, Keyword.get(config, :connection, config[:uri]))
   end
 
-  defp handle_message(payload, attributes, %{module: module} = state, false) do
-    start_time = System.monotonic_time()
-    message = Message.create(attributes, payload, state)
+  defp handle_message(message, %{module: module, task_supervisor: task_supervisor_pid})
+       when is_pid(task_supervisor_pid) do
+    Task.Supervisor.async_nolink(
+      task_supervisor_pid,
+      fn ->
+        start_time = System.monotonic_time()
 
-    emit_message_start_event(start_time, message, module)
-    result = apply(module, :handle_message, [message])
-    emit_message_stop_event(start_time, message, module)
+        emit_message_start_event(start_time, message, module)
+        result = apply(module, :handle_message, [message])
+        emit_message_stop_event(start_time, message, module)
 
-    result
+        result
+      end,
+      shutdown: :brutal_kill
+    )
   end
 
-  defp handle_message(payload, attributes, %{module: module} = state, true) do
-    spawn(fn ->
-      start_time = System.monotonic_time()
-      message = Message.create(attributes, payload, state)
+  defp handle_message(message, %{module: module}) do
+    start_time = System.monotonic_time()
+    emit_message_start_event(start_time, message, module)
 
-      emit_message_start_event(start_time, message, module)
+    try do
       result = apply(module, :handle_message, [message])
       emit_message_stop_event(start_time, message, module)
 
       result
-    end)
+    rescue
+      reason ->
+        full_error = {reason, __STACKTRACE__}
+        emit_message_error_event(module, full_error, message, start_time)
+        apply(module, :handle_error, [message, full_error])
+        :error
+    end
   end
 
   defp handle_reconnect(false, %{module: module} = state) do
@@ -452,6 +598,16 @@ defmodule GenRMQ.Consumer do
     Map.merge(state, %{in: chan, out: out_chan})
   end
 
+  defp setup_task_supervisor(%{config: config} = state) do
+    if Keyword.get(config, :concurrency, true) do
+      {:ok, pid} = Task.Supervisor.start_link(max_restarts: 0)
+
+      Map.put(state, :task_supervisor, pid)
+    else
+      Map.put(state, :task_supervisor, nil)
+    end
+  end
+
   defp setup_consumer(%{in: chan, config: config, module: module} = state) do
     queue_config = config[:queue]
     prefetch_count = String.to_integer(config[:prefetch_count])
@@ -505,6 +661,14 @@ defmodule GenRMQ.Consumer do
     metadata = %{message: message, module: module}
 
     :telemetry.execute([:gen_rmq, :consumer, :message, :stop], measurements, metadata)
+  end
+
+  defp emit_message_error_event(module, reason, message, start_time) do
+    stop_time = System.monotonic_time()
+    measurements = %{time: stop_time, duration: stop_time - start_time}
+    metadata = %{module: module, reason: reason, message: message}
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :error], measurements, metadata)
   end
 
   defp emit_connection_down_event(module, reason) do

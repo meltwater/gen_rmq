@@ -10,7 +10,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -27,6 +27,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithoutConcurrency do
@@ -41,7 +45,7 @@ defmodule TestConsumer do
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
         concurrency: false,
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -55,6 +59,56 @@ defmodule TestConsumer do
 
       Agent.update(__MODULE__, &MapSet.put(&1, {payload, consuming_process}))
       GenRMQ.Consumer.ack(message)
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
+  end
+
+  defmodule ErrorWithoutConcurrency do
+    use Agent
+
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def start_link(test_pid) do
+      Agent.start_link(fn -> test_pid end, name: __MODULE__)
+    end
+
+    def init() do
+      [
+        queue: "error_no_concurrency_queue",
+        exchange: "error_no_concurrency_exchange",
+        routing_key: "#",
+        prefetch_count: "10",
+        connection: "amqp://guest:guest@localhost:5672",
+        concurrency: false,
+        queue_ttl: 1_000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.ErrorWithoutConcurrency"
+    end
+
+    def handle_message(message) do
+      %{"value" => value} = Jason.decode!(message.payload)
+
+      if value == 0, do: raise("Can't divide by zero!")
+
+      result = Float.to_string(1 / value)
+      updated_message = Map.put(message, :payload, result)
+
+      GenRMQ.Consumer.ack(updated_message)
+    end
+
+    def handle_error(message, reason) do
+      __MODULE__
+      |> Agent.get(& &1)
+      |> send({:synchronous_error, reason})
+
+      GenRMQ.Consumer.reject(message)
     end
   end
 
@@ -70,7 +124,7 @@ defmodule TestConsumer do
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
         reconnect: false,
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -79,6 +133,10 @@ defmodule TestConsumer do
     end
 
     def handle_message(_message) do
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
     end
   end
 
@@ -93,7 +151,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000,
+        queue_ttl: 1_000,
         deadletter: false
       ]
     end
@@ -103,6 +161,10 @@ defmodule TestConsumer do
     end
 
     def handle_message(message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_error(message, _reason) do
       GenRMQ.Consumer.reject(message)
     end
   end
@@ -117,7 +179,7 @@ defmodule TestConsumer do
         queue_options: [
           durable: false,
           arguments: [
-            {"x-expires", :long, 1000},
+            {"x-expires", :long, 1_000}
           ]
         ],
         exchange: "gen_rmq_in_exchange_queue_options",
@@ -128,11 +190,11 @@ defmodule TestConsumer do
         deadletter_queue_options: [
           durable: false,
           arguments: [
-            {"x-expires", :long, 1000},
+            {"x-expires", :long, 1_000}
           ]
         ],
         deadletter_exchange: "dl_exchange_options",
-        deadletter_routing_key: "dl_routing_key_options",
+        deadletter_routing_key: "dl_routing_key_options"
       ]
     end
 
@@ -149,6 +211,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithCustomDeadletter do
@@ -162,10 +228,10 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000,
+        queue_ttl: 1_000,
         deadletter_queue: "dl_queue",
         deadletter_exchange: "dl_exchange",
-        deadletter_routing_key: "dl_routing_key",
+        deadletter_routing_key: "dl_routing_key"
       ]
     end
 
@@ -174,6 +240,10 @@ defmodule TestConsumer do
     end
 
     def handle_message(message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_error(message, _reason) do
       GenRMQ.Consumer.reject(message)
     end
   end
@@ -189,7 +259,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000,
+        queue_ttl: 1_000,
         queue_max_priority: 100
       ]
     end
@@ -202,6 +272,10 @@ defmodule TestConsumer do
       payload = Jason.decode!(message.payload)
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
     end
   end
 
@@ -216,7 +290,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -233,6 +307,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithDirectExchange do
@@ -246,7 +324,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -262,6 +340,10 @@ defmodule TestConsumer do
       payload = Jason.decode!(message.payload)
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
     end
   end
 
@@ -276,7 +358,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -293,6 +375,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithMultiBindingExchange do
@@ -306,7 +392,7 @@ defmodule TestConsumer do
         routing_key: ["routing_key_1", "routing_key_2"],
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -323,6 +409,10 @@ defmodule TestConsumer do
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
     end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule RedeclaringExistingExchange do
@@ -330,13 +420,14 @@ defmodule TestConsumer do
     @behaviour GenRMQ.Consumer
 
     def existing_exchange, do: "existing_direct_exchange"
+
     def init() do
       [
         queue: "gen_rmq_in_queue_" <> existing_exchange(),
         exchange: existing_exchange(),
         prefetch_count: "10",
         uri: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1000
+        queue_ttl: 1_000
       ]
     end
 
@@ -345,6 +436,10 @@ defmodule TestConsumer do
     end
 
     def handle_message(_), do: :ok
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
   end
 
   defmodule WithQueueOptionsWithoutArguments do
@@ -359,7 +454,7 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        deadletter: false,
+        deadletter: false
       ]
     end
 
@@ -375,6 +470,100 @@ defmodule TestConsumer do
       payload = Jason.decode!(message.payload)
       Agent.update(__MODULE__, &MapSet.put(&1, payload))
       GenRMQ.Consumer.ack(message)
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
+  end
+
+  defmodule ErrorInConsumer do
+    use Agent
+
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def start_link(test_pid) do
+      Agent.start_link(fn -> test_pid end, name: __MODULE__)
+    end
+
+    def init() do
+      [
+        queue: "gen_rmq_error_in_consume_queue",
+        exchange: "gen_rmq_error_in_consume_exchange",
+        routing_key: "#",
+        prefetch_count: "10",
+        connection: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1_000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.ErrorInConsumer"
+    end
+
+    def handle_message(message) do
+      %{"value" => value} = Jason.decode!(message.payload)
+
+      if value == 0, do: raise("Can't divide by zero!")
+
+      result = Float.to_string(1 / value)
+      updated_message = Map.put(message, :payload, result)
+
+      GenRMQ.Consumer.ack(updated_message)
+    end
+
+    def handle_error(message, reason) do
+      __MODULE__
+      |> Agent.get(& &1)
+      |> send({:task_error, reason})
+
+      GenRMQ.Consumer.reject(message)
+    end
+  end
+
+  defmodule SlowConsumer do
+    use Agent
+
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+    def start_link(test_pid) do
+      Agent.start_link(fn -> test_pid end, name: __MODULE__)
+    end
+
+    def init() do
+      [
+        queue: "slow_consumer_queue",
+        exchange: "slow_consumer_exchange",
+        routing_key: "#",
+        prefetch_count: "10",
+        connection: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1_000,
+        handle_message_timeout: 250
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.SlowConsumer"
+    end
+
+    def handle_message(message) do
+      %{"value" => value} = Jason.decode!(message.payload)
+
+      result = Float.to_string(1 / value)
+      updated_message = Map.put(message, :payload, result)
+
+      Process.sleep(value)
+
+      GenRMQ.Consumer.ack(updated_message)
+    end
+
+    def handle_error(message, reason) do
+      __MODULE__
+      |> Agent.get(& &1)
+      |> send({:task_error, reason})
+
+      GenRMQ.Consumer.reject(message)
     end
   end
 end

@@ -214,8 +214,17 @@ defmodule GenRMQ.Publisher do
     Process.flag(:trap_exit, true)
     config = apply(module, :init, [])
     state = Map.merge(initial_state, %{config: config})
-    send(self(), :init)
-    {:ok, state}
+
+    {:ok, state, {:continue, :init}}
+  end
+
+  @doc false
+  @impl GenServer
+  def handle_continue(:init, %{module: module, config: config}) do
+    Logger.info("[#{module}]: Setting up publisher connection and configuration")
+    {:ok, state} = setup_publisher(%{module: module, config: config})
+
+    {:noreply, state}
   end
 
   @doc false
@@ -277,14 +286,6 @@ defmodule GenRMQ.Publisher do
     result = Queue.status(channel, queue)
 
     {:reply, result, state}
-  end
-
-  @doc false
-  @impl GenServer
-  def handle_info(:init, %{module: module, config: config}) do
-    Logger.info("[#{module}]: Setting up publisher connection and configuration")
-    {:ok, state} = setup_publisher(%{module: module, config: config})
-    {:noreply, state}
   end
 
   @doc false

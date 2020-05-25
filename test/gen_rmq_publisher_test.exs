@@ -5,9 +5,11 @@ defmodule GenRMQ.PublisherTest do
   alias GenRMQ.Publisher
   alias GenRMQ.Test.Assert
 
-  alias TestPublisher.Default
-  alias TestPublisher.WithConfirmations
-  alias TestPublisher.RedeclaringExistingExchange
+  alias TestPublisher.{
+    Default,
+    RedeclaringExistingExchange,
+    WithConfirmations
+  }
 
   @connection "amqp://guest:guest@localhost:5672"
   @exchange "gen_rmq_out_exchange"
