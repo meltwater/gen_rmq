@@ -63,8 +63,8 @@ defmodule GenRMQ.Consumer do
   [recommended](https://www.rabbitmq.com/priority.html#resource-usage).
 
   `concurrency` - defines if `handle_message` callback is called
-  in separate process using [spawn](https://hexdocs.pm/elixir/Process.html#spawn/2)
-  function. By default concurrency is enabled. To disable, set it to `false`
+  in separate process using [supervised task](https://hexdocs.pm/elixir/Task.Supervisor.html).
+  By default concurrency is enabled. To disable, set it to `false`
 
   `terminate_timeout` - defines how long the consumer will wait for in-flight Tasks to
   complete before terminating the process. The value is in milliseconds and the default
