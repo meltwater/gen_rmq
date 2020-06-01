@@ -120,9 +120,11 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{duration: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :exception], %{duration: _},
                       %{
-                        reason: {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace},
+                        reason: %RuntimeError{message: "Can't divide by zero!"},
+                        kind: :error,
+                        stacktrace: _,
                         module: ErrorInConsumer,
                         message: _
                       }}
@@ -153,7 +155,7 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], _, _}
+      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :exception], _, _}
       refute_receive {:task_error, :error}
     end
   end
@@ -180,7 +182,7 @@ defmodule GenRMQ.ConsumerTest do
 
       GenServer.stop(consumer_pid)
 
-      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], _, _}
+      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :exception], _, _}
 
       assert_receive(
         {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{system_time: _}, %{message: _, module: _}},
@@ -212,8 +214,8 @@ defmodule GenRMQ.ConsumerTest do
 
       refute_receive({:telemetry_event, [:gen_rmq, :consumer, :message, :stop], _, _}, 500)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{duration: _},
-                      %{reason: :killed, module: SlowConsumer, message: _}}
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :exception], %{duration: _},
+                      %{kind: :exit, reason: :killed, stacktrace: nil, module: SlowConsumer, message: _}}
 
       assert_receive {:task_error, :killed}
 
@@ -267,9 +269,11 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{duration: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :exception], %{duration: _},
                       %{
-                        reason: {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace},
+                        reason: %RuntimeError{message: "Can't divide by zero!"},
+                        kind: :error,
+                        stacktrace: _,
                         module: ErrorWithoutConcurrency,
                         message: _
                       }}
@@ -578,7 +582,7 @@ defmodule GenRMQ.ConsumerTest do
         [
           [:gen_rmq, :consumer, :message, :start],
           [:gen_rmq, :consumer, :message, :stop],
-          [:gen_rmq, :consumer, :message, :error],
+          [:gen_rmq, :consumer, :message, :exception],
           [:gen_rmq, :consumer, :connection, :start],
           [:gen_rmq, :consumer, :connection, :stop]
         ],

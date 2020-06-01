@@ -84,12 +84,32 @@ defmodule GenRMQ.Consumer.Telemetry do
   end
 
   @doc false
-  def emit_message_error_event(module, reason, message, start_time) do
+
+  def emit_message_exception_event(module, message, start_time, {reason, stacktrace}) do
+    emit_message_exception_event(module, message, start_time, :error, reason, stacktrace)
+  end
+
+  def emit_message_exception_event(module, message, start_time, :killed) do
+    emit_message_exception_event(module, message, start_time, :exit, :killed, nil)
+  end
+
+  def emit_message_exception_event(module, message, start_time, _) do
+    emit_message_exception_event(module, message, start_time, :error, nil, nil)
+  end
+
+  def emit_message_exception_event(module, message, start_time, kind, reason, stacktrace) do
     stop_time = System.monotonic_time()
     measurements = %{duration: stop_time - start_time}
-    metadata = %{module: module, reason: reason, message: message}
 
-    :telemetry.execute([:gen_rmq, :consumer, :message, :error], measurements, metadata)
+    metadata = %{
+      module: module,
+      message: message,
+      kind: kind,
+      reason: reason,
+      stacktrace: stacktrace
+    }
+
+    :telemetry.execute([:gen_rmq, :consumer, :message, :exception], measurements, metadata)
   end
 
   @doc false

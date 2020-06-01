@@ -359,7 +359,7 @@ defmodule GenRMQ.Consumer do
         # Cancel timeout timer, emit telemetry event, and invoke user's `handle_error` callback
         Process.cancel_timer(timeout_reference)
         updated_state = %{state | running_tasks: Map.delete(running_tasks, ref)}
-        Telemetry.emit_message_error_event(module, reason, message, start_time)
+        Telemetry.emit_message_exception_event(module, message, start_time, reason)
         apply(module, :handle_error, [message, reason])
 
         {:noreply, updated_state}
@@ -544,7 +544,7 @@ defmodule GenRMQ.Consumer do
     rescue
       reason ->
         full_error = {reason, __STACKTRACE__}
-        Telemetry.emit_message_error_event(module, full_error, message, start_time)
+        Telemetry.emit_message_exception_event(module, message, start_time, :error, reason, __STACKTRACE__)
         apply(module, :handle_error, [message, full_error])
         :error
     end
