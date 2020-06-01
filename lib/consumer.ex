@@ -522,7 +522,7 @@ defmodule GenRMQ.Consumer do
       fn ->
         start_time = System.monotonic_time()
 
-        Telemetry.emit_message_start_event(start_time, message, module)
+        Telemetry.emit_message_start_event(message, module)
         result = apply(module, :handle_message, [message])
         Telemetry.emit_message_stop_event(start_time, message, module)
 
@@ -534,7 +534,7 @@ defmodule GenRMQ.Consumer do
 
   defp handle_message(message, %{module: module}) do
     start_time = System.monotonic_time()
-    Telemetry.emit_message_start_event(start_time, message, module)
+    Telemetry.emit_message_start_event(message, module)
 
     try do
       result = apply(module, :handle_message, [message])
@@ -572,7 +572,7 @@ defmodule GenRMQ.Consumer do
     exchange = config[:exchange]
     routing_key = config[:routing_key]
 
-    Telemetry.emit_connection_start_event(start_time, module, attempt, queue, exchange, routing_key)
+    Telemetry.emit_connection_start_event(module, attempt, queue, exchange, routing_key)
 
     case Connection.open(config[:connection]) do
       {:ok, conn} ->

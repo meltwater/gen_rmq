@@ -120,7 +120,7 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{duration: _},
                       %{
                         reason: {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace},
                         module: ErrorInConsumer,
@@ -153,7 +153,7 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _}, %{reason: _, module: _}}
+      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], _, _}
       refute_receive {:task_error, :error}
     end
   end
@@ -180,15 +180,15 @@ defmodule GenRMQ.ConsumerTest do
 
       GenServer.stop(consumer_pid)
 
-      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _}, %{reason: _, module: _}}
+      refute_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], _, _}
 
       assert_receive(
-        {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{time: _}, %{message: _, module: _}},
+        {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{system_time: _}, %{message: _, module: _}},
         1_000
       )
 
       assert_receive(
-        {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _}, %{message: _, module: _}},
+        {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{duration: _}, %{message: _, module: _}},
         1_000
       )
 
@@ -207,14 +207,12 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{time: _}, %{message: _, module: _}}
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{system_time: _},
+                      %{message: _, module: _}}
 
-      refute_receive(
-        {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _}, %{message: _, module: _}},
-        500
-      )
+      refute_receive({:telemetry_event, [:gen_rmq, :consumer, :message, :stop], _, _}, 500)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{duration: _},
                       %{reason: :killed, module: SlowConsumer, message: _}}
 
       assert_receive {:task_error, :killed}
@@ -269,7 +267,7 @@ defmodule GenRMQ.ConsumerTest do
         assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
       end)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{time: _, duration: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :error], %{duration: _},
                       %{
                         reason: {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace},
                         module: ErrorWithoutConcurrency,
@@ -547,10 +545,10 @@ defmodule GenRMQ.ConsumerTest do
     end
 
     test "should be emitted when the consumer starts and completes setup" do
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :connection, :start], %{time: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :connection, :start], %{system_time: _},
                       %{module: _, attempt: _, queue: _, exchange: _, routing_key: _}}
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :connection, :stop], %{time: _, duration: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :connection, :stop], %{duration: _},
                       %{module: _, attempt: _, queue: _, exchange: _, routing_key: _}}
     end
 
@@ -563,9 +561,10 @@ defmodule GenRMQ.ConsumerTest do
         assert Agent.get(WithoutConcurrency, fn set -> {message, consumer_pid} in set end) == true
       end)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{time: _}, %{message: _, module: _}}
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :start], %{system_time: _},
+                      %{message: _, module: _}}
 
-      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{time: _, duration: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :consumer, :message, :stop], %{duration: _},
                       %{message: _, module: _}}
     end
   end

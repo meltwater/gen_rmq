@@ -235,7 +235,7 @@ defmodule GenRMQ.Publisher do
     start_time = System.monotonic_time()
     exchange = config[:exchange]
 
-    Telemetry.emit_publish_start_event(start_time, exchange, msg)
+    Telemetry.emit_publish_start_event(exchange, msg)
 
     publish_result = Basic.publish(channel, GenRMQ.Binding.exchange_name(exchange), key, msg, metadata)
 
@@ -329,7 +329,7 @@ defmodule GenRMQ.Publisher do
     start_time = System.monotonic_time()
     exchange = config[:exchange]
 
-    Telemetry.emit_connection_start_event(start_time, exchange)
+    Telemetry.emit_connection_start_event(exchange)
 
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
