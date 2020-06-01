@@ -124,10 +124,11 @@ defmodule GenRMQ.ConsumerTest do
                       %{
                         reason: %RuntimeError{message: "Can't divide by zero!"},
                         kind: :error,
-                        stacktrace: _,
+                        stacktrace: stacktrace,
                         module: ErrorInConsumer,
                         message: _
                       }}
+                     when is_list(stacktrace)
 
       assert_receive {:task_error, {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace}}
 
@@ -273,10 +274,11 @@ defmodule GenRMQ.ConsumerTest do
                       %{
                         reason: %RuntimeError{message: "Can't divide by zero!"},
                         kind: :error,
-                        stacktrace: _,
+                        stacktrace: stacktrace,
                         module: ErrorWithoutConcurrency,
                         message: _
                       }}
+                     when is_list(stacktrace)
 
       assert_receive {:synchronous_error, {%RuntimeError{message: "Can't divide by zero!"}, _stacktrace}}
 

@@ -586,7 +586,7 @@ defmodule GenRMQ.Consumer do
             "#{inspect(strip_key(config, :connection))}, reason #{inspect(e)}"
         )
 
-        Telemetry.emit_connection_error_event(start_time, module, attempt, queue, exchange, routing_key, e)
+        Telemetry.emit_connection_stop_event(start_time, module, attempt, queue, exchange, routing_key, e)
 
         retry_delay_fn = config[:retry_delay_function] || (&linear_delay/1)
         next_attempt = attempt + 1
