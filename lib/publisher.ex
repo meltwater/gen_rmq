@@ -241,7 +241,7 @@ defmodule GenRMQ.Publisher do
 
     case publish_result do
       :ok -> Telemetry.emit_publish_stop_event(start_time, exchange, msg)
-      {kind, reason} -> Telemetry.emit_publish_error_event(start_time, exchange, msg, kind, reason)
+      {_kind, error} -> Telemetry.emit_publish_stop_event(start_time, exchange, msg, error)
     end
 
     confirmation_result = wait_for_confirmation(channel, config)
