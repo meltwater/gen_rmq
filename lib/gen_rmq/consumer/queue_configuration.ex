@@ -140,7 +140,7 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
     Keyword.put(
       options,
       :arguments,
-      [{"x-dead-letter-exchange", :longstr, dead_letter[:exchange]} | args]
+      [{"x-dead-letter-exchange", :longstr, GenRMQ.Binding.exchange_name(dead_letter[:exchange])} | args]
     )
   end
 
