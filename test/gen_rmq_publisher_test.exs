@@ -342,10 +342,9 @@ defmodule GenRMQ.PublisherTest do
     end
 
     test "should be emitted when the publisher start and completes setup" do
-      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :connection, :start], %{time: _}, %{exchange: _}}
+      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :connection, :start], %{system_time: _}, %{exchange: _}}
 
-      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :connection, :stop], %{time: _, duration: _},
-                      %{exchange: _}}
+      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :connection, :stop], %{duration: _}, %{exchange: _}}
     end
 
     test "should be emitted when the publisher starts and completes the publishing of a message",
@@ -356,10 +355,10 @@ defmodule GenRMQ.PublisherTest do
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       {:ok, _received_message, _meta} = get_message_from_queue(context)
 
-      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :message, :start], %{time: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :message, :start], %{system_time: _},
                       %{exchange: _, message: _}}
 
-      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :message, :stop], %{time: _, duration: _},
+      assert_receive {:telemetry_event, [:gen_rmq, :publisher, :message, :stop], %{duration: _},
                       %{exchange: _, message: _}}
     end
   end

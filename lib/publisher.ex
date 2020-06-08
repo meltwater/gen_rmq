@@ -8,6 +8,7 @@ defmodule GenRMQ.Publisher do
 
   require Logger
 
+  alias GenRMQ.Publisher.Telemetry
   alias GenRMQ.Queue
 
   # list of fields permitted in message metadata at top level
@@ -234,13 +235,13 @@ defmodule GenRMQ.Publisher do
     start_time = System.monotonic_time()
     exchange = config[:exchange]
 
-    emit_publish_start_event(start_time, exchange, msg)
+    Telemetry.emit_publish_start_event(exchange, msg)
 
     publish_result = Basic.publish(channel, GenRMQ.Binding.exchange_name(exchange), key, msg, metadata)
 
     case publish_result do
-      :ok -> emit_publish_stop_event(start_time, exchange, msg)
-      {kind, reason} -> emit_publish_error_event(start_time, exchange, msg, kind, reason)
+      :ok -> Telemetry.emit_publish_stop_event(start_time, exchange, msg)
+      {_kind, error} -> Telemetry.emit_publish_stop_event(start_time, exchange, msg, error)
     end
 
     confirmation_result = wait_for_confirmation(channel, config)
@@ -293,7 +294,7 @@ defmodule GenRMQ.Publisher do
   def handle_info({:DOWN, _ref, :process, _pid, reason}, %{module: module, config: config}) do
     Logger.info("[#{module}]: RabbitMQ connection is down! Reason: #{inspect(reason)}")
 
-    emit_connection_down_event(module, reason)
+    Telemetry.emit_connection_down_event(module, reason)
 
     {:ok, state} = setup_publisher(%{module: module, config: config})
     {:noreply, state}
@@ -328,7 +329,7 @@ defmodule GenRMQ.Publisher do
     start_time = System.monotonic_time()
     exchange = config[:exchange]
 
-    emit_connection_start_event(start_time, exchange)
+    Telemetry.emit_connection_start_event(exchange)
 
     {:ok, conn} = connect(state)
     {:ok, channel} = Channel.open(conn)
@@ -337,7 +338,7 @@ defmodule GenRMQ.Publisher do
     with_confirmations = Keyword.get(config, :enable_confirmations, false)
     :ok = activate_confirmations(channel, with_confirmations)
 
-    emit_connection_stop_event(start_time, exchange)
+    Telemetry.emit_connection_stop_event(start_time, exchange)
 
     {:ok, %{channel: channel, module: module, config: config, conn: conn}}
   end
@@ -346,52 +347,6 @@ defmodule GenRMQ.Publisher do
     # Backwards compatibility support
     # Use connection-keyword if it's set, otherwise use uri-keyword
     Keyword.put(config, :connection, Keyword.get(config, :connection, config[:uri]))
-  end
-
-  defp emit_connection_down_event(module, reason) do
-    start_time = System.monotonic_time()
-    measurements = %{time: start_time}
-    metadata = %{module: module, reason: reason}
-
-    :telemetry.execute([:gen_rmq, :publisher, :connection, :down], measurements, metadata)
-  end
-
-  defp emit_connection_start_event(start_time, exchange) do
-    measurements = %{time: start_time}
-    metadata = %{exchange: exchange}
-
-    :telemetry.execute([:gen_rmq, :publisher, :connection, :start], measurements, metadata)
-  end
-
-  defp emit_connection_stop_event(start_time, exchange) do
-    stop_time = System.monotonic_time()
-    measurements = %{time: stop_time, duration: stop_time - start_time}
-    metadata = %{exchange: exchange}
-
-    :telemetry.execute([:gen_rmq, :publisher, :connection, :stop], measurements, metadata)
-  end
-
-  defp emit_publish_start_event(start_time, exchange, message) do
-    measurements = %{time: start_time}
-    metadata = %{exchange: exchange, message: message}
-
-    :telemetry.execute([:gen_rmq, :publisher, :message, :start], measurements, metadata)
-  end
-
-  defp emit_publish_stop_event(start_time, exchange, message) do
-    stop_time = System.monotonic_time()
-    measurements = %{time: stop_time, duration: stop_time - start_time}
-    metadata = %{exchange: exchange, message: message}
-
-    :telemetry.execute([:gen_rmq, :publisher, :message, :stop], measurements, metadata)
-  end
-
-  defp emit_publish_error_event(start_time, exchange, message, kind, reason) do
-    stop_time = System.monotonic_time()
-    measurements = %{time: stop_time, duration: stop_time - start_time}
-    metadata = %{exchange: exchange, message: message, kind: kind, reason: reason}
-
-    :telemetry.execute([:gen_rmq, :publisher, :message, :error], measurements, metadata)
   end
 
   defp activate_confirmations(_, false), do: :ok

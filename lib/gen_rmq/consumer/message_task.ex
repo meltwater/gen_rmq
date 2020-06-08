@@ -1,4 +1,4 @@
-defmodule GenRMQ.MessageTask do
+defmodule GenRMQ.Consumer.MessageTask do
   @moduledoc """
   Struct wrapping details of a Task that is executing the configured
   `handle_message` callback
