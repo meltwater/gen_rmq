@@ -36,6 +36,7 @@ defmodule ExampleConsumerOptions do
   # GenRMQ.Consumer callbacks
   ##############################################################################
 
+  @impl GenRMQ.Consumer
   def init() do
     [
       queue: "example_queue",
@@ -60,15 +61,19 @@ defmodule ExampleConsumerOptions do
     ]
   end
 
+  @impl GenRMQ.Consumer
   def handle_message(%Message{} = message) do
     Logger.info("Received message: #{inspect(message)}")
     ack(message)
-  rescue
-    exception ->
-      Logger.error(Exception.format(:error, exception, System.stacktrace()))
-      reject(message, false)
   end
 
+  @impl GenRMQ.Consumer
+  def handle_error(message, reason) do
+    Logger.error("Consumer task error: #{inspect(reason)}")
+    GenRMQ.Consumer.reject(message, false)
+  end
+
+  @impl GenRMQ.Consumer
   def consumer_tag() do
     {:ok, hostname} = :inet.gethostname()
     "#{hostname}-example-consumer"

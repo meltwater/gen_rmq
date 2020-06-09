@@ -46,6 +46,7 @@ can be found under [documentation][examples].
 defmodule Consumer do
   @behaviour GenRMQ.Consumer
 
+  @impl GenRMQ.Consumer
   def init() do
     [
       queue: "gen_rmq_in_queue",
@@ -57,12 +58,19 @@ defmodule Consumer do
     ]
   end
 
+  @impl GenRMQ.Consumer
   def consumer_tag() do
     "test_tag"
   end
 
+  @impl GenRMQ.Consumer
   def handle_message(message) do
     ...
+  end
+
+  @impl GenRMQ.Consumer
+  def handle_error(message, _reason) do
+    GenRMQ.Consumer.reject(message, true)
   end
 end
 ```

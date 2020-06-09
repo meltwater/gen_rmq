@@ -32,6 +32,8 @@ defmodule WithQuorumQueueType do
 
   def handle_message(%GenRMQ.Message{} = message), do: GenRMQ.Consumer.ack(message)
 
+  def handle_error(%GenRMQ.Message{} = message, _reason), do: GenRMQ.Consumer.reject(message, false)
+
   def consumer_tag(), do: "consumer-tag"
 
   def start_link(), do: GenRMQ.Consumer.start_link(__MODULE__, name: __MODULE__)
@@ -45,5 +47,5 @@ end
 - durable topic `example_exchange` exchange created or redeclared
 - durable `example_queue` **quorum** queue created or redeclared and bound to `example_exchange` exchange
 - queue `example_queue` has a deadletter exchange set to `example_exchange.deadletter`
-- every `handle_message` callback will be executed in a separate process
+- every `handle_message` callback will be executed in a separate process (supervised task)
 - on failed rabbitmq connection it will wait for a bit and then reconnect
