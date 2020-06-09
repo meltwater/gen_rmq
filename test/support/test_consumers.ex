@@ -248,6 +248,37 @@ defmodule TestConsumer do
     end
   end
 
+  defmodule WithCustomDeadletterExchangeType do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_in_queue_custom_fanout_deadletter",
+        exchange: "gen_rmq_in_exchange_custom_deadletter",
+        routing_key: "#",
+        prefetch_count: "10",
+        connection: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1_000,
+        deadletter_queue: "dl_queue",
+        deadletter_exchange: {:fanout, "dl_fanout_exchange"},
+        deadletter_routing_key: "dl_routing_key"
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithCustomDeadletterExchangeType"
+    end
+
+    def handle_message(message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
+  end
+
   defmodule WithPriority do
     @moduledoc false
     @behaviour GenRMQ.Consumer
