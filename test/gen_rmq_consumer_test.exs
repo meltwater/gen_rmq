@@ -14,6 +14,7 @@ defmodule GenRMQ.ConsumerTest do
     RedeclaringExistingExchange,
     SlowConsumer,
     WithCustomDeadletter,
+    WithCustomDeadletterExchangeType,
     WithDirectExchange,
     WithFanoutExchange,
     WithMultiBindingExchange,
@@ -366,6 +367,36 @@ defmodule GenRMQ.ConsumerTest do
         {:ok, _, meta} = get_message_from_queue(context[:rabbit_conn], dl_queue)
         assert meta[:routing_key] == "dl_routing_key"
         assert meta[:exchange] == "dl_exchange"
+      end)
+    end
+  end
+
+  describe "TestConsumer.WithCustomDeadletterExchangeType" do
+    setup context do
+      {:ok, chan} = AMQP.Channel.open(context[:rabbit_conn])
+      AMQP.Queue.declare(chan, "dl_secondary_queue", durable: false)
+      AMQP.Exchange.fanout(chan, "dl_fanout_exchange", durable: true)
+      AMQP.Queue.bind(chan, "dl_secondary_queue", "dl_fanout_exchange", routing_key: "dl_routing_key")
+      AMQP.Channel.close(chan)
+      with_test_consumer(WithCustomDeadletterExchangeType)
+    end
+
+    test "should deadletter a message to a custom queue", %{consumer: consumer_pid, state: state} = context do
+      message = %{"msg" => "some message"}
+      dl_queue = state.config[:queue][:dead_letter][:name]
+      purge_queue(context[:rabbit_conn], "dl_secondary_queue")
+
+      publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], dl_queue) == {:ok, 1}
+        assert queue_count(context[:rabbit_conn], "dl_secondary_queue") == {:ok, 1}
+
+        {:ok, _, meta} = get_message_from_queue(context[:rabbit_conn], dl_queue)
+        {:ok, _, meta_secondary_queue} = get_message_from_queue(context[:rabbit_conn], "dl_secondary_queue")
+        assert meta[:exchange] == "dl_fanout_exchange"
+        assert meta_secondary_queue[:exchange] == "dl_fanout_exchange"
       end)
     end
   end
