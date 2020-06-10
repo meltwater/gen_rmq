@@ -37,5 +37,5 @@ end
 - durable fanout `custom_exchange` exchange created or redeclared
 - durable `example_queue` queue created or redeclared and bound to `custom_exchange` exchange
 - queue `example_queue` has a deadletter exchange set to `example_exchange.deadletter`
-- every `handle_message` callback will be executed in a separate process (supervised task)
+- every `handle_message` callback will be executed in a separate [supervised task](https://hexdocs.pm/elixir/1.10.3/Task.html#module-supervised-tasks). If the task fails `handle_error/2` will be called
 - on failed rabbitmq connection it will wait for a bit and then reconnect
