@@ -54,8 +54,8 @@ defmodule ExampleConsumer do
   end
 
   @impl GenRMQ.Consumer
-  def handle_error(message, reason) do
-    Logger.error("Consumer task error: #{inspect(reason)}")
+  def handle_error(%Message{attributes: attributes, payload: payload} = message, reason) do
+    Logger.error("Rejecting message due to consumer task error: #{inspect([reason: reason, msg_attributes: attributes, msg_payload: payload])}")
     GenRMQ.Consumer.reject(message, false)
   end
 
