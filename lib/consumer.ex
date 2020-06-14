@@ -211,7 +211,7 @@ defmodule GenRMQ.Consumer do
   ```
 
   The `reason` argument will either be the atom `:killed` if the Task timed out and needed
-  to be stopped. Or it will be a 2 elementr tuple where the first element is the error stuct
+  to be stopped. Or it will be a 2 element tuple where the first element is the error stuct
   and the second element is the stacktrace:
 
   ```
