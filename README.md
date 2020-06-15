@@ -33,7 +33,7 @@ end
 
 ## Migrations
 
-Version `3.0.0` has been release. Please check [how to migrate to gen_rmq `3.0.0`][migrating_to_300].
+Version `3.0.0` has been released. Please check [how to migrate to gen_rmq `3.0.0`][migrating_to_300].
 
 ## Examples
 
