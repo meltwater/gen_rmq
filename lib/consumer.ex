@@ -228,7 +228,7 @@ defmodule GenRMQ.Consumer do
   }
   ```
   """
-  @callback handle_error(message :: %GenRMQ.Message{}, reason :: atom()) :: :ok
+  @callback handle_error(message :: %GenRMQ.Message{}, reason :: atom() | {struct(), list()}) :: :ok
 
   ##############################################################################
   # GenRMQ.Consumer API
