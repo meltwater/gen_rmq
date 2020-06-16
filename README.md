@@ -132,6 +132,11 @@ GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 - [Consumer Telemetry events][consumer_telemetry_events]
 - [Publisher Telemetry events][publisher_telemetry_events]
 
+### Migrations
+
+- [Version 1.0.0][migrating_to_100]
+- [Version 3.0.0][migrating_to_300]
+
 ## Running Tests
 
 You need [docker-compose][docker_compose] installed.
@@ -173,6 +178,7 @@ Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][undertheho
 
 [behaviours]: https://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours
 [amqp]: https://github.com/pma/amqp
+[migrating_to_100]: https://github.com/meltwater/gen_rmq/blob/master/documentation/migrations/1.md
 [migrating_to_300]: https://github.com/meltwater/gen_rmq/blob/master/documentation/migrations/3.md
 [consumer_doc]: https://github.com/meltwater/gen_rmq/blob/master/lib/consumer.ex
 [docker_compose]: https://docs.docker.com/compose/
