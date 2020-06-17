@@ -38,7 +38,7 @@ defmodule GenRMQ.Consumer do
 
   `queue` - the name of the queue to consume. If it does not exist, it will be created.
 
-  `exchange` - Name or `{type, name}` of the exchange to which `queue` should be bound. If it does not exist, it will be created.
+  `exchange` - name or `{type, name}` of the exchange to which `queue` should be bound. If it does not exist, it will be created.
   For valid exchange types see `GenRMQ.Binding`.
 
   `routing_key` - queue binding key, can also be a list.
@@ -49,7 +49,7 @@ defmodule GenRMQ.Consumer do
 
   `uri` - RabbitMQ uri. Deprecated. Please use `connection`.
 
-  `queue_options` - Queue options as declared in
+  `queue_options` - queue options as declared in
   [AMQP.Queue.declare/3](https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3).
 
   If argument 'x-expires' is given to arguments, then it will be used instead
@@ -94,13 +94,14 @@ defmodule GenRMQ.Consumer do
 
   `deadletter_queue` - defines name of the deadletter queue (**Default:** Same as queue name suffixed by `_error`).
 
-  `deadletter_queue_options` - Queue options for the deadletter queue as declared in [AMQP.Queue.declare/3](https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3).
+  `deadletter_queue_options` - queue options for the deadletter queue as declared in [AMQP.Queue.declare/3](https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3).
 
   If argument 'x-expires' is given to arguments, then it will be used instead of `queue_ttl`.
 
   If argument 'x-max-priority' is given to arguments, then it will be used instead of `queue_max_priority`.
 
-  `deadletter_exchange` - defines name of the deadletter exchange (**Default:** Same as exchange name suffixed by `.deadletter`).
+  `deadletter_exchange` - name or `{type, name}` of the deadletter exchange (**Default:** Same as exchange name suffixed by `.deadletter`).
+  If it does not exist, it will be created. For valid exchange types see `GenRMQ.Binding`
 
   `deadletter_routing_key` - defines name of the deadletter routing key (**Default:** `#`).
 
@@ -159,7 +160,7 @@ defmodule GenRMQ.Consumer do
               deadletter: boolean,
               deadletter_queue: String.t(),
               deadletter_queue_options: keyword,
-              deadletter_exchange: String.t(),
+              deadletter_exchange: GenRMQ.Binding.exchange(),
               deadletter_routing_key: String.t(),
               queue_max_priority: integer
             ]
