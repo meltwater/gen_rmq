@@ -1,7 +1,7 @@
 Consumer with quorum queue type
 ===============================
 
-You can change from `classic` to a `quorum` queue type by specyfing corresponding
+You can change from `classic` to a `quorum` queue type by specifying corresponding
 queue arguments. Read more about quorum queues [here](https://www.rabbitmq.com/quorum-queues.html).
 
 # Example
