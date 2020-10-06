@@ -8,7 +8,7 @@ We ask that TC's open Pull-Request when making changes, to make these changes tr
 
 - **WRITE** access to this repository (no need to maintain your own fork)
 - More immediate impact on the roadmap and feature development of GenRMQ
-- Get listed in `README.md` as a Trusted Committer, to make your involvement know to the community
+- Get listed in `README.md` as a Trusted Committer, to make your involvement known to the community
 - Fame and glory in the GenRMQ community :)
 
 ## What we expect from a Trusted Committer:
