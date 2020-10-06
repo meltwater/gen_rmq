@@ -52,12 +52,10 @@ defmodule GenRMQ.RabbitCase do
       end
 
       def purge_queue(conn, queue) do
-        try do
-          purge_queue!(conn, queue)
-        catch
-          :exit, _ ->
-            :ok
-        end
+        purge_queue!(conn, queue)
+      catch
+        :exit, _ ->
+          :ok
       end
 
       def purge_queue!(conn, queue) do
@@ -82,12 +80,10 @@ defmodule GenRMQ.RabbitCase do
       end
 
       def queue_count(conn, queue) do
-        try do
-          {:ok, queue_count!(conn, queue)}
-        catch
-          :exit, _ ->
-            {:error, :not_found}
-        end
+        {:ok, queue_count!(conn, queue)}
+      catch
+        :exit, _ ->
+          {:error, :not_found}
       end
     end
   end
