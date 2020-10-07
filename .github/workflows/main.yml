@@ -1,5 +1,8 @@
 name: GenRMQ CI
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 on:
   push:
     branches: [ master ]
@@ -94,4 +97,6 @@ jobs:
       - name: Install dependencies
         run: mix deps.get
       - name: ExUnit tests
-        run: mix test
+        env:
+          MIX_ENV: test
+        run: mix coveralls.github
