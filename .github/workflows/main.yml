@@ -70,13 +70,13 @@ jobs:
     strategy:
       matrix:
         elixir:
-          - 1.8
-          - 1.9
-          - 1.10
+          - '1.8'
+          - '1.9'
+          - '1.10'
         otp:
-          - 21.0
-          - 22.0
-          - 23.0
+          - '21.0'
+          - '22.0'
+          - '23.0'
 
     steps:
       - name: Checkout code
