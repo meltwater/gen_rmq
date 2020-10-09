@@ -340,8 +340,8 @@ defmodule GenRMQ.PublisherTest do
       with_test_publisher(WithDefaultExchange)
     end
 
-    test "should publish a message to a default exchange", %{publisher: publisher_pid} = context do
-      message = %{"msg" => "with confirmation"}
+    test "should publish a message to the default exchange", %{publisher: publisher_pid} = context do
+      message = %{"msg" => "with default exchange"}
       # https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchange-default
       # all queues are bound to the default exchange with a queue name as a binding key
       routing_key = context.out_queue
