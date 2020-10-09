@@ -4,10 +4,12 @@ defmodule GenRMQ.Binding do
   declaring consumer bindings and exchanges.
   """
 
-  @type exchange :: String.t() | {exchange_kind(), String.t()}
+  @type exchange :: String.t() | {exchange_kind(), String.t()} | :default
   @type exchange_kind :: :topic | :direct | :fanout
 
   use AMQP
+
+  @default_exchange ""
 
   @doc false
   def bind_exchange_and_queue(chan, exchange, queue, routing_key) do
@@ -29,6 +31,8 @@ defmodule GenRMQ.Binding do
   end
 
   @doc false
+  def declare_exchange(_chan, :default), do: :ok
+
   def declare_exchange(chan, {:direct, exchange}) do
     Exchange.direct(chan, exchange, durable: true)
   end
@@ -45,6 +49,10 @@ defmodule GenRMQ.Binding do
     Exchange.topic(chan, exchange, durable: true)
   end
 
+  def exchange_name(:default) do
+    @default_exchange
+  end
+
   def exchange_name({_, exchange}) do
     exchange
   end
@@ -56,12 +64,14 @@ defmodule GenRMQ.Binding do
 
   defp bind_queue(chan, queue, exchange_name, routing_key) when is_list(routing_key) do
     Enum.reduce_while(routing_key, :ok, fn rk, acc ->
-      case Queue.bind(chan, queue, exchange_name, routing_key: rk) do
+      case bind_queue(chan, queue, exchange_name, rk) do
         :ok -> {:cont, acc}
         err -> {:halt, err}
       end
     end)
   end
+
+  defp bind_queue(_chan, _queue, :default, _routing_key), do: :ok
 
   defp bind_queue(chan, queue, exchange_name, routing_key) do
     Queue.bind(chan, queue, exchange_name, routing_key: routing_key)

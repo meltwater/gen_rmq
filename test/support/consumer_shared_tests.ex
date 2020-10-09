@@ -8,7 +8,7 @@ defmodule ConsumerSharedTests do
       test "should receive a message", context do
         message = %{"msg" => "some message"}
 
-        publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+        publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), context[:routing_key])
 
         GenRMQ.Test.Assert.repeatedly(fn ->
           assert Agent.get(unquote(mod), fn set -> message in set end) == true
@@ -22,7 +22,7 @@ defmodule ConsumerSharedTests do
       test "should reject a message", %{state: state} = context do
         message = "reject"
 
-        publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+        publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), context[:routing_key])
 
         GenRMQ.Test.Assert.repeatedly(fn ->
           assert queue_count(context[:rabbit_conn], state.config[:queue][:dead_letter][:name]) == {:ok, 1}
@@ -37,7 +37,7 @@ defmodule ConsumerSharedTests do
         message = "disconnect"
         AMQP.Connection.close(state.conn)
 
-        publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+        publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message), context[:routing_key])
 
         GenRMQ.Test.Assert.repeatedly(fn ->
           assert Agent.get(unquote(mod), fn set -> message in set end) == true

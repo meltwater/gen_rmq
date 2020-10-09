@@ -40,4 +40,18 @@ defmodule TestPublisher do
       ]
     end
   end
+
+  defmodule WithDefaultExchange do
+    @moduledoc false
+    @behaviour GenRMQ.Publisher
+
+    def init() do
+      [
+        exchange: :default,
+        connection: "amqp://guest:guest@localhost:5672",
+        app_id: :my_app_id,
+        enable_confirmations: true
+      ]
+    end
+  end
 end

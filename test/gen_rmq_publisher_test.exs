@@ -8,7 +8,8 @@ defmodule GenRMQ.PublisherTest do
   alias TestPublisher.{
     Default,
     RedeclaringExistingExchange,
-    WithConfirmations
+    WithConfirmations,
+    WithDefaultExchange
   }
 
   @connection "amqp://guest:guest@localhost:5672"
@@ -327,6 +328,24 @@ defmodule GenRMQ.PublisherTest do
     test "should publish a message and wait for a confirmation", %{publisher: publisher_pid} = context do
       message = %{"msg" => "with confirmation"}
       publish_result = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), "some.routing.key")
+
+      Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
+      assert match?({:ok, ^message, _}, get_message_from_queue(context))
+      assert {:ok, :confirmed} == publish_result
+    end
+  end
+
+  describe "TestPublisher.WithDefaultExchange" do
+    setup do
+      with_test_publisher(WithDefaultExchange)
+    end
+
+    test "should publish a message to a default exchange", %{publisher: publisher_pid} = context do
+      message = %{"msg" => "with confirmation"}
+      # https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchange-default
+      # all queues are bound to the default exchange with a queue name as a binding key
+      routing_key = context.out_queue
+      publish_result = GenRMQ.Publisher.publish(publisher_pid, Jason.encode!(message), routing_key)
 
       Assert.repeatedly(fn -> assert out_queue_count(context) >= 1 end)
       assert match?({:ok, ^message, _}, get_message_from_queue(context))

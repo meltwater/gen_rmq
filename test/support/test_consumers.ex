@@ -446,6 +446,39 @@ defmodule TestConsumer do
     end
   end
 
+  defmodule WithDefaultExchange do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_with_default_exchange",
+        exchange: :default,
+        prefetch_count: "10",
+        connection: "amqp://guest:guest@localhost:5672",
+        queue_ttl: 1_000
+      ]
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithDefaultExchange"
+    end
+
+    def handle_message(%GenRMQ.Message{payload: "\"reject\""} = message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_message(message) do
+      payload = Jason.decode!(message.payload)
+      Agent.update(__MODULE__, &MapSet.put(&1, payload))
+      GenRMQ.Consumer.ack(message)
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
+  end
+
   defmodule RedeclaringExistingExchange do
     @moduledoc false
     @behaviour GenRMQ.Consumer
