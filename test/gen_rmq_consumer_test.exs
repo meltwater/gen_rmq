@@ -606,6 +606,23 @@ defmodule GenRMQ.ConsumerTest do
     end
   end
 
+  describe "ExampleConsumer" do
+    setup do
+      {:ok, _} = ExamplePublisher.start_link()
+      with_test_consumer(ExampleConsumer)
+    end
+
+    test "should not die", context do
+      0..25
+      |> Enum.each(fn e ->
+        ExamplePublisher.publish_message(Jason.encode!(%{count: e}), "routing_key.#")
+      end)
+
+      :timer.sleep(10000)
+      assert Process.alive?(context.consumer)
+    end
+  end
+
   defp attach_telemetry_handlers(%{test: test}) do
     self = self()
 

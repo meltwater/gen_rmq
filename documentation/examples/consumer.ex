@@ -50,6 +50,7 @@ defmodule ExampleConsumer do
   @impl GenRMQ.Consumer
   def handle_message(%Message{} = message) do
     Logger.info("Received message: #{inspect(message)}")
+    IO.puts "Received message: #{inspect(message.payload)}"
     ack(message)
   end
 
