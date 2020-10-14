@@ -569,8 +569,8 @@ defmodule TestConsumer do
         routing_key: "#",
         prefetch_count: "10",
         connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000,
-        handle_message_timeout: 250
+        queue_ttl: 5_000,
+        handle_message_timeout: 500
       ]
     end
 

@@ -284,7 +284,7 @@ defmodule GenRMQ.Consumer do
   `message` - `GenRMQ.Message` struct
   """
   @spec ack(message :: %GenRMQ.Message{}) :: :ok
-  def ack(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}} = message) do
+  def ack(%Message{channel: channel, attributes: %{delivery_tag: tag}} = message) do
     Telemetry.emit_message_ack_event(message)
 
     Basic.ack(channel, tag)
@@ -298,7 +298,7 @@ defmodule GenRMQ.Consumer do
   `requeue` - indicates if message should be requeued
   """
   @spec reject(message :: %GenRMQ.Message{}, requeue :: boolean) :: :ok
-  def reject(%Message{state: %{in: channel}, attributes: %{delivery_tag: tag}} = message, requeue \\ false) do
+  def reject(%Message{channel: channel, attributes: %{delivery_tag: tag}} = message, requeue \\ false) do
     Telemetry.emit_message_reject_event(message, requeue)
 
     Basic.reject(channel, tag, requeue: requeue)
@@ -440,7 +440,7 @@ defmodule GenRMQ.Consumer do
       Logger.debug("[#{module}]: Redelivered payload for message. Tag: #{tag}, payload: #{payload}")
     end
 
-    message = Message.create(attributes, payload, state)
+    message = Message.create(attributes, payload, state.in)
 
     updated_state =
       case handle_message(message, state) do
