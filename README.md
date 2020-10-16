@@ -147,7 +147,7 @@ $ make test
 
 ## How to Contribute
 
-We happily accept contributions as [GitHub PRs][github_prs] or bug reports, comments/suggestions or usage questions by creating a [GitHub issue][gen_rmq_issues].
+Please see our [Contribution Guidelines](CONTRIBUTING.md).
 
 Are you using GenRMQ in Production? Please let us know, we are curious to learn about your experiences!
 
