@@ -8,7 +8,8 @@ We are a fairly small community at the moment. Therefore we will keep these guid
 
 ## How to Contribute
 
-We happily accept contributions as [GitHub PRs][github_prs](https://help.github.com/articles/about-pull-requests/) or bug reports, comments/suggestions or usage questions by creating a [GitHub issue](https://github.com/meltwater/gen_rmq/issues).
+We happily accept contributions as [GitHub PRs](https://help.github.com/articles/about-pull-requests/).
+For bug reports, comments/suggestions or usage questions please create a [GitHub issue](https://github.com/meltwater/gen_rmq/issues).
 
 ## Code of Conduct
 
