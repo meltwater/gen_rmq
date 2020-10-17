@@ -18,7 +18,7 @@ We pledge to act and interact in ways that contribute to an open, welcoming, div
 
 Therefore we follow the [Contributor Covenant v2.0](https://www.contributor-covenant.org/version/2/0/code_of_conduct/).
 
-## Inspiration for these Guidelines
+## References
 
 We took some inspiration from [Writing your contributing guidelines](https://opensource.guide/starting-a-project/#writing-your-contributing-guidelines) and [Contributing to Atom](https://github.com/atom/atom/blob/master/CONTRIBUTING.md).
 
