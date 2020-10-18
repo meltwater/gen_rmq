@@ -22,6 +22,7 @@ defmodule GenRMQ.Mixfile do
         source_url: "https://github.com/meltwater/gen_rmq"
       ],
       dialyzer: [
+        ignore_warnings: ".dialyzer_ignore.exs",
         plt_add_apps: [:mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ]
