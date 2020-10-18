@@ -54,7 +54,7 @@ defmodule GenRMQ.ConsumerTest do
       GenRMQ.Binding.declare_exchange(chan, {:direct, RedeclaringExistingExchange.existing_exchange()})
       {:ok, pid} = Consumer.start_link(RedeclaringExistingExchange, name: RedeclaringExistingExchange)
 
-      assert_receive {:EXIT, ^pid, {{:shutdown, {:server_initiated_close, _, _}}, _}}, 500
+      assert_receive {:EXIT, ^pid, {{:shutdown, {:server_initiated_close, _, _}}, _}}, 5000
     end
   end
 
