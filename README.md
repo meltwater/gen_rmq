@@ -126,6 +126,7 @@ GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 - [Consumer with custom queue configuration][guide_consumer_with_custom_queue_configuration]
 - [Consumer without deadletter configuration][without_deadletter_configuration]
 - [Consumer with quorum queues][with_quorum_queue_type]
+- [Publisher with default exchange][publisher_with_default_exchange]
 
 ### Metrics
 
@@ -197,6 +198,7 @@ Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][undertheho
 [guide_consumer_with_custom_queue_configuration]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_custom_queue_configuration.md
 [without_deadletter_configuration]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/without_deadletter_configuration.md
 [with_quorum_queue_type]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/consumer/with_quorum_queue_type.md
+[publisher_with_default_exchange]: https://github.com/meltwater/gen_rmq/blob/master/documentation/guides/publisher/with_default_exchange.md
 [consumer_telemetry_events]: https://github.com/meltwater/gen_rmq/blob/master/lib/gen_rmq/consumer/telemetry.ex
 [publisher_telemetry_events]: https://github.com/meltwater/gen_rmq/blob/master/lib/gen_rmq/publisher/telemetry.ex
 [trusted_commiters]: https://github.com/meltwater/gen_rmq/blob/master/TRUSTED-COMMITTERS.md

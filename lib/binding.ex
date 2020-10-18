@@ -2,6 +2,12 @@ defmodule GenRMQ.Binding do
   @moduledoc """
   This module defines common methods for
   declaring consumer bindings and exchanges.
+
+  Supported exchange types:
+  * `direct` - sample config: `exchange: {:direct, exchange_name}`
+  * `fanout` - sample config: `exchange: {:fanout, exchange_name}`
+  * `topic` - sample config: `exchange: {:topic, exchange_name}`
+  * `default` - sample config: `exchange: :default`.
   """
 
   @type exchange :: String.t() | {exchange_kind(), String.t()} | :default
