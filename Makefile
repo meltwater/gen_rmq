@@ -30,7 +30,3 @@ outdated-dependencies: deps
 test: deps docker-compose-up-test
 	sleep 5;
 	MIX_ENV=test mix coveralls
-
-test_ci: deps docker-compose-up-test
-	sleep 5;
-	MIX_ENV=test mix coveralls.travis
