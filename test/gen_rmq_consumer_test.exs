@@ -170,10 +170,30 @@ defmodule GenRMQ.ConsumerTest do
       with_test_consumer(SlowConsumer)
     end
 
+    test "should be able to process a large amount of slow consumer messages in a reasonable amount of time",
+         %{consumer: consumer_pid, state: state} = context do
+      clear_mailbox()
+      num_messages = 200
+
+      1..num_messages
+      |> Enum.each(fn _ ->
+        # Time to sleep consumer
+        message = %{"value" => 100}
+        publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
+      end)
+
+      Assert.repeatedly(fn ->
+        assert Process.alive?(consumer_pid) == true
+        assert queue_count(context[:rabbit_conn], state[:config][:queue].name) == {:ok, 0}
+      end)
+
+      refute_receive {:task_error, :error}
+    end
+
     test "should wait for the in progress tasks to complete processing before terminating consumer",
          %{consumer: consumer_pid, state: state} = context do
       # Time to sleep consumer
-      message = %{"value" => 500}
+      message = %{"value" => 600}
 
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 
@@ -202,7 +222,7 @@ defmodule GenRMQ.ConsumerTest do
     test "should error out the task if it takes too long",
          %{consumer: consumer_pid, state: state} = context do
       # Time to sleep consumer
-      message = %{"value" => 500}
+      message = %{"value" => 700}
 
       publish_message(context[:rabbit_conn], context[:exchange], Jason.encode!(message))
 

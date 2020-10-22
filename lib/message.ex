@@ -5,18 +5,32 @@ defmodule GenRMQ.Message do
   Defines:
   * `:attributes` - message attributes
   * `:payload` - message raw payload
-  * `:state` - consumer state
+  * `:channel` - the channel that the message came in from
   """
 
-  @enforce_keys [:attributes, :payload, :state]
-  defstruct [:attributes, :payload, :state]
+  @enforce_keys [:attributes, :payload, :channel]
+  defstruct [:attributes, :payload, :channel]
 
   @doc false
-  def create(attributes, payload, state) do
+  def create(attributes, payload, channel) do
     %__MODULE__{
       attributes: attributes,
       payload: payload,
-      state: state
+      channel: channel
     }
+  end
+end
+
+defimpl Inspect, for: GenRMQ.Message do
+  import Inspect.Algebra
+
+  def inspect(message_struct, opts) do
+    inspect_fields =
+      message_struct
+      |> Map.delete(:channel)
+      |> Map.delete(:__struct__)
+      |> Map.to_list()
+
+    concat(["#GenRMQ.Message<", to_doc(inspect_fields, opts), ">"])
   end
 end
