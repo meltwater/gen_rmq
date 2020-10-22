@@ -10,7 +10,7 @@ defmodule GenRMQ.Test.Assert do
     Agent.start_link(fn -> Map.new() end, name: __MODULE__)
   end
 
-  def repeatedly(function, time \\ 10_000, interval \\ 250) do
+  def repeatedly(function, time \\ 15_000, interval \\ 250) do
     task = Task.async(fn -> repeatedly_loop(function, interval) end)
 
     case Task.yield(task, time) do

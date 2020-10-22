@@ -278,7 +278,7 @@ defmodule GenRMQ.ConsumerTest do
       with_test_consumer(ErrorWithoutConcurrency)
     end
 
-    test "should receive invoke the handle_error callback if an error is encountered with no concurrency",
+    test "should invoke the handle_error callback if an error is encountered with no concurrency",
          %{consumer: consumer_pid, state: state} = context do
       clear_mailbox()
 
