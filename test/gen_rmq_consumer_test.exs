@@ -24,7 +24,8 @@ defmodule GenRMQ.ConsumerTest do
     WithTopicExchange,
     WithoutConcurrency,
     WithoutDeadletter,
-    WithoutReconnection
+    WithoutReconnection,
+    WithDefaultExchange
   }
 
   @connection "amqp://guest:guest@localhost:5672"
@@ -277,7 +278,7 @@ defmodule GenRMQ.ConsumerTest do
       with_test_consumer(ErrorWithoutConcurrency)
     end
 
-    test "should receive invoke the handle_error callback if an error is encountered with no concurrency",
+    test "should invoke the handle_error callback if an error is encountered with no concurrency",
          %{consumer: consumer_pid, state: state} = context do
       clear_mailbox()
 
@@ -593,6 +594,29 @@ defmodule GenRMQ.ConsumerTest do
     close_connection_and_channels_after_shutdown_test()
   end
 
+  describe "TestConsumer.WithDefaultExchange" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithDefaultExchange)
+      {:ok, context} = with_test_consumer(WithDefaultExchange)
+      routing_key = context.state.config[:queue][:name]
+      {:ok, Map.put(context, :routing_key, routing_key)}
+    end
+
+    receive_message_test(WithDefaultExchange)
+
+    reject_message_test()
+
+    reconnect_after_connection_failure_test(WithDefaultExchange)
+
+    terminate_after_queue_deletion_test()
+
+    exit_signal_after_queue_deletion_test()
+
+    close_connection_and_channels_after_deletion_test()
+
+    close_connection_and_channels_after_shutdown_test()
+  end
+
   describe "Telemetry events" do
     setup :attach_telemetry_handlers
 
@@ -654,7 +678,7 @@ defmodule GenRMQ.ConsumerTest do
     exchange = state.config[:exchange]
 
     on_exit(fn -> Process.exit(consumer_pid, :normal) end)
-    {:ok, %{consumer: consumer_pid, exchange: exchange, state: state}}
+    {:ok, %{consumer: consumer_pid, exchange: exchange, state: state, routing_key: "#"}}
   end
 
   defp clear_mailbox do

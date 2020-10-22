@@ -38,8 +38,8 @@ defmodule GenRMQ.Consumer do
 
   `queue` - the name of the queue to consume. If it does not exist, it will be created.
 
-  `exchange` - name or `{type, name}` of the exchange to which `queue` should be bound. If it does not exist, it will be created.
-  For valid exchange types see `GenRMQ.Binding`.
+  `exchange` - name, `:default` or `{type, name}` of the target exchange.
+  If it does not exist, it will be created. Supported types: `:direct`, `:fanout`, `:topic`
 
   `routing_key` - queue binding key, can also be a list.
 
