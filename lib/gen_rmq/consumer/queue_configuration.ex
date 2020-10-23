@@ -26,51 +26,9 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
 
   defp options(queue_opts_word, config) do
     [
-      durable: Keyword.get(config, :queue_durable, true),
-      max_priority: Keyword.get(config, :queue_max_priority, nil),
-      ttl: Keyword.get(config, :queue_ttl, nil)
+      durable: true
     ]
-    |> combine_options(Keyword.get(config, queue_opts_word, []))
-  end
-
-  defp combine_options(word_list, []) do
-    word_list
-  end
-
-  defp combine_options(word_list, option_list) do
-    # Combine two keyword lists together.
-    #
-    # Since queue_options and dead_letter_queue_options
-    # keywords on init can contain queue ttl and max
-    # priority as arguments, and these options will
-    # be used instead of queue_ttl and queue_max_priority
-    # keywords, we must check if these arguments
-    # are present.
-    #
-    # If option_list's arguments has "x-expires" and
-    # word_list has "ttl", then remove "ttl"
-    #
-    # If option_list's arguments has "x-max-priority" and
-    # word_list has "max_priority", then remove "max_priority"
-    #
-    # This is done in order to be backwards compatible.
-    # If one day those two keywords are removed from the
-    # init, then this function can be removed as well.
-    queue_option_arguments = Keyword.get(option_list, :arguments, [])
-
-    word_list
-    |> remove_keyword(queue_option_arguments, %{name: "x-expires", word: :ttl})
-    |> remove_keyword(queue_option_arguments, %{name: "x-max-priority", word: :max_priority})
-    |> Keyword.merge(option_list)
-  end
-
-  defp remove_keyword(word_list, [], _argument), do: word_list
-
-  defp remove_keyword(word_list, option_arguments, argument) do
-    case Enum.find(option_arguments, fn arg -> elem(arg, 0) == argument.name end) do
-      nil -> word_list
-      _ -> Keyword.delete(word_list, argument.word)
-    end
+    |> Keyword.merge(Keyword.get(config, queue_opts_word, []))
   end
 
   defp return(name, options, dead_letter) do
@@ -80,16 +38,12 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
     dead_letter_options =
       dead_letter[:options]
       |> build_arguments()
-      |> Keyword.delete(:ttl)
-      |> Keyword.delete(:max_priority)
 
     dead_letter = Keyword.put(dead_letter, :options, dead_letter_options)
 
     options =
       options
       |> build_arguments(dead_letter)
-      |> Keyword.delete(:ttl)
-      |> Keyword.delete(:max_priority)
 
     %{
       name: name,
