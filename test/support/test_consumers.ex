@@ -490,7 +490,7 @@ defmodule TestConsumer do
         queue: "gen_rmq_in_queue_" <> existing_exchange(),
         exchange: existing_exchange(),
         prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
+        connection: "amqp://guest:guest@localhost:5672",
         queue_ttl: 1_000
       ]
     end

@@ -49,7 +49,7 @@ defmodule ExampleConsumerOptions do
       exchange: "example_exchange",
       routing_key: "routing_key.#",
       prefetch_count: "10",
-      uri: "amqp://guest:guest@localhost:5672",
+      connection: "amqp://guest:guest@localhost:5672",
       deadletter_queue_options: [
         durable: true,
         arguments: [
