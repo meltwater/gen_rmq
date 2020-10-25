@@ -25,25 +25,17 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
   end
 
   defp options(queue_opts_word, config) do
-    [
-      durable: true
-    ]
-    |> Keyword.merge(Keyword.get(config, queue_opts_word, []))
+    provided_config = Keyword.get(config, queue_opts_word, [])
+    Keyword.merge([durable: true], provided_config)
   end
 
   defp return(name, options, dead_letter) do
     # dead_letter_options and options variables can contain
     # queue declare options as defined in
     # https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3
-    dead_letter_options =
-      dead_letter[:options]
-      |> build_arguments()
-
+    dead_letter_options = dead_letter[:options] |> build_arguments()
     dead_letter = Keyword.put(dead_letter, :options, dead_letter_options)
-
-    options =
-      options
-      |> build_arguments(dead_letter)
+    options = options |> build_arguments(dead_letter)
 
     %{
       name: name,
