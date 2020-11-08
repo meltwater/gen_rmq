@@ -7,8 +7,6 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
   with respect to the consumer configuration API.
   """
 
-  @max_priority 255
-
   def setup(queue_name, config) do
     exchange = GenRMQ.Binding.exchange_name(config[:exchange])
     options = options(:queue_options, config)
@@ -48,33 +46,8 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
     create_dead_letter = dead_letter[:create]
 
     options
-    |> setup_ttl()
-    |> setup_priority()
     |> setup_dead_letter_exchange(dead_letter, create_dead_letter)
     |> setup_dead_letter_routing_key(dead_letter, create_dead_letter)
-  end
-
-  defp setup_ttl(options) do
-    case options[:ttl] do
-      nil ->
-        options
-
-      value ->
-        args = Keyword.get(options, :arguments, [])
-        Keyword.put(options, :arguments, [{"x-expires", :long, value} | args])
-    end
-  end
-
-  defp setup_priority(options) do
-    case options[:max_priority] do
-      nil ->
-        options
-
-      value ->
-        value = set_max_priority_to_highest_value(value)
-        args = Keyword.get(options, :arguments, [])
-        Keyword.put(options, :arguments, [{"x-max-priority", :long, value} | args])
-    end
   end
 
   defp setup_dead_letter_exchange(options, _dead_letter, nil), do: options
@@ -108,11 +81,4 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
         options
     end
   end
-
-  defp set_max_priority_to_highest_value(mp)
-       when is_integer(mp) and mp > @max_priority do
-    255
-  end
-
-  defp set_max_priority_to_highest_value(mp) when is_integer(mp), do: mp
 end

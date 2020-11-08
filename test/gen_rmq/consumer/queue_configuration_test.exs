@@ -64,7 +64,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
     assert expected_conf == qc
   end
 
-  test "queue without any queue options returns correct configuration" do
+  test "queue setup without any queue options returns correct configuration" do
     name = "some_queue_name"
 
     config = [
@@ -214,7 +214,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
     assert expected_conf == qc
   end
 
-  test "queue setup with deal_letter_queue_options returns correct configuration" do
+  test "queue setup with dead letter queue_options returns correct configuration" do
     name = "some_queue_name"
 
     config = [
