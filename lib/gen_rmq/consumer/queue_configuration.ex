@@ -7,6 +7,8 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
   with respect to the consumer configuration API.
   """
 
+  @max_priority 255
+
   def setup(queue_name, config) do
     exchange = GenRMQ.Binding.exchange_name(config[:exchange])
     options = options(:queue_options, config)
@@ -46,6 +48,7 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
     create_dead_letter = dead_letter[:create]
 
     options
+    |> setup_queue_arguments()
     |> setup_dead_letter_exchange(dead_letter, create_dead_letter)
     |> setup_dead_letter_routing_key(dead_letter, create_dead_letter)
   end
@@ -81,4 +84,22 @@ defmodule GenRMQ.Consumer.QueueConfiguration do
         options
     end
   end
+
+  defp setup_queue_arguments(options) do
+    options
+    |> Keyword.get(:arguments, [])
+    |> Enum.map(&set_queue_arg/1)
+    |> case do
+      [] ->
+        options
+
+      args ->
+        Keyword.put(options, :arguments, args)
+    end
+  end
+
+  defp set_queue_arg({"x-max-priority", _, value}) when value > @max_priority,
+    do: {"x-max-priority", :long, @max_priority}
+
+  defp set_queue_arg(arg), do: arg
 end

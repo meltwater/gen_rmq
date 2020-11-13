@@ -227,7 +227,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         arguments: [
           {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
-          {"x-max-priority", :long, 1234}
+          {"x-max-priority", :long, 64}
         ]
       ],
       deadletter_queue_options: [
@@ -251,15 +251,15 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
     expected_conf = %{
       dead_letter: [
         options: [
-          durable: false,
-          auto_delete: true,
-          passive: false,
-          no_wait: false,
           arguments: [
             {"x-queue-type", :longstr, "quorum"},
             {"x-expires", :long, 42},
             {"x-max-priority", :long, 64}
-          ]
+          ],
+          durable: false,
+          auto_delete: true,
+          passive: false,
+          no_wait: false
         ],
         create: true,
         name: "#{name}_error",
@@ -273,12 +273,46 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
           {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"},
           {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
-          {"x-max-priority", :long, 1234}
+          {"x-max-priority", :long, 64}
         ],
         durable: true,
         auto_delete: true,
         passive: true,
         no_wait: true
+      ]
+    }
+
+    qc = QueueConfiguration.setup(name, config)
+
+    assert expected_conf == qc
+  end
+
+  test "queue setup with x-max-priority over 255 is set to 255" do
+    name = "some_queue_name"
+
+    config = [
+      deadletter: false,
+      queue_options: [
+        arguments: [
+          {"x-max-priority", :long, 1000}
+        ]
+      ]
+    ]
+
+    expected_conf = %{
+      name: "some_queue_name",
+      options: [
+        arguments: [
+          {"x-max-priority", :long, 255}
+        ],
+        durable: true
+      ],
+      dead_letter: [
+        options: [durable: true],
+        create: false,
+        name: "some_queue_name_error",
+        exchange: ".deadletter",
+        routing_key: "#"
       ]
     }
 
