@@ -64,13 +64,11 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
     assert expected_conf == qc
   end
 
-  test "queue setup with ttl and priority returns correct configuration" do
+  test "queue setup without any queue options returns correct configuration" do
     name = "some_queue_name"
 
     config = [
       queue: name,
-      queue_ttl: 300,
-      queue_max_priority: 64,
       exchange: "example_exchange",
       routing_key: "routing_key.#",
       prefetch_count: "10",
@@ -80,10 +78,6 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
     expected_conf = %{
       dead_letter: [
         options: [
-          arguments: [
-            {"x-max-priority", :long, config[:queue_max_priority]},
-            {"x-expires", :long, config[:queue_ttl]}
-          ],
           durable: true
         ],
         create: true,
@@ -94,9 +88,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
       name: name,
       options: [
         arguments: [
-          {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"},
-          {"x-max-priority", :long, config[:queue_max_priority]},
-          {"x-expires", :long, config[:queue_ttl]}
+          {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"}
         ],
         durable: true
       ]
@@ -112,8 +104,6 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
 
     config = [
       queue: name,
-      queue_ttl: 300,
-      queue_max_priority: 64,
       queue_options: [
         durable: false,
         auto_delete: true,
@@ -122,7 +112,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         arguments: [
           {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
-          {"x-max-priority", :long, 1234}
+          {"x-max-priority", :long, 10}
         ]
       ],
       exchange: "example_exchange",
@@ -134,10 +124,6 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
     expected_conf = %{
       dead_letter: [
         options: [
-          arguments: [
-            {"x-max-priority", :long, 64},
-            {"x-expires", :long, 300}
-          ],
           durable: true
         ],
         create: true,
@@ -151,7 +137,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
           {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"},
           {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
-          {"x-max-priority", :long, 1234}
+          {"x-max-priority", :long, 10}
         ],
         durable: false,
         auto_delete: true,
@@ -228,13 +214,11 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
     assert expected_conf == qc
   end
 
-  test "queue setup with deal_letter_queue_options returns correct configuration" do
+  test "queue setup with dead letter queue_options returns correct configuration" do
     name = "some_queue_name"
 
     config = [
       queue: name,
-      queue_ttl: 300,
-      queue_max_priority: 64,
       queue_options: [
         durable: true,
         auto_delete: true,
@@ -243,7 +227,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         arguments: [
           {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
-          {"x-max-priority", :long, 1234}
+          {"x-max-priority", :long, 64}
         ]
       ],
       deadletter_queue_options: [
@@ -253,7 +237,8 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         no_wait: false,
         arguments: [
           {"x-queue-type", :longstr, "quorum"},
-          {"x-expires", :long, 42}
+          {"x-expires", :long, 42},
+          {"x-max-priority", :long, 64}
         ]
       ],
       deadletter_routing_key: "rk",
@@ -267,9 +252,9 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
       dead_letter: [
         options: [
           arguments: [
-            {"x-max-priority", :long, 64},
             {"x-queue-type", :longstr, "quorum"},
-            {"x-expires", :long, 42}
+            {"x-expires", :long, 42},
+            {"x-max-priority", :long, 64}
           ],
           durable: false,
           auto_delete: true,
@@ -288,12 +273,46 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
           {"x-dead-letter-exchange", :longstr, "#{config[:exchange]}.deadletter"},
           {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
-          {"x-max-priority", :long, 1234}
+          {"x-max-priority", :long, 64}
         ],
         durable: true,
         auto_delete: true,
         passive: true,
         no_wait: true
+      ]
+    }
+
+    qc = QueueConfiguration.setup(name, config)
+
+    assert expected_conf == qc
+  end
+
+  test "queue setup with x-max-priority over 255 is set to 255" do
+    name = "some_queue_name"
+
+    config = [
+      deadletter: false,
+      queue_options: [
+        arguments: [
+          {"x-max-priority", :long, 1000}
+        ]
+      ]
+    ]
+
+    expected_conf = %{
+      name: "some_queue_name",
+      options: [
+        arguments: [
+          {"x-max-priority", :long, 255}
+        ],
+        durable: true
+      ],
+      dead_letter: [
+        options: [durable: true],
+        create: false,
+        name: "some_queue_name_error",
+        exchange: ".deadletter",
+        routing_key: "#"
       ]
     }
 

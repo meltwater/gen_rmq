@@ -67,15 +67,15 @@ defmodule GenRMQ.ConsumerTest do
     test "should close connection after normal termination", %{consumer: consumer_pid, state: state} do
       Consumer.stop(consumer_pid, :normal)
 
-      assert_receive({:EXIT, ^consumer_pid, :normal})
-      assert Process.alive?(state.conn.pid) == false
+      assert_receive({:EXIT, ^consumer_pid, :normal}, 5000)
+      Assert.repeatedly(fn -> assert Process.alive?(state.conn.pid) == false end)
     end
 
     test "should close connection after abnormal termination", %{consumer: consumer_pid, state: state} do
       Consumer.stop(consumer_pid, :unexpected_reason)
 
-      assert_receive({:EXIT, ^consumer_pid, :unexpected_reason})
-      assert Process.alive?(state.conn.pid) == false
+      assert_receive({:EXIT, ^consumer_pid, :unexpected_reason}, 5000)
+      Assert.repeatedly(fn -> assert Process.alive?(state.conn.pid) == false end)
     end
   end
 

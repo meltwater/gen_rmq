@@ -47,26 +47,8 @@ defmodule GenRMQ.Consumer do
 
   ### Optional:
 
-  `uri` - RabbitMQ uri. Deprecated. Please use `connection`.
-
   `queue_options` - queue options as declared in
   [AMQP.Queue.declare/3](https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3).
-
-  If argument 'x-expires' is given to arguments, then it will be used instead
-  of `queue_ttl`.
-
-  If argument 'x-max-priority' is given to arguments, then it will be used
-  instead of `queue_max_priority`.
-
-  `queue_ttl` - controls for how long a queue can be unused before it is
-  automatically deleted. Unused means the queue has no consumers,
-  the queue has not been redeclared, and basic.get has not been invoked
-  for a duration of at least the expiration period
-
-  `queue_max_priority` - defines if a declared queue should be a priority queue.
-  Should be set to a value from `1..255` range. If it is greater than `255`, queue
-  max priority will be set to `255`. Values between `1` and `10` are
-  [recommended](https://www.rabbitmq.com/priority.html#resource-usage).
 
   `concurrency` - defines if `handle_message` callback is called
   in separate process using [supervised task](https://hexdocs.pm/elixir/Task.Supervisor.html).
@@ -96,10 +78,6 @@ defmodule GenRMQ.Consumer do
 
   `deadletter_queue_options` - queue options for the deadletter queue as declared in [AMQP.Queue.declare/3](https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3).
 
-  If argument 'x-expires' is given to arguments, then it will be used instead of `queue_ttl`.
-
-  If argument 'x-max-priority' is given to arguments, then it will be used instead of `queue_max_priority`.
-
   `deadletter_exchange` - name or `{type, name}` of the deadletter exchange (**Default:** Same as exchange name suffixed by `.deadletter`).
   If it does not exist, it will be created. For valid exchange types see `GenRMQ.Binding`
 
@@ -121,11 +99,9 @@ defmodule GenRMQ.Consumer do
       exchange: "gen_rmq_exchange",
       routing_key: "#",
       prefetch_count: "10",
-      uri: "amqp://guest:guest@localhost:5672",
       concurrency: true,
       terminate_timeout: 5_000,
       handle_message_timeout: 5_000,
-      queue_ttl: 5_000,
       retry_delay_function: fn attempt -> :timer.sleep(1000 * attempt) end,
       reconnect: true,
       deadletter: true,
@@ -136,8 +112,7 @@ defmodule GenRMQ.Consumer do
         ]
       ]
       deadletter_exchange: "gen_rmq_exchange.deadletter",
-      deadletter_routing_key: "#",
-      queue_max_priority: 10
+      deadletter_routing_key: "#"
     ]
   end
   ```
@@ -150,19 +125,16 @@ defmodule GenRMQ.Consumer do
               exchange: GenRMQ.Binding.exchange(),
               routing_key: [String.t()] | String.t(),
               prefetch_count: String.t(),
-              uri: String.t(),
               concurrency: boolean,
               terminate_timeout: integer,
               handle_message_timeout: integer,
-              queue_ttl: integer,
               retry_delay_function: function,
               reconnect: boolean,
               deadletter: boolean,
               deadletter_queue: String.t(),
               deadletter_queue_options: keyword,
               deadletter_exchange: GenRMQ.Binding.exchange(),
-              deadletter_routing_key: String.t(),
-              queue_max_priority: integer
+              deadletter_routing_key: String.t()
             ]
 
   @doc """
@@ -513,7 +485,7 @@ defmodule GenRMQ.Consumer do
 
     config
     |> Keyword.put(:queue, QueueConfiguration.setup(queue_name, config))
-    |> Keyword.put(:connection, Keyword.get(config, :connection, config[:uri]))
+    |> Keyword.put(:connection, Keyword.get(config, :connection))
   end
 
   defp handle_message(message, %{module: module, task_supervisor: task_supervisor_pid})

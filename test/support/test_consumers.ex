@@ -1,17 +1,32 @@
 defmodule TestConsumer do
+  def common_config() do
+    [
+      queue: "gen_rmq_in_queue",
+      exchange: "gen_rmq_in_exchange",
+      routing_key: "#",
+      prefetch_count: "10",
+      connection: "amqp://guest:guest@localhost:5672",
+      queue_options: [
+        arguments: [
+          {"x-expires", :long, 1_000}
+        ]
+      ],
+      deadletter_queue_options: [
+        arguments: [
+          {"x-expires", :long, 1_000}
+        ]
+      ]
+    ]
+  end
+
+  def config(config), do: Keyword.merge(common_config(), config)
+
   defmodule Default do
     @moduledoc false
     @behaviour GenRMQ.Consumer
 
     def init() do
-      [
-        queue: "gen_rmq_in_queue",
-        exchange: "gen_rmq_in_exchange",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000
-      ]
+      [] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -39,14 +54,10 @@ defmodule TestConsumer do
 
     def init() do
       [
-        queue: "gen_rmq_in_queue",
-        exchange: "gen_rmq_in_exchange",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        concurrency: false,
-        queue_ttl: 1_000
-      ]
+        queue: "gen_rmq_in_queue_no_concurrency",
+        exchange: "gen_rmq_in_exchange_no_concurrency",
+        concurrency: false
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -80,12 +91,8 @@ defmodule TestConsumer do
       [
         queue: "error_no_concurrency_queue",
         exchange: "error_no_concurrency_exchange",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        concurrency: false,
-        queue_ttl: 1_000
-      ]
+        concurrency: false
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -120,12 +127,8 @@ defmodule TestConsumer do
       [
         queue: "does_not_matter_queue",
         exchange: "does_not_matter_exchange",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        reconnect: false,
-        queue_ttl: 1_000
-      ]
+        reconnect: false
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -148,12 +151,8 @@ defmodule TestConsumer do
       [
         queue: "gen_rmq_in_queue_no_deadletter",
         exchange: "gen_rmq_in_exchange_no_deadletter",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000,
         deadletter: false
-      ]
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -183,9 +182,6 @@ defmodule TestConsumer do
           ]
         ],
         exchange: "gen_rmq_in_exchange_queue_options",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
         deadletter_queue: "dl_queue_options",
         deadletter_queue_options: [
           durable: false,
@@ -195,7 +191,7 @@ defmodule TestConsumer do
         ],
         deadletter_exchange: "dl_exchange_options",
         deadletter_routing_key: "dl_routing_key_options"
-      ]
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -225,14 +221,10 @@ defmodule TestConsumer do
       [
         queue: "gen_rmq_in_queue_custom_deadletter",
         exchange: "gen_rmq_in_exchange_custom_deadletter",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000,
         deadletter_queue: "dl_queue",
         deadletter_exchange: "dl_exchange",
         deadletter_routing_key: "dl_routing_key"
-      ]
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -256,14 +248,10 @@ defmodule TestConsumer do
       [
         queue: "gen_rmq_in_queue_custom_fanout_deadletter",
         exchange: "gen_rmq_in_exchange_custom_deadletter",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000,
         deadletter_queue: "dl_queue",
         deadletter_exchange: {:fanout, "dl_fanout_exchange"},
         deadletter_routing_key: "dl_routing_key"
-      ]
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -287,12 +275,13 @@ defmodule TestConsumer do
       [
         queue: "gen_rmq_in_queue_with_prio",
         exchange: "gen_rmq_in_exchange_with_prio",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000,
-        queue_max_priority: 100
-      ]
+        queue_options: [
+          arguments: [
+            {"x-expires", :long, 1_000},
+            {"x-max-priority", :long, 100}
+          ]
+        ]
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -317,12 +306,8 @@ defmodule TestConsumer do
     def init() do
       [
         queue: "gen_rmq_wt_in_queue",
-        exchange: {:topic, "gen_rmq_in_wt_exchange"},
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000
-      ]
+        exchange: {:topic, "gen_rmq_in_wt_exchange"}
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -351,12 +336,8 @@ defmodule TestConsumer do
     def init() do
       [
         queue: "gen_rmq_wd_in_queue",
-        exchange: {:direct, "gen_rmq_in_wd_exchange"},
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000
-      ]
+        exchange: {:direct, "gen_rmq_in_wd_exchange"}
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -385,16 +366,12 @@ defmodule TestConsumer do
     def init() do
       [
         queue: "gen_rmq_wf_in_queue",
-        exchange: {:fanout, "gen_rmq_in_wf_exchange"},
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000
-      ]
+        exchange: {:fanout, "gen_rmq_in_wf_exchange"}
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
-      "TestConsumer.WithDirectExchange"
+      "TestConsumer.WithFanoutExchange"
     end
 
     def handle_message(%GenRMQ.Message{payload: "\"reject\""} = message) do
@@ -420,11 +397,8 @@ defmodule TestConsumer do
       [
         queue: "gen_rmq_mb_in_queue",
         exchange: {:direct, "gen_rmq_in_mb_exchange"},
-        routing_key: ["routing_key_1", "routing_key_2"],
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000
-      ]
+        routing_key: ["routing_key_1", "routing_key_2"]
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -453,11 +427,8 @@ defmodule TestConsumer do
     def init() do
       [
         queue: "gen_rmq_with_default_exchange",
-        exchange: :default,
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000
-      ]
+        exchange: :default
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -488,11 +459,8 @@ defmodule TestConsumer do
     def init() do
       [
         queue: "gen_rmq_in_queue_" <> existing_exchange(),
-        exchange: existing_exchange(),
-        prefetch_count: "10",
-        uri: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000
-      ]
+        exchange: existing_exchange()
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -515,11 +483,8 @@ defmodule TestConsumer do
         queue: "gen_rmq_in_queue_options_no_args",
         queue_options: [durable: true],
         exchange: {:topic, "gen_rmq_in_exchange_queue_options_no_args"},
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
         deadletter: false
-      ]
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -554,12 +519,8 @@ defmodule TestConsumer do
     def init() do
       [
         queue: "gen_rmq_error_in_consume_queue",
-        exchange: "gen_rmq_error_in_consume_exchange",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 1_000
-      ]
+        exchange: "gen_rmq_error_in_consume_exchange"
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
@@ -599,12 +560,8 @@ defmodule TestConsumer do
       [
         queue: "slow_consumer_queue",
         exchange: "slow_consumer_exchange",
-        routing_key: "#",
-        prefetch_count: "10",
-        connection: "amqp://guest:guest@localhost:5672",
-        queue_ttl: 5_000,
         handle_message_timeout: 500
-      ]
+      ] |> TestConsumer.config()
     end
 
     def consumer_tag() do
