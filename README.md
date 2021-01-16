@@ -174,7 +174,7 @@ _Note:_ Maintainers and Trusted Committers are listed in [.github/CODEOWNERS][co
 
 The [MIT License][license].
 
-Copyright (c) 2018 - 2020 Meltwater Inc. [underthehood.meltwater.com][underthehood]
+Copyright (c) Meltwater Inc. [underthehood.meltwater.com][underthehood]
 
 [behaviours]: https://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours
 [amqp]: https://github.com/pma/amqp
