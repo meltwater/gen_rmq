@@ -108,7 +108,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         durable: false,
         auto_delete: true,
         passive: true,
-        no_wait: true,
+        nowait: true,
         arguments: [
           {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
@@ -142,7 +142,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         durable: false,
         auto_delete: true,
         passive: true,
-        no_wait: true
+        nowait: true
       ]
     }
 
@@ -223,7 +223,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         durable: true,
         auto_delete: true,
         passive: true,
-        no_wait: true,
+        nowait: true,
         arguments: [
           {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
@@ -234,7 +234,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         durable: false,
         auto_delete: true,
         passive: false,
-        no_wait: false,
+        nowait: false,
         arguments: [
           {"x-queue-type", :longstr, "quorum"},
           {"x-expires", :long, 42},
@@ -259,7 +259,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
           durable: false,
           auto_delete: true,
           passive: false,
-          no_wait: false
+          nowait: false
         ],
         create: true,
         name: "#{name}_error",
@@ -278,7 +278,7 @@ defmodule GenRMQ.Consumer.QueueConfigurationTest do
         durable: true,
         auto_delete: true,
         passive: true,
-        no_wait: true
+        nowait: true
       ]
     }
 
