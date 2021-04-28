@@ -1,0 +1,30 @@
+version: 2
+updates:
+- package-ecosystem: mix
+  directory: "/"
+  schedule:
+    interval: monthly
+    time: "12:00"
+  open-pull-requests-limit: 99
+  ignore:
+  - dependency-name: credo
+    versions:
+    - "> 1.1.0, < 1.2"
+  - dependency-name: excoveralls
+    versions:
+    - "< 0.10.4, >= 0.10.3.a"
+  - dependency-name: excoveralls
+    versions:
+    - "> 0.11.0, < 0.12"
+  - dependency-name: ex_doc
+    versions:
+    - "< 0.19.2, >= 0.19.1.a"
+  - dependency-name: excoveralls
+    versions:
+    - 0.13.4
+  - dependency-name: earmark
+    versions:
+    - 1.4.13
+  - dependency-name: credo
+    versions:
+    - 1.5.4
