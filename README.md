@@ -6,9 +6,12 @@
 
 # GenRMQ
 
-GenRMQ is a set of [behaviours][behaviours] meant to be used to create RabbitMQ consumers and publishers.
+GenRMQ is a set of [behaviours][behaviours] meant to be used to create
+RabbitMQ consumers and publishers, as fully OTP compliant GenServers.
 
-Internally it is using the [AMQP][amqp] elixir RabbitMQ client. The idea is to reduce boilerplate consumer / publisher code, which usually includes:
+Internally it is using the [AMQP][amqp] elixir RabbitMQ client. The idea
+is to reduce boilerplate consumer / publisher code, which usually
+includes:
 
 - creating connection / channel and keeping it in a state
 - creating and binding queue
@@ -25,9 +28,11 @@ GenRMQ provides the following functionality:
 
 ## Installation
 
+GenRMG requires Elixir 1.11 or newer, running on at least OTP 22.
+
 ```elixir
 def deps do
-  [{:gen_rmq, "~> 3.0.0"}]
+  [{:gen_rmq, "~> 3.0"}]
 end
 ```
 

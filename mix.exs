@@ -1,13 +1,13 @@
 defmodule GenRMQ.Mixfile do
   use Mix.Project
 
-  @version "3.0.0"
+  @version "4.0.0"
 
   def project do
     [
       app: :gen_rmq,
       version: @version,
-      elixir: "~> 1.8",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
@@ -42,14 +42,14 @@ defmodule GenRMQ.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:amqp, "~> 1.1"},
-      {:telemetry, "~> 0.4.1"},
-      {:credo, "~> 1.0", only: :dev},
-      {:excoveralls, "~> 0.13.0", only: :test},
-      {:jason, "~> 1.1", only: [:dev, :test]},
-      {:earmark, "~> 1.2", only: :dev},
-      {:ex_doc, "~> 0.22.1", only: :dev},
-      {:dialyxir, "~> 1.0.0-rc.6", only: [:dev], runtime: false}
+      {:amqp, "~> 3.0"},
+      {:telemetry, "~> 1.0"},
+      {:credo, "~> 1.5", only: :dev},
+      {:excoveralls, "~> 0.14", only: :test},
+      {:jason, "~> 1.2", only: [:dev, :test]},
+      {:earmark, "~> 1.4", only: :dev},
+      {:ex_doc, "~> 0.25", only: :dev},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ]
   end
 
