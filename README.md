@@ -32,13 +32,13 @@ GenRMG requires Elixir 1.11 or newer, running on at least OTP 22.
 
 ```elixir
 def deps do
-  [{:gen_rmq, "~> 3.0"}]
+  [{:gen_rmq, "~> 4.0"}]
 end
 ```
 
 ## Migrations
 
-Version `3.0.0` has been released. Please check [how to migrate to gen_rmq `3.0.0`][migrating_to_300].
+Version `4.0.0` has been released. Please check [how to migrate to gen_rmq `4.0.0`][migrating_to_400].
 
 ## Examples
 
@@ -141,6 +141,7 @@ GenRMQ.Publisher.publish(Publisher, Jason.encode!(%{msg: "msg"}))
 
 - [Version 1.0.0][migrating_to_100]
 - [Version 3.0.0][migrating_to_300]
+- [Version 4.0.0][migrating_to_400]
 
 ## Running Tests
 
@@ -185,6 +186,7 @@ Copyright (c) Meltwater Inc. [underthehood.meltwater.com][underthehood]
 [amqp]: https://github.com/pma/amqp
 [migrating_to_100]: https://github.com/meltwater/gen_rmq/blob/master/documentation/migrations/1.0.0.md
 [migrating_to_300]: https://github.com/meltwater/gen_rmq/blob/master/documentation/migrations/3.0.0.md
+[migrating_to_400]: https://github.com/meltwater/gen_rmq/blob/master/documentation/migrations/4.0.0.md
 [consumer_doc]: https://github.com/meltwater/gen_rmq/blob/master/lib/consumer.ex
 [docker_compose]: https://docs.docker.com/compose/
 [github_prs]: https://help.github.com/articles/about-pull-requests/
