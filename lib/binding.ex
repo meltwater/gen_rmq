@@ -45,8 +45,12 @@ defmodule GenRMQ.Binding do
     Exchange.topic(chan, exchange, durable: true)
   end
 
+  def declare_exchange(chan, {:headers, exchange}) do
+    Exchange.fanout(chan, exchange, durable: true)
+  end
+
   def declare_exchange(chan, exchange) do
-    Exchange.topic(chan, exchange, durable: true)
+    Exchange.declare(chan, exchange, :headers, durable: true)
   end
 
   def exchange_name(:default) do
