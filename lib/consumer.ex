@@ -38,7 +38,7 @@ defmodule GenRMQ.Consumer do
 
   `queue` - the name of the queue to consume. If it does not exist, it will be created.
 
-  `exchange` - name, `:default` or `{type, name}` of the target exchange.
+  `exchange` - name, `:default` or `{type, name}` or `{type, name, durable}` of the target exchange.
   If it does not exist, it will be created. Supported types: `:direct`, `:fanout`, `:topic`
 
   `routing_key` - queue binding key, can also be a list.
@@ -78,7 +78,7 @@ defmodule GenRMQ.Consumer do
 
   `deadletter_queue_options` - queue options for the deadletter queue as declared in [AMQP.Queue.declare/3](https://hexdocs.pm/amqp/AMQP.Queue.html#declare/3).
 
-  `deadletter_exchange` - name or `{type, name}` of the deadletter exchange (**Default:** Same as exchange name suffixed by `.deadletter`).
+  `deadletter_exchange` - name or `{type, name}` or `{type, name, durable}` of the deadletter exchange (**Default:** Same as exchange name suffixed by `.deadletter`).
   If it does not exist, it will be created. For valid exchange types see `GenRMQ.Binding`
 
   `deadletter_routing_key` - defines name of the deadletter routing key (**Default:** `#`).

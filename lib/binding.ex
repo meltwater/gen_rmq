@@ -4,7 +4,7 @@ defmodule GenRMQ.Binding do
   declaring consumer bindings and exchanges.
   """
 
-  @type exchange :: String.t() | {exchange_kind(), String.t()} | :default
+  @type exchange :: String.t() | {exchange_kind(), String.t()} | {exchange_kind(), String.t(), Boolean.t()} | :default
   @type exchange_kind :: :topic | :direct | :fanout
 
   use AMQP
@@ -18,11 +18,15 @@ defmodule GenRMQ.Binding do
   end
 
   @doc false
-  def declare_binding(chan, queue, {:fanout, exchange}, _) do
+  def declare_binding(chan, queue, {type, exchange}, routing_key) do
+    declare_binding(chan, queue, {type, exchange, true}, routing_key)
+  end
+
+  def declare_binding(chan, queue, {:fanout, exchange, _}, _) do
     bind_queue(chan, queue, exchange, "")
   end
 
-  def declare_binding(chan, queue, {_, exchange}, routing_key) do
+  def declare_binding(chan, queue, {_, exchange, _}, routing_key) do
     bind_queue(chan, queue, exchange, routing_key)
   end
 
@@ -33,16 +37,20 @@ defmodule GenRMQ.Binding do
   @doc false
   def declare_exchange(_chan, :default), do: :ok
 
-  def declare_exchange(chan, {:direct, exchange}) do
-    Exchange.direct(chan, exchange, durable: true)
+  def declare_exchange(chan, {type, exchange}) do
+    declare_exchange(chan, {type, exchange, true})
   end
 
-  def declare_exchange(chan, {:fanout, exchange}) do
-    Exchange.fanout(chan, exchange, durable: true)
+  def declare_exchange(chan, {:direct, exchange, durable}) do
+    Exchange.direct(chan, exchange, durable: durable)
   end
 
-  def declare_exchange(chan, {:topic, exchange}) do
-    Exchange.topic(chan, exchange, durable: true)
+  def declare_exchange(chan, {:fanout, exchange, durable}) do
+    Exchange.fanout(chan, exchange, durable: durable)
+  end
+
+  def declare_exchange(chan, {:topic, exchange, durable}) do
+    Exchange.topic(chan, exchange, durable: durable)
   end
 
   def declare_exchange(chan, exchange) do
@@ -54,6 +62,10 @@ defmodule GenRMQ.Binding do
   end
 
   def exchange_name({_, exchange}) do
+    exchange
+  end
+
+  def exchange_name({_, exchange, _}) do
     exchange
   end
 
