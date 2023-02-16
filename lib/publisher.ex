@@ -42,7 +42,7 @@ defmodule GenRMQ.Publisher do
 
   `connection` - RabbitMQ connection options. Accepts same arguments as AMQP-library's [Connection.open/2](https://hexdocs.pm/amqp/AMQP.Connection.html#open/2).
 
-  `exchange` - name, `:default` or `{type, name}` of the target exchange.
+  `exchange` - name, `:default` or `{type, name}` or `{type, name, durable}` of the target exchange.
   If it does not exist, it will be created. Supported types: `:direct`, `:fanout`, `:topic`
 
   ### Optional:
