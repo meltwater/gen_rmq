@@ -45,6 +45,10 @@ defmodule GenRMQ.Binding do
     Exchange.topic(chan, exchange, durable: true)
   end
 
+  def declare_exchange(chan, {type, exchange}) do
+    Exchange.declare(chan, exchange, type, durable: true)
+  end
+
   def declare_exchange(chan, exchange) do
     Exchange.topic(chan, exchange, durable: true)
   end
