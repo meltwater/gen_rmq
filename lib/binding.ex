@@ -5,7 +5,7 @@ defmodule GenRMQ.Binding do
   """
 
   @type exchange :: String.t() | {exchange_kind(), String.t()} | :default
-  @type exchange_kind :: :topic | :direct | :fanout
+  @type exchange_kind :: :topic | :direct | :fanout | :headers
 
   use AMQP
 
@@ -47,6 +47,10 @@ defmodule GenRMQ.Binding do
 
   def declare_exchange(chan, {:headers, exchange}) do
     Exchange.declare(chan, exchange, :headers, durable: true)
+  end
+
+  def declare_exchange(chan, {type, exchange}) when is_atom(type) do
+    Exchange.declare(chan, exchange, type, durable: true)
   end
 
   def declare_exchange(chan, exchange) do

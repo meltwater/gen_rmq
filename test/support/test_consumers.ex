@@ -389,6 +389,37 @@ defmodule TestConsumer do
     end
   end
 
+  defmodule WithHeadersExchange do
+    @moduledoc false
+    @behaviour GenRMQ.Consumer
+
+    def init() do
+      [
+        queue: "gen_rmq_wh_in_queue",
+        exchange: {:headers, "gen_rmq_in_wh_exchange"},
+        bindings: [{"events", [arguments: [{"source", "rosters"}, {"destination", "events"}]]}],
+      ] |> TestConsumer.config()
+    end
+
+    def consumer_tag() do
+      "TestConsumer.WithHeadersExchange"
+    end
+
+    def handle_message(%GenRMQ.Message{payload: "\"reject\""} = message) do
+      GenRMQ.Consumer.reject(message)
+    end
+
+    def handle_message(message) do
+      payload = Jason.decode!(message.payload)
+      Agent.update(__MODULE__, &MapSet.put(&1, payload))
+      GenRMQ.Consumer.ack(message)
+    end
+
+    def handle_error(message, _reason) do
+      GenRMQ.Consumer.reject(message)
+    end
+  end
+
   defmodule WithMultiBindingExchange do
     @moduledoc false
     @behaviour GenRMQ.Consumer
