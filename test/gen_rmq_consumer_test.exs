@@ -17,6 +17,7 @@ defmodule GenRMQ.ConsumerTest do
     WithCustomDeadletterExchangeType,
     WithDirectExchange,
     WithFanoutExchange,
+    WithHeadersExchange,
     WithMultiBindingExchange,
     WithPriority,
     WithQueueOptions,
@@ -509,6 +510,40 @@ defmodule GenRMQ.ConsumerTest do
     reject_message_test()
 
     reconnect_after_connection_failure_test(WithFanoutExchange)
+
+    terminate_after_queue_deletion_test()
+
+    exit_signal_after_queue_deletion_test()
+
+    close_connection_and_channels_after_deletion_test()
+
+    close_connection_and_channels_after_shutdown_test()
+  end
+
+  describe "TestConsumer.WithHeadersExchange" do
+    setup do
+      Agent.start_link(fn -> MapSet.new() end, name: WithHeadersExchange)
+      with_test_consumer(WithHeadersExchange)
+    end
+
+    test "should receive a message, no matter the routing key", context do
+      message = %{"msg" => "some message"}
+
+      publish_message(
+        context[:rabbit_conn],
+        context[:exchange],
+        Jason.encode!(message),
+        "sdlkjkjlefberBogusKEYWHatever"
+      )
+
+      Assert.repeatedly(fn ->
+        assert Agent.get(WithHeadersExchange, fn set -> message in set end) == true
+      end)
+    end
+
+    reject_message_test()
+
+    reconnect_after_connection_failure_test(WithHeadersExchange)
 
     terminate_after_queue_deletion_test()
 
