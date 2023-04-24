@@ -392,7 +392,7 @@ defmodule GenRMQ.Publisher do
 
   defp base_metadata(config) do
     [
-      timestamp: DateTime.to_unix(DateTime.utc_now(), :millisecond),
+      timestamp: DateTime.to_unix(DateTime.utc_now(), :second),
       app_id: config |> app_id() |> Atom.to_string(),
       content_type: "application/json"
     ]
