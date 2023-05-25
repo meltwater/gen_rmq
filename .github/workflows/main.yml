@@ -12,7 +12,7 @@ on:
 jobs:
   link_checker:
     name: Link checker
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
       - name: Checkout code
@@ -27,7 +27,7 @@ jobs:
 
   static_analysis:
     name: Static Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
       - name: Checkout code
@@ -62,7 +62,7 @@ jobs:
 
   unit_test:
     name: Run ExUnit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     services:
       rabbitmq:
